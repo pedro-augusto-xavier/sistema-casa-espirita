@@ -3,6 +3,8 @@ name = "sistema-casa-espirita"
 version = "0.1.0"
 description = "Sistema interno de cadastro para casa espírita"
 requires-python = ">=3.12"
+license = { text = "MIT" }
+authors = [{ name = "Pedro Augusto Xavier" }]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

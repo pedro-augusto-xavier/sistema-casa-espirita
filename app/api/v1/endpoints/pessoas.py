@@ -6,6 +6,7 @@ from fastapi import APIRouter, HTTPException, Query, Response, status
 
 from app.api.deps import SessaoDB
 from app.crud import pessoa as crud
+from app.crud import tratamento as crud_tratamento
 from app.models.enums import Papel
 from app.schemas.common import Page
 from app.schemas.pessoa import (
@@ -14,6 +15,7 @@ from app.schemas.pessoa import (
     PessoaOut,
     PessoaUpdate,
 )
+from app.schemas.tratamento import ItemHistorico
 
 router = APIRouter(prefix="/pessoas", tags=["pessoas"])
 
@@ -109,3 +111,17 @@ def reativar_pessoa(db: SessaoDB, pessoa_id: int):
         raise HTTPException(status_code=404, detail="Pessoa não encontrada")
     pessoa = crud.reativar(db, pessoa)
     return PessoaOut.model_validate(pessoa)
+
+
+@router.get(
+    "/{pessoa_id}/historico",
+    response_model=list[ItemHistorico],
+    summary="Linha do tempo da pessoa (atendimentos, casos e evoluções)",
+)
+def historico_pessoa(db: SessaoDB, pessoa_id: int):
+    if crud.get(db, pessoa_id) is None:
+        raise HTTPException(status_code=404, detail="Pessoa não encontrada")
+    return [
+        ItemHistorico.model_validate(i)
+        for i in crud_tratamento.historico_pessoa(db, pessoa_id)
+    ]

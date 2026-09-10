@@ -71,14 +71,31 @@ class Tratamento(TimestampMixin, Base):
     )
 
     tipo: Mapped[TipoTratamento] = relationship()
+    solicitante: Mapped["object"] = relationship(
+        "Pessoa", foreign_keys=[solicitante_id]
+    )
     assistidos: Mapped[list["TratamentoAssistido"]] = relationship(
-        back_populates="tratamento", cascade="all, delete-orphan"
+        back_populates="tratamento",
+        cascade="all, delete-orphan",
+        order_by="TratamentoAssistido.id",
     )
     evolucoes: Mapped[list["TratamentoEvolucao"]] = relationship(
         back_populates="tratamento",
         cascade="all, delete-orphan",
-        order_by="TratamentoEvolucao.data",
+        order_by="TratamentoEvolucao.data, TratamentoEvolucao.id",
     )
+
+    @property
+    def tipo_nome(self) -> str:
+        return self.tipo.nome
+
+    @property
+    def qtd_assistidos(self) -> int:
+        return len(self.assistidos)
+
+    @property
+    def qtd_evolucoes(self) -> int:
+        return len(self.evolucoes)
 
 
 class TratamentoAssistido(Base):

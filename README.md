@@ -14,7 +14,7 @@ Em desenvolvimento.
 - [x] Modelo de dados (17 tabelas) + migrations
 - [x] CRUD de Pessoas (busca, paginação, exclusão lógica) + testes + CI
 - [x] Atendimentos (visita avulsa com tratamentos do dia) + listas de referência
-- [ ] Tratamentos (casos de acompanhamento) + histórico da pessoa
+- [x] Tratamentos (casos): assistidos, diário de evolução, histórico da pessoa
 - [ ] Autenticação e papéis de usuário
 - [ ] Auditoria / LGPD
 - [ ] Frontend (React)

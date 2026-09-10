@@ -3,6 +3,10 @@
 Cada teste roda dentro de uma transação que é desfeita no final (rollback),
 então o banco volta ao estado anterior e um teste não interfere no outro.
 Usa o mesmo banco do .env -- as tabelas já precisam existir (alembic upgrade head).
+
+As listas de referência (tipos de tratamento, funções) são garantidas uma vez
+por sessão de teste, fora da transação, para os testes não dependerem de o seed
+ter sido rodado à mão.
 """
 
 from collections.abc import Generator
@@ -13,6 +17,12 @@ from sqlalchemy.orm import Session
 
 from app.core.database import engine, get_db
 from app.main import app
+from scripts.seed import run as rodar_seed
+
+
+@pytest.fixture(scope="session", autouse=True)
+def _seed_referencias() -> None:
+    rodar_seed()
 
 
 @pytest.fixture()

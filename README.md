@@ -86,3 +86,7 @@ tests/         testes automatizados
 Dado de religião é dado sensível pela LGPD. O projeto trata isso com:
 autenticação por token, autorização por papel, log de auditoria, consentimento
 no cadastro, exclusão lógica e rotina de backup. *(implementação em andamento)*
+
+## Licença
+
+MIT — veja [LICENSE](LICENSE).

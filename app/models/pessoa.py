@@ -71,6 +71,12 @@ class Pessoa(TimestampMixin, Base):
     # Exclusão lógica (nunca apagamos de fato na hora)
     ativo: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
 
+    # LGPD -- "direito ao esquecimento": dados pessoais apagados, ficha mantida
+    # só para não deixar atendimentos órfãos.
+    anonimizada: Mapped[bool] = mapped_column(
+        Boolean, default=False, nullable=False
+    )
+
     papeis: Mapped[list["PessoaPapel"]] = relationship(
         back_populates="pessoa", cascade="all, delete-orphan"
     )

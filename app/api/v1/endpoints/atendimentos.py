@@ -5,8 +5,10 @@ from typing import Annotated
 
 from fastapi import APIRouter, HTTPException, Query, Response, status
 
-from app.api.deps import SessaoDB
+from app.api.deps import SessaoDB, UsuarioAtual
+from app.core.auditoria import registrar
 from app.crud import atendimento as crud
+from app.models.enums import AcaoAuditoria
 from app.schemas.atendimento import (
     AtendimentoCreate,
     AtendimentoListItem,
@@ -51,8 +53,16 @@ def listar_atendimentos(
     status_code=status.HTTP_201_CREATED,
     summary="Registrar atendimento",
 )
-def criar_atendimento(db: SessaoDB, dados: AtendimentoCreate):
-    return AtendimentoOut.model_validate(crud.criar(db, dados))
+def criar_atendimento(db: SessaoDB, dados: AtendimentoCreate, usuario: UsuarioAtual):
+    atendimento = crud.criar(db, dados)
+    registrar(
+        db,
+        usuario=usuario,
+        acao=AcaoAuditoria.criar,
+        entidade="atendimento",
+        entidade_id=atendimento.id,
+    )
+    return AtendimentoOut.model_validate(atendimento)
 
 
 @router.get(
@@ -68,11 +78,25 @@ def obter_atendimento(db: SessaoDB, atendimento_id: int):
 @router.patch(
     "/{atendimento_id}", response_model=AtendimentoOut, summary="Editar atendimento"
 )
-def editar_atendimento(db: SessaoDB, atendimento_id: int, dados: AtendimentoUpdate):
+def editar_atendimento(
+    db: SessaoDB,
+    atendimento_id: int,
+    dados: AtendimentoUpdate,
+    usuario: UsuarioAtual,
+):
     atendimento = crud.get(db, atendimento_id)
     if atendimento is None:
         raise HTTPException(status_code=404, detail="Atendimento não encontrado")
-    return AtendimentoOut.model_validate(crud.atualizar(db, atendimento, dados))
+    atendimento = crud.atualizar(db, atendimento, dados)
+    registrar(
+        db,
+        usuario=usuario,
+        acao=AcaoAuditoria.atualizar,
+        entidade="atendimento",
+        entidade_id=atendimento.id,
+        dados=dados.model_dump(exclude_unset=True, mode="json"),
+    )
+    return AtendimentoOut.model_validate(atendimento)
 
 
 @router.delete(
@@ -80,9 +104,16 @@ def editar_atendimento(db: SessaoDB, atendimento_id: int, dados: AtendimentoUpda
     status_code=status.HTTP_204_NO_CONTENT,
     summary="Excluir atendimento",
 )
-def excluir_atendimento(db: SessaoDB, atendimento_id: int):
+def excluir_atendimento(db: SessaoDB, atendimento_id: int, usuario: UsuarioAtual):
     atendimento = crud.get(db, atendimento_id)
     if atendimento is None:
         raise HTTPException(status_code=404, detail="Atendimento não encontrado")
     crud.remover(db, atendimento)
+    registrar(
+        db,
+        usuario=usuario,
+        acao=AcaoAuditoria.excluir,
+        entidade="atendimento",
+        entidade_id=atendimento_id,
+    )
     return Response(status_code=status.HTTP_204_NO_CONTENT)

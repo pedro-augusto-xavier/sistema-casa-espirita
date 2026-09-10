@@ -4,8 +4,10 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 
-from app.api.deps import SessaoDB, exigir_admin
+from app.api.deps import SessaoDB, UsuarioAtual, exigir_admin
+from app.core.auditoria import registrar
 from app.crud import usuario as crud
+from app.models.enums import AcaoAuditoria
 from app.schemas.common import Page
 from app.schemas.usuario import UsuarioCreate, UsuarioOut, UsuarioUpdate
 
@@ -37,8 +39,17 @@ def listar_usuarios(
     status_code=status.HTTP_201_CREATED,
     summary="Criar usuário",
 )
-def criar_usuario(db: SessaoDB, dados: UsuarioCreate):
-    return UsuarioOut.model_validate(crud.criar(db, dados))
+def criar_usuario(db: SessaoDB, dados: UsuarioCreate, atual: UsuarioAtual):
+    usuario = crud.criar(db, dados)
+    registrar(
+        db,
+        usuario=atual,
+        acao=AcaoAuditoria.criar,
+        entidade="usuario",
+        entidade_id=usuario.id,
+        dados={"papel": usuario.papel.value},
+    )
+    return UsuarioOut.model_validate(usuario)
 
 
 @router.get("/{usuario_id}", response_model=UsuarioOut, summary="Ver usuário")
@@ -50,8 +61,21 @@ def obter_usuario(db: SessaoDB, usuario_id: int):
 
 
 @router.patch("/{usuario_id}", response_model=UsuarioOut, summary="Editar usuário")
-def editar_usuario(db: SessaoDB, usuario_id: int, dados: UsuarioUpdate):
+def editar_usuario(
+    db: SessaoDB, usuario_id: int, dados: UsuarioUpdate, atual: UsuarioAtual
+):
     usuario = crud.get(db, usuario_id)
     if usuario is None:
         raise HTTPException(status_code=404, detail="Usuário não encontrado")
-    return UsuarioOut.model_validate(crud.atualizar(db, usuario, dados))
+    usuario = crud.atualizar(db, usuario, dados)
+    campos = dados.model_dump(exclude_unset=True, mode="json")
+    campos.pop("senha", None)  # nunca logar senha
+    registrar(
+        db,
+        usuario=atual,
+        acao=AcaoAuditoria.atualizar,
+        entidade="usuario",
+        entidade_id=usuario_id,
+        dados={**campos, "senha_alterada": "senha" in dados.model_fields_set},
+    )
+    return UsuarioOut.model_validate(usuario)

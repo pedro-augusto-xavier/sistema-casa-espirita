@@ -16,7 +16,7 @@ Em desenvolvimento.
 - [x] Atendimentos (visita avulsa com tratamentos do dia) + listas de referência
 - [x] Tratamentos (casos): assistidos, diário de evolução, histórico da pessoa
 - [x] Autenticação (JWT) e papéis de usuário (admin / operador)
-- [ ] Auditoria / LGPD
+- [x] Auditoria (quem mexeu em quê) + LGPD (exportar / anonimizar) + backup
 - [ ] Frontend (React)
 
 ## Tecnologias
@@ -99,8 +99,20 @@ tests/         testes automatizados
 ## Segurança e LGPD
 
 Dado de religião é dado sensível pela LGPD. O projeto trata isso com:
-autenticação por token, autorização por papel, log de auditoria, consentimento
-no cadastro, exclusão lógica e rotina de backup. *(implementação em andamento)*
+
+- **Autenticação** por token JWT; **autorização** por papel (admin / operador).
+- **Senha** com hash bcrypt (nunca em texto puro).
+- **Auditoria**: cada criação/edição/exclusão e cada login vira uma linha em
+  `audit_log` (quem, o quê, quando, o que mudou). Consulta em
+  `GET /api/v1/auditoria` (só admin).
+- **Consentimento** registrado no cadastro, com data.
+- **Direito de acesso**: `GET /api/v1/pessoas/{id}/exportar` devolve tudo que o
+  sistema guarda sobre a pessoa.
+- **Direito ao esquecimento**: `POST /api/v1/pessoas/{id}/anonimizar` apaga os
+  dados pessoais e mantém só a linha, para o histórico de atendimentos não
+  ficar órfão.
+- **Exclusão lógica** (soft delete) em vez de apagar na hora.
+- **Backup**: `python -m scripts.backup` gera um dump restaurável em `backups/`.
 
 ## Licença
 

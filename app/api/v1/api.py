@@ -2,9 +2,10 @@
 
 from fastapi import APIRouter
 
-from app.api.v1.endpoints import atendimentos, pessoas, referencias
+from app.api.v1.endpoints import atendimentos, pessoas, referencias, tratamentos
 
 api_router = APIRouter()
 api_router.include_router(pessoas.router)
 api_router.include_router(atendimentos.router)
+api_router.include_router(tratamentos.router)
 api_router.include_router(referencias.router)

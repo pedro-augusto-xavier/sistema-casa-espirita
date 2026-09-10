@@ -1,0 +1,62 @@
+# Sistema Casa Espírita
+
+Sistema interno para cadastro de pessoas, atendimentos e tratamentos de uma casa
+espírita. Substitui as fichas de papel por um histórico digital, pesquisável e
+com controle de acesso.
+
+> Projeto de estudo / portfólio. Todos os dados do repositório são fictícios.
+
+## Status
+
+Em desenvolvimento. Etapa atual: esqueleto da API + conexão com o banco.
+
+## Tecnologias
+
+| Camada | Ferramenta |
+|---|---|
+| API | Python 3.12 + FastAPI |
+| Banco de dados | PostgreSQL 17 |
+| ORM / Migrations | SQLAlchemy 2.0 + Alembic |
+| Validação | Pydantic v2 |
+| Testes | pytest + httpx |
+| Frontend | React + Vite *(próxima fase)* |
+
+## Rodando localmente
+
+Pré-requisitos: Python 3.12+, PostgreSQL 17+ e um banco vazio chamado `casa_espirita`.
+
+```powershell
+# 1. Ambiente virtual
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+
+# 2. Dependências
+pip install -r requirements.txt
+
+# 3. Configuração
+Copy-Item .env.example .env
+# edite o .env com a senha do seu Postgres
+
+# 4. Subir a API
+uvicorn app.main:app --reload
+```
+
+Acesse a documentação interativa em `http://127.0.0.1:8000/docs`.
+
+## Estrutura
+
+```
+app/
+  core/        configuração e conexão com o banco
+  models/      tabelas (SQLAlchemy)
+  schemas/     formatos de entrada/saída da API (Pydantic)
+  api/         rotas, organizadas por versão (v1)
+alembic/       migrations do banco
+tests/         testes automatizados
+```
+
+## Segurança e LGPD
+
+Dado de religião é dado sensível pela LGPD. O projeto trata isso com:
+autenticação por token, autorização por papel, log de auditoria, consentimento
+no cadastro, exclusão lógica e rotina de backup. *(implementação em andamento)*

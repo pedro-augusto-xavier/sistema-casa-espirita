@@ -12,7 +12,7 @@ Em desenvolvimento.
 
 - [x] Esqueleto da API + conexão com o banco
 - [x] Modelo de dados (17 tabelas) + migrations
-- [ ] CRUD de Pessoas
+- [x] CRUD de Pessoas (busca, paginação, exclusão lógica) + testes + CI
 - [ ] CRUD de Atendimentos e Tratamentos
 - [ ] Autenticação e papéis de usuário
 - [ ] Auditoria / LGPD
@@ -56,6 +56,18 @@ uvicorn app.main:app --reload
 ```
 
 Acesse a documentação interativa em `http://127.0.0.1:8000/docs`.
+
+### Testes e lint
+
+```powershell
+pip install -r requirements-dev.txt
+ruff check .
+pytest
+```
+
+Os testes rodam contra o banco do `.env`, cada um dentro de uma transação
+que é desfeita no final. O GitHub Actions roda lint + migrations + testes a
+cada push (veja `.github/workflows/ci.yml`).
 
 ## Estrutura
 

@@ -8,7 +8,15 @@ com controle de acesso.
 
 ## Status
 
-Em desenvolvimento. Etapa atual: esqueleto da API + conexão com o banco.
+Em desenvolvimento.
+
+- [x] Esqueleto da API + conexão com o banco
+- [x] Modelo de dados (17 tabelas) + migrations
+- [ ] CRUD de Pessoas
+- [ ] CRUD de Atendimentos e Tratamentos
+- [ ] Autenticação e papéis de usuário
+- [ ] Auditoria / LGPD
+- [ ] Frontend (React)
 
 ## Tecnologias
 
@@ -37,7 +45,13 @@ pip install -r requirements.txt
 Copy-Item .env.example .env
 # edite o .env com a senha do seu Postgres
 
-# 4. Subir a API
+# 4. Criar as tabelas
+alembic upgrade head
+
+# 5. Popular listas de referência (tipos de tratamento, funções)
+python -m scripts.seed
+
+# 6. Subir a API
 uvicorn app.main:app --reload
 ```
 

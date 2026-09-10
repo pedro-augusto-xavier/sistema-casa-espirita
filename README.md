@@ -13,7 +13,8 @@ Em desenvolvimento.
 - [x] Esqueleto da API + conexão com o banco
 - [x] Modelo de dados (17 tabelas) + migrations
 - [x] CRUD de Pessoas (busca, paginação, exclusão lógica) + testes + CI
-- [ ] CRUD de Atendimentos e Tratamentos
+- [x] Atendimentos (visita avulsa com tratamentos do dia) + listas de referência
+- [ ] Tratamentos (casos de acompanhamento) + histórico da pessoa
 - [ ] Autenticação e papéis de usuário
 - [ ] Auditoria / LGPD
 - [ ] Frontend (React)

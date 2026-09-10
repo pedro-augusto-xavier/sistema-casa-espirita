@@ -7,12 +7,14 @@ Documentação interativa (com a API rodando):
     http://127.0.0.1:8000/docs
 """
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request, status
+from fastapi.responses import JSONResponse
 from sqlalchemy import text
 
 from app.api.v1.api import api_router
 from app.core.config import settings
 from app.core.database import engine
+from app.core.errors import ErroDominio, NaoEncontrado
 
 app = FastAPI(
     title="Sistema Casa Espírita",
@@ -21,6 +23,17 @@ app = FastAPI(
 )
 
 app.include_router(api_router, prefix="/api/v1")
+
+
+@app.exception_handler(ErroDominio)
+def _erro_dominio(request: Request, exc: ErroDominio) -> JSONResponse:
+    """Regra de negócio violada -> 404 se for referência inexistente, senão 422."""
+    codigo = (
+        status.HTTP_404_NOT_FOUND
+        if isinstance(exc, NaoEncontrado)
+        else status.HTTP_422_UNPROCESSABLE_ENTITY
+    )
+    return JSONResponse(status_code=codigo, content={"detail": exc.mensagem})
 
 
 @app.get("/", tags=["status"])

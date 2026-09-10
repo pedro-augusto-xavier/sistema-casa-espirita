@@ -135,6 +135,7 @@ class PessoaOut(PessoaBase):
 
     id: int
     ativo: bool
+    anonimizada: bool
     consentimento_lgpd: bool
     consentimento_em: datetime | None
     criado_em: datetime

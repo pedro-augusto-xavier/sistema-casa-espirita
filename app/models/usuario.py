@@ -12,7 +12,7 @@ from sqlalchemy import (
     func,
 )
 from sqlalchemy.dialects.postgresql import JSONB
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
 from app.models.enums import AcaoAuditoria, PapelUsuario
@@ -54,3 +54,9 @@ class AuditLog(Base):
     criado_em: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )
+
+    usuario: Mapped[Usuario | None] = relationship()
+
+    @property
+    def usuario_nome(self) -> str | None:
+        return self.usuario.nome if self.usuario else None

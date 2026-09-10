@@ -6,8 +6,10 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
 
 from app.api.deps import SessaoDB, UsuarioAtual
+from app.core.auditoria import registrar
 from app.core.security import criar_token_acesso
 from app.crud import usuario as crud
+from app.models.enums import AcaoAuditoria
 from app.schemas.usuario import Token, UsuarioOut
 
 router = APIRouter(prefix="/auth", tags=["auth"])
@@ -26,6 +28,13 @@ def login(
             detail="E-mail ou senha inválidos",
             headers={"WWW-Authenticate": "Bearer"},
         )
+    registrar(
+        db,
+        usuario=usuario,
+        acao=AcaoAuditoria.login,
+        entidade="usuario",
+        entidade_id=usuario.id,
+    )
     token = criar_token_acesso(usuario.id, usuario.papel.value)
     return Token(access_token=token)
 

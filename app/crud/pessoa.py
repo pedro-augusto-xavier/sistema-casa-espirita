@@ -118,6 +118,135 @@ def desativar(db: Session, pessoa: Pessoa) -> None:
     db.commit()
 
 
+_CAMPOS_PESSOAIS = (
+    "cpf",
+    "telefone",
+    "data_nascimento",
+    "logradouro",
+    "numero",
+    "complemento",
+    "bairro",
+    "cidade",
+    "uf",
+    "cep",
+    "como_conheceu",
+    "observacoes_gerais",
+)
+
+
+def anonimizar(db: Session, pessoa: Pessoa) -> Pessoa:
+    """LGPD -- direito ao esquecimento.
+
+    Apaga os dados pessoais mas mantém a linha (e os vínculos com atendimentos)
+    para o histórico não ficar órfão.
+    """
+    pessoa.nome_completo = "(dados removidos)"
+    for campo in _CAMPOS_PESSOAIS:
+        setattr(pessoa, campo, None)
+    pessoa.anonimizada = True
+    pessoa.ativo = False
+    pessoa.consentimento_lgpd = False
+    pessoa.consentimento_em = None
+    pessoa.papeis.clear()
+    db.commit()
+    return get(db, pessoa.id)  # type: ignore[return-value]
+
+
+def exportar_dados(db: Session, pessoa_id: int) -> dict:
+    """Reúne tudo que o sistema guarda sobre a pessoa (direito de acesso)."""
+    from app.models.atendimento import Atendimento
+    from app.models.tratamento import TratamentoAssistido, TratamentoEvolucao
+
+    pessoa = get(db, pessoa_id)
+    if pessoa is None:
+        return {}
+
+    atendimentos = db.scalars(
+        select(Atendimento)
+        .options(selectinload(Atendimento.tratamentos))
+        .where(Atendimento.pessoa_id == pessoa_id)
+    ).all()
+
+    participacoes = db.scalars(
+        select(TratamentoAssistido).where(
+            TratamentoAssistido.pessoa_id == pessoa_id
+        )
+    ).all()
+
+    evolucoes = db.scalars(
+        select(TratamentoEvolucao).where(
+            TratamentoEvolucao.pessoa_id == pessoa_id
+        )
+    ).all()
+
+    def _dict(obj, campos):
+        return {c: getattr(obj, c) for c in campos}
+
+    return {
+        "pessoa": _dict(
+            pessoa,
+            [
+                "id",
+                "nome_completo",
+                "data_nascimento",
+                "sexo",
+                "cpf",
+                "telefone",
+                "logradouro",
+                "numero",
+                "complemento",
+                "bairro",
+                "cidade",
+                "uf",
+                "cep",
+                "como_conheceu",
+                "observacoes_gerais",
+                "consentimento_lgpd",
+                "consentimento_em",
+                "ativo",
+                "anonimizada",
+                "criado_em",
+                "atualizado_em",
+            ],
+        ),
+        "papeis": [p.papel.value for p in pessoa.papeis],
+        "atendimentos": [
+            {
+                **_dict(
+                    a,
+                    [
+                        "id",
+                        "data",
+                        "modalidade",
+                        "presente",
+                        "ordem_chegada",
+                        "observacao",
+                        "retorno_previsto",
+                    ],
+                ),
+                "tratamentos": [t.tipo_tratamento_nome for t in a.tratamentos],
+            }
+            for a in atendimentos
+        ],
+        "tratamentos_como_assistido": [
+            _dict(
+                p,
+                [
+                    "id",
+                    "tratamento_id",
+                    "status",
+                    "situacao_final",
+                    "data_conclusao",
+                ],
+            )
+            for p in participacoes
+        ],
+        "evolucoes": [
+            _dict(e, ["id", "tratamento_id", "data", "texto"]) for e in evolucoes
+        ],
+    }
+
+
 def reativar(db: Session, pessoa: Pessoa) -> Pessoa:
     pessoa.ativo = True
     db.commit()

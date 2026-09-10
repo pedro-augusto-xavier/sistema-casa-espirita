@@ -21,6 +21,11 @@ venv/
 *.sql.bak
 backups/
 
+# ---- Arquivos temporários ----
+*.log
+scr_*.txt
+scratch_*
+
 # ---- Editores / SO ----
 .vscode/
 .idea/

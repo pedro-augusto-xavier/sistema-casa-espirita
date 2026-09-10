@@ -1,0 +1,18 @@
+[project]
+name = "sistema-casa-espirita"
+version = "0.1.0"
+description = "Sistema interno de cadastro para casa espírita"
+requires-python = ">=3.12"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
+
+[tool.ruff]
+line-length = 88
+target-version = "py312"
+# migrations são geradas automaticamente pelo Alembic
+extend-exclude = ["alembic/versions"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]

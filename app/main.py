@@ -10,6 +10,7 @@ Documentação interativa (com a API rodando):
 from fastapi import FastAPI
 from sqlalchemy import text
 
+from app.api.v1.api import api_router
 from app.core.config import settings
 from app.core.database import engine
 
@@ -18,6 +19,8 @@ app = FastAPI(
     description="Cadastro de pessoas, atendimentos e tratamentos.",
     version="0.1.0",
 )
+
+app.include_router(api_router, prefix="/api/v1")
 
 
 @app.get("/", tags=["status"])

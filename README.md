@@ -15,7 +15,7 @@ Em desenvolvimento.
 - [x] CRUD de Pessoas (busca, paginação, exclusão lógica) + testes + CI
 - [x] Atendimentos (visita avulsa com tratamentos do dia) + listas de referência
 - [x] Tratamentos (casos): assistidos, diário de evolução, histórico da pessoa
-- [ ] Autenticação e papéis de usuário
+- [x] Autenticação (JWT) e papéis de usuário (admin / operador)
 - [ ] Auditoria / LGPD
 - [ ] Frontend (React)
 
@@ -52,11 +52,25 @@ alembic upgrade head
 # 5. Popular listas de referência (tipos de tratamento, funções)
 python -m scripts.seed
 
-# 6. Subir a API
+# 6. Criar o primeiro usuário administrador
+python -m scripts.criar_admin --nome "Seu Nome" --email voce@exemplo.com --senha "trocar-depois"
+
+# 7. Subir a API
 uvicorn app.main:app --reload
 ```
 
 Acesse a documentação interativa em `http://127.0.0.1:8000/docs`.
+
+### Autenticação
+
+Todas as rotas de `/api/v1` (menos `/auth/login`) exigem um token.
+
+1. `POST /api/v1/auth/login` com `username` (e-mail) e `password` → devolve `access_token`.
+2. Envie o token no cabeçalho `Authorization: Bearer <token>` nas demais chamadas.
+3. No `/docs`, clique em **Authorize** e informe e-mail/senha.
+
+Papéis: **operador** faz os cadastros; **admin** faz isso e gerencia usuários
+(`/api/v1/usuarios`).
 
 ### Testes e lint
 

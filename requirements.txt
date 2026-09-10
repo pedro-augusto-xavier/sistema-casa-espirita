@@ -12,8 +12,8 @@ pydantic==2.10.4
 pydantic-settings==2.7.0
 email-validator==2.2.0
 
-# --- Segurança (usado nas próximas etapas) ---
-passlib[bcrypt]==1.7.4
+# --- Segurança ---
+bcrypt==5.0.0
 pyjwt==2.10.1
 python-multipart==0.0.20
 

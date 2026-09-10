@@ -61,8 +61,15 @@ class Atendimento(TimestampMixin, Base):
         "Pessoa", foreign_keys=[solicitante_id]
     )
     tratamentos: Mapped[list["AtendimentoTratamento"]] = relationship(
-        back_populates="atendimento", cascade="all, delete-orphan"
+        back_populates="atendimento",
+        cascade="all, delete-orphan",
+        order_by="AtendimentoTratamento.id",
     )
+
+    @property
+    def tratamentos_resumo(self) -> list[str]:
+        """Nomes dos tratamentos do dia -- usado na listagem."""
+        return [t.tipo_tratamento.nome for t in self.tratamentos]
 
 
 class AtendimentoTratamento(Base):
@@ -89,3 +96,7 @@ class AtendimentoTratamento(Base):
 
     atendimento: Mapped[Atendimento] = relationship(back_populates="tratamentos")
     tipo_tratamento: Mapped["object"] = relationship("TipoTratamento")
+
+    @property
+    def tipo_tratamento_nome(self) -> str:
+        return self.tipo_tratamento.nome

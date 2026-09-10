@@ -49,6 +49,15 @@ def _extrai_papeis(v: object) -> object:
     return v
 
 
+class PessoaMini(BaseModel):
+    """Versão enxuta, usada quando uma pessoa aparece dentro de outro recurso."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    nome_completo: str
+
+
 class PessoaBase(BaseModel):
     nome_completo: str = Field(min_length=3, max_length=200)
     data_nascimento: date | None = None

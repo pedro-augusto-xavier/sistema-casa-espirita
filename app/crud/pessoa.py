@@ -153,13 +153,23 @@ def anonimizar(db: Session, pessoa: Pessoa) -> Pessoa:
 
 
 def exportar_dados(db: Session, pessoa_id: int) -> dict:
-    """Reúne tudo que o sistema guarda sobre a pessoa (direito de acesso)."""
+    """Reúne tudo que o sistema guarda sobre a pessoa (direito de acesso),
+    incluindo quem alterou a ficha dela e quando.
+    """
     from app.models.atendimento import Atendimento
     from app.models.tratamento import TratamentoAssistido, TratamentoEvolucao
+    from app.models.usuario import AuditLog
 
     pessoa = get(db, pessoa_id)
     if pessoa is None:
         return {}
+
+    edicoes = db.scalars(
+        select(AuditLog)
+        .options(selectinload(AuditLog.usuario))
+        .where(AuditLog.entidade == "pessoa", AuditLog.entidade_id == pessoa_id)
+        .order_by(AuditLog.criado_em.desc())
+    ).all()
 
     atendimentos = db.scalars(
         select(Atendimento)
@@ -243,6 +253,15 @@ def exportar_dados(db: Session, pessoa_id: int) -> dict:
         ],
         "evolucoes": [
             _dict(e, ["id", "tratamento_id", "data", "texto"]) for e in evolucoes
+        ],
+        "historico_edicoes": [
+            {
+                "quem": e.usuario_nome,
+                "acao": e.acao.value,
+                "quando": e.criado_em,
+                "o_que_mudou": e.dados,
+            }
+            for e in edicoes
         ],
     }
 

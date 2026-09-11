@@ -21,6 +21,8 @@ export function FichaPessoa() {
 
   const [pessoa, setPessoa] = useState(null)
   const [historico, setHistorico] = useState([])
+  const [edicoes, setEdicoes] = useState([])
+  const [mostrarEdicoes, setMostrarEdicoes] = useState(false)
   const [erro, setErro] = useState('')
   const [carregando, setCarregando] = useState(true)
   const [modalAberto, setModalAberto] = useState(null) // 'atendimento' | 'tratamento' | null
@@ -34,10 +36,16 @@ export function FichaPessoa() {
       .then(([p, h]) => {
         setPessoa(p)
         setHistorico(h)
+        if (p && usuario.papel === 'admin') {
+          api
+            .get(`/auditoria?entidade=pessoa&entidade_id=${id}&size=50`)
+            .then((d) => setEdicoes(d.items))
+            .catch(() => {})
+        }
       })
       .catch((e) => setErro(e.message))
       .finally(() => setCarregando(false))
-  }, [id, versao])
+  }, [id, versao, usuario.papel])
 
   function aoCriarRegistro() {
     setModalAberto(null)
@@ -185,7 +193,35 @@ export function FichaPessoa() {
               </button>
             )}
             {pessoa.anonimizada && <span>dados já anonimizados</span>}
+            {usuario.papel === 'admin' && edicoes.length > 0 && (
+              <button
+                onClick={() => setMostrarEdicoes((v) => !v)}
+                className="text-slate-600 hover:underline"
+              >
+                {mostrarEdicoes ? 'Ocultar' : 'Quem editou esta ficha'}
+              </button>
+            )}
           </div>
+
+          {mostrarEdicoes && (
+            <ul className="mt-2 flex flex-col gap-1 border-t border-slate-100 pt-2 text-xs text-slate-500">
+              {edicoes.map((e) => (
+                <li key={e.id}>
+                  <span className="font-medium text-slate-700">
+                    {e.usuario_nome || 'sistema'}
+                  </span>{' '}
+                  {e.acao === 'criar' ? 'criou a ficha' : 'alterou a ficha'} em{' '}
+                  {new Date(e.criado_em).toLocaleString('pt-BR')}
+                  {e.dados && Object.keys(e.dados).length > 0 && (
+                    <span className="text-slate-400">
+                      {' '}
+                      — campos: {Object.keys(e.dados).join(', ')}
+                    </span>
+                  )}
+                </li>
+              ))}
+            </ul>
+          )}
         </div>
 
         <div className="mt-6 rounded-lg bg-white p-6 shadow-sm">

@@ -93,6 +93,18 @@ def test_exportar_traz_tudo_da_pessoa(client: TestClient):
     assert dump["atendimentos"][0]["tratamentos"] == ["Reflexologia"]
 
 
+def test_exportar_mostra_quem_editou_a_ficha(client: TestClient):
+    p = _pessoa(client, nome_completo="Nome Antigo")
+    client.patch(f"/api/v1/pessoas/{p['id']}", json={"nome_completo": "Nome Novo"})
+
+    dump = client.get(f"/api/v1/pessoas/{p['id']}/exportar").json()
+    edicoes = dump["historico_edicoes"]
+    assert any(e["acao"] == "criar" for e in edicoes)
+    atualizacao = next(e for e in edicoes if e["acao"] == "atualizar")
+    assert atualizacao["quem"] == "Admin de Teste"
+    assert atualizacao["o_que_mudou"]["nome_completo"] == "Nome Novo"
+
+
 def test_anonimizar_apaga_dados_mas_mantem_historico(client: TestClient):
     p = _pessoa(client, nome_completo="Some Da Base")
     tipos = client.get("/api/v1/tipos-tratamento").json()

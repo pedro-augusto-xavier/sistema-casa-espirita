@@ -8,6 +8,7 @@ Documentação interativa (com a API rodando):
 """
 
 from fastapi import FastAPI, Request, status
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from sqlalchemy import text
 
@@ -20,6 +21,14 @@ app = FastAPI(
     title="Sistema Casa Espírita",
     description="Cadastro de pessoas, atendimentos e tratamentos.",
     version="0.1.0",
+)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=settings.CORS_ORIGINS,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 app.include_router(api_router, prefix="/api/v1")

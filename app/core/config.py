@@ -25,6 +25,12 @@ class Settings(BaseSettings):
     # App
     APP_ENV: str = "dev"
 
+    # Origens autorizadas a chamar a API pelo navegador (o front em dev)
+    CORS_ORIGINS: list[str] = [
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
+    ]
+
     @property
     def is_dev(self) -> bool:
         return self.APP_ENV == "dev"

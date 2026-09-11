@@ -17,8 +17,11 @@ Em desenvolvimento.
 - [x] Tratamentos (casos): assistidos, diário de evolução, histórico da pessoa
 - [x] Autenticação (JWT) e papéis de usuário (admin / operador)
 - [x] Auditoria (quem mexeu em quê) + LGPD (exportar / anonimizar) + backup
+- [x] Grupos (Grupo Despertar, Grupo de Estudos): sessão + presença avulsa
+- [x] Agenda: eventos (trabalho, palestra, grupo) + escala de trabalhadores
 - [x] Frontend (React + Vite + Tailwind): login, pessoas, atendimentos,
-      tratamentos com diário, edição, usuários e auditoria na tela
+      tratamentos com diário, grupos, agenda, edição, usuários e auditoria
+      na tela — cobre tudo que a API oferece
 
 ## Tecnologias
 
@@ -133,6 +136,13 @@ Dado de religião é dado sensível pela LGPD. O projeto trata isso com:
   ficar órfão.
 - **Exclusão lógica** (soft delete) em vez de apagar na hora.
 - **Backup**: `python -m scripts.backup` gera um dump restaurável em `backups/`.
+
+## Próximos passos (ideias, não compromissos)
+
+- Exportar a ficha da pessoa em PDF (hoje exporta em `.json`).
+- Hospedar numa nuvem (Render/Railway + Neon/Supabase) pra ter um link ao vivo.
+- Editar um atendimento/tratamento já existente com histórico de alterações
+  campo a campo (hoje a auditoria mostra os campos, mas não o valor anterior).
 
 ## Licença
 

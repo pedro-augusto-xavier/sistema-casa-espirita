@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { api } from '../api/client'
+import { NovoAtendimentoModal } from '../components/NovoAtendimentoModal'
+import { NovoTratamentoModal } from '../components/NovoTratamentoModal'
 import { isoParaData, mascaraCpf, mascaraTelefone } from '../utils/formatadores'
 
 const ROTULO_TIPO = {
@@ -17,6 +19,8 @@ export function FichaPessoa() {
   const [historico, setHistorico] = useState([])
   const [erro, setErro] = useState('')
   const [carregando, setCarregando] = useState(true)
+  const [modalAberto, setModalAberto] = useState(null) // 'atendimento' | 'tratamento' | null
+  const [versao, setVersao] = useState(0)
 
   useEffect(() => {
     setCarregando(true)
@@ -28,7 +32,12 @@ export function FichaPessoa() {
       })
       .catch((e) => setErro(e.message))
       .finally(() => setCarregando(false))
-  }, [id])
+  }, [id, versao])
+
+  function aoCriarRegistro() {
+    setModalAberto(null)
+    setVersao((v) => v + 1)
+  }
 
   async function desativar() {
     if (!confirm(`Desativar a ficha de ${pessoa.nome_completo}?`)) return
@@ -109,7 +118,23 @@ export function FichaPessoa() {
         </div>
 
         <div className="mt-6 rounded-lg bg-white p-6 shadow-sm">
-          <h2 className="text-lg font-bold text-slate-800">Histórico</h2>
+          <div className="flex items-center justify-between">
+            <h2 className="text-lg font-bold text-slate-800">Histórico</h2>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setModalAberto('atendimento')}
+                className="rounded-md border border-slate-300 px-3 py-1.5 text-sm hover:bg-slate-50"
+              >
+                + Atendimento
+              </button>
+              <button
+                onClick={() => setModalAberto('tratamento')}
+                className="rounded-md border border-slate-300 px-3 py-1.5 text-sm hover:bg-slate-50"
+              >
+                + Tratamento
+              </button>
+            </div>
+          </div>
 
           {erro && <p className="mt-2 text-sm text-red-600">{erro}</p>}
 
@@ -137,6 +162,21 @@ export function FichaPessoa() {
           )}
         </div>
       </main>
+
+      {modalAberto === 'atendimento' && (
+        <NovoAtendimentoModal
+          pessoaId={pessoa.id}
+          onFechar={() => setModalAberto(null)}
+          onCriado={aoCriarRegistro}
+        />
+      )}
+      {modalAberto === 'tratamento' && (
+        <NovoTratamentoModal
+          pessoaId={pessoa.id}
+          onFechar={() => setModalAberto(null)}
+          onCriado={aoCriarRegistro}
+        />
+      )}
     </div>
   )
 }

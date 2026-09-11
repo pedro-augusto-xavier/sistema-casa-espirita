@@ -12,6 +12,7 @@ const ROTULO_TIPO = {
   atendimento: 'Atendimento',
   tratamento_inicio: 'Início de tratamento',
   evolucao: 'Evolução',
+  grupo: 'Grupo',
 }
 
 export function FichaPessoa() {
@@ -183,9 +184,18 @@ export function FichaPessoa() {
           )}
 
           <div className="mt-4 flex flex-wrap items-center gap-3 border-t border-slate-100 pt-4 text-xs text-slate-400">
+            <button
+              onClick={async () => {
+                const { gerarPdfFicha } = await import('../utils/gerarPdfFicha')
+                gerarPdfFicha(pessoa, historico)
+              }}
+              className="text-slate-600 hover:underline"
+            >
+              Baixar PDF
+            </button>
             <span>LGPD:</span>
             <button onClick={exportarDados} className="text-slate-600 hover:underline">
-              Exportar dados
+              Exportar dados (JSON)
             </button>
             {usuario.papel === 'admin' && !pessoa.anonimizada && (
               <button onClick={anonimizar} className="text-red-500 hover:underline">

@@ -11,9 +11,14 @@ export function Cabecalho() {
           Casa Espírita
         </Link>
         {usuario.papel === 'admin' && (
-          <Link to="/usuarios" className="text-sm text-slate-500 hover:text-slate-800">
-            Usuários
-          </Link>
+          <>
+            <Link to="/usuarios" className="text-sm text-slate-500 hover:text-slate-800">
+              Usuários
+            </Link>
+            <Link to="/auditoria" className="text-sm text-slate-500 hover:text-slate-800">
+              Auditoria
+            </Link>
+          </>
         )}
       </div>
       <div className="flex items-center gap-4 text-sm text-slate-600">

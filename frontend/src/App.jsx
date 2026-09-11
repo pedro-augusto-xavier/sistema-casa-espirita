@@ -1,6 +1,7 @@
 import { BrowserRouter, Route, Routes } from 'react-router-dom'
 import { AuthProvider } from './auth/AuthContext'
 import { RotaProtegida } from './auth/RotaProtegida'
+import { Agenda } from './pages/Agenda'
 import { Auditoria } from './pages/Auditoria'
 import { EditarPessoa } from './pages/EditarPessoa'
 import { FichaPessoa } from './pages/FichaPessoa'
@@ -54,6 +55,14 @@ function App() {
             element={
               <RotaProtegida>
                 <Grupos />
+              </RotaProtegida>
+            }
+          />
+          <Route
+            path="/agenda"
+            element={
+              <RotaProtegida>
+                <Agenda />
               </RotaProtegida>
             }
           />

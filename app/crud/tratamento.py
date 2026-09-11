@@ -247,6 +247,7 @@ def historico_pessoa(db: Session, pessoa_id: int) -> list[dict]:
                 "descricao": f"{nomes}. Atendido por: {quem or '—'}.",
                 "atendimento_id": a.id,
                 "tratamento_id": None,
+                "grupo_id": None,
             }
         )
 
@@ -268,6 +269,7 @@ def historico_pessoa(db: Session, pessoa_id: int) -> list[dict]:
                 "descricao": t.observacao,
                 "atendimento_id": None,
                 "tratamento_id": t.id,
+                "grupo_id": None,
             }
         )
 
@@ -285,6 +287,27 @@ def historico_pessoa(db: Session, pessoa_id: int) -> list[dict]:
                 "descricao": e.texto,
                 "atendimento_id": None,
                 "tratamento_id": e.tratamento_id,
+                "grupo_id": None,
+            }
+        )
+
+    from app.models.grupo import Presenca, SessaoGrupo
+
+    sessoes = db.scalars(
+        select(SessaoGrupo)
+        .options(selectinload(SessaoGrupo.tipo_tratamento))
+        .where(SessaoGrupo.presencas.any(Presenca.pessoa_id == pessoa_id))
+    ).all()
+    for s in sessoes:
+        itens.append(
+            {
+                "tipo": "grupo",
+                "data": s.data,
+                "titulo": f"Grupo: {s.tipo_tratamento.nome}",
+                "descricao": s.observacao,
+                "atendimento_id": None,
+                "tratamento_id": None,
+                "grupo_id": s.id,
             }
         )
 

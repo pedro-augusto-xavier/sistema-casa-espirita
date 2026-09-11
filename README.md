@@ -90,6 +90,13 @@ npm run dev
 Acesse `http://localhost:5173`. Faça login com o usuário administrador criado
 no passo 6 acima.
 
+Lint e testes do front:
+
+```powershell
+npm run lint
+npm run test
+```
+
 ### Testes e lint
 
 ```powershell

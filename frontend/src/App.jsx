@@ -1,8 +1,10 @@
 import { BrowserRouter, Route, Routes } from 'react-router-dom'
 import { AuthProvider } from './auth/AuthContext'
 import { RotaProtegida } from './auth/RotaProtegida'
-import { Inicio } from './pages/Inicio'
+import { FichaPessoa } from './pages/FichaPessoa'
 import { Login } from './pages/Login'
+import { NovaPessoa } from './pages/NovaPessoa'
+import { Pessoas } from './pages/Pessoas'
 
 function App() {
   return (
@@ -14,7 +16,23 @@ function App() {
             path="/"
             element={
               <RotaProtegida>
-                <Inicio />
+                <Pessoas />
+              </RotaProtegida>
+            }
+          />
+          <Route
+            path="/pessoas/nova"
+            element={
+              <RotaProtegida>
+                <NovaPessoa />
+              </RotaProtegida>
+            }
+          />
+          <Route
+            path="/pessoas/:id"
+            element={
+              <RotaProtegida>
+                <FichaPessoa />
               </RotaProtegida>
             }
           />

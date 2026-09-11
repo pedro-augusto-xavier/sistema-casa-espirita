@@ -17,7 +17,8 @@ Em desenvolvimento.
 - [x] Tratamentos (casos): assistidos, diário de evolução, histórico da pessoa
 - [x] Autenticação (JWT) e papéis de usuário (admin / operador)
 - [x] Auditoria (quem mexeu em quê) + LGPD (exportar / anonimizar) + backup
-- [ ] Frontend (React)
+- [x] Frontend (React + Vite + Tailwind): login, pessoas, atendimentos,
+      tratamentos com diário, edição, usuários e auditoria na tela
 
 ## Tecnologias
 
@@ -28,7 +29,7 @@ Em desenvolvimento.
 | ORM / Migrations | SQLAlchemy 2.0 + Alembic |
 | Validação | Pydantic v2 |
 | Testes | pytest + httpx |
-| Frontend | React + Vite *(próxima fase)* |
+| Frontend | React + Vite + Tailwind CSS + React Router |
 
 ## Rodando localmente
 
@@ -72,6 +73,20 @@ Todas as rotas de `/api/v1` (menos `/auth/login`) exigem um token.
 Papéis: **operador** faz os cadastros; **admin** faz isso e gerencia usuários
 (`/api/v1/usuarios`).
 
+### Frontend
+
+Com a API rodando (`http://127.0.0.1:8000`), em outro terminal:
+
+```powershell
+cd frontend
+npm install
+Copy-Item .env.example .env.local   # já vem apontando pra API local
+npm run dev
+```
+
+Acesse `http://localhost:5173`. Faça login com o usuário administrador criado
+no passo 6 acima.
+
 ### Testes e lint
 
 ```powershell
@@ -94,6 +109,11 @@ app/
   api/         rotas, organizadas por versão (v1)
 alembic/       migrations do banco
 tests/         testes automatizados
+frontend/
+  src/pages/       telas (login, pessoas, ficha, usuários, auditoria...)
+  src/components/  modais e pedaços reutilizáveis (formulário, seletor de pessoa)
+  src/auth/        contexto de autenticação e proteção de rota
+  src/api/         cliente HTTP que fala com a API
 ```
 
 ## Segurança e LGPD

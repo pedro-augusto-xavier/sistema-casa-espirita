@@ -52,6 +52,20 @@ export function TratamentoDetalheModal({ tratamentoId, onFechar }) {
     }
   }
 
+  async function fecharCaso() {
+    if (!confirm('Fechar este tratamento como concluído?')) return
+    const situacao = prompt('Situação final do caso (opcional):') ?? ''
+    try {
+      await api.patch(`/tratamentos/${tratamentoId}`, {
+        status: 'concluido',
+        situacao_final: situacao || null,
+      })
+      carregar()
+    } catch (e) {
+      setErro(e.message)
+    }
+  }
+
   return (
     <Modal titulo="" onFechar={onFechar}>
       {erro && <p className="text-sm text-red-600">{erro}</p>}
@@ -59,19 +73,29 @@ export function TratamentoDetalheModal({ tratamentoId, onFechar }) {
 
       {dados && (
         <div className="flex max-h-[75vh] flex-col gap-5 overflow-y-auto text-sm">
-          <div>
-            <h2 className="text-xl font-bold uppercase tracking-wide text-slate-800">
-              {dados.tipo_nome}
-            </h2>
-            <span
-              className={`mt-1 inline-block rounded-full px-2 py-0.5 text-xs font-medium ${
-                dados.status === 'concluido'
-                  ? 'bg-slate-200 text-slate-600'
-                  : 'bg-emerald-100 text-emerald-700'
-              }`}
-            >
-              {dados.status === 'concluido' ? 'Concluído' : 'Em andamento'}
-            </span>
+          <div className="flex items-start justify-between">
+            <div>
+              <h2 className="text-xl font-bold uppercase tracking-wide text-slate-800">
+                {dados.tipo_nome}
+              </h2>
+              <span
+                className={`mt-1 inline-block rounded-full px-2 py-0.5 text-xs font-medium ${
+                  dados.status === 'concluido'
+                    ? 'bg-slate-200 text-slate-600'
+                    : 'bg-emerald-100 text-emerald-700'
+                }`}
+              >
+                {dados.status === 'concluido' ? 'Concluído' : 'Em andamento'}
+              </span>
+            </div>
+            {dados.status !== 'concluido' && (
+              <button
+                onClick={fecharCaso}
+                className="rounded-md border border-slate-300 px-3 py-1 text-xs hover:bg-slate-50"
+              >
+                Fechar caso
+              </button>
+            )}
           </div>
 
           <Secao titulo="Responsável">

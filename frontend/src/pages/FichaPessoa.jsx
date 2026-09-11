@@ -97,14 +97,22 @@ export function FichaPessoa() {
                 )}
               </p>
             </div>
-            {pessoa.ativo && (
-              <button
-                onClick={desativar}
-                className="rounded-md border border-red-200 px-3 py-1 text-sm text-red-600 hover:bg-red-50"
+            <div className="flex gap-2">
+              <Link
+                to={`/pessoas/${id}/editar`}
+                className="rounded-md border border-slate-300 px-3 py-1 text-sm hover:bg-slate-50"
               >
-                Desativar
-              </button>
-            )}
+                Editar
+              </Link>
+              {pessoa.ativo && (
+                <button
+                  onClick={desativar}
+                  className="rounded-md border border-red-200 px-3 py-1 text-sm text-red-600 hover:bg-red-50"
+                >
+                  Desativar
+                </button>
+              )}
+            </div>
           </div>
 
           <dl className="mt-4 grid grid-cols-2 gap-x-4 gap-y-2 text-sm">

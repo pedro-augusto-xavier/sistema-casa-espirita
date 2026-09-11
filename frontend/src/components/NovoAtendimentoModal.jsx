@@ -16,6 +16,8 @@ export function NovoAtendimentoModal({ pessoaId, onFechar, onCriado }) {
   const [data, setData] = useState(hoje())
   const [atendidoPor, setAtendidoPor] = useState(null)
   const [modalidade, setModalidade] = useState('presencial')
+  const [presente, setPresente] = useState(true)
+  const [solicitante, setSolicitante] = useState(null)
   const [tratamentosMarcados, setTratamentosMarcados] = useState([])
   const [observacao, setObservacao] = useState('')
   const [erro, setErro] = useState('')
@@ -51,6 +53,8 @@ export function NovoAtendimentoModal({ pessoaId, onFechar, onCriado }) {
         data: dataIso,
         atendido_por_id: atendidoPor?.id ?? null,
         modalidade,
+        presente,
+        solicitante_id: solicitante?.id ?? null,
         observacao: observacao || null,
         tratamentos: tratamentosMarcados.map((id) => ({ tipo_tratamento_id: id })),
       })
@@ -97,6 +101,25 @@ export function NovoAtendimentoModal({ pessoaId, onFechar, onCriado }) {
             placeholder="Buscar trabalhador..."
           />
         </Campo>
+
+        <label className="flex items-center gap-2 text-sm font-medium text-slate-700">
+          <input
+            type="checkbox"
+            checked={presente}
+            onChange={(e) => setPresente(e.target.checked)}
+          />
+          A pessoa esteve presente
+        </label>
+
+        {!presente && (
+          <Campo label="Quem trouxe a informação (solicitante)">
+            <SeletorPessoa
+              valor={solicitante}
+              aoSelecionar={setSolicitante}
+              placeholder="Buscar pessoa..."
+            />
+          </Campo>
+        )}
 
         <fieldset>
           <legend className="mb-2 text-sm font-medium text-slate-700">

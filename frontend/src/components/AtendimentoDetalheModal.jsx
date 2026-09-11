@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { api } from '../api/client'
 import { isoParaData } from '../utils/formatadores'
+import { AtendimentoModal } from './AtendimentoModal'
 import { Modal } from './Modal'
 
 const ROTULO_MODALIDADE = {
@@ -12,13 +13,31 @@ const ROTULO_MODALIDADE = {
 export function AtendimentoDetalheModal({ atendimentoId, onFechar }) {
   const [dados, setDados] = useState(null)
   const [erro, setErro] = useState('')
+  const [editando, setEditando] = useState(false)
 
   useEffect(() => {
+    carregar()
+  }, [atendimentoId])
+
+  function carregar() {
     api
       .get(`/atendimentos/${atendimentoId}`)
       .then(setDados)
       .catch((e) => setErro(e.message))
-  }, [atendimentoId])
+  }
+
+  if (editando && dados) {
+    return (
+      <AtendimentoModal
+        existente={dados}
+        onFechar={() => setEditando(false)}
+        onSalvo={() => {
+          setEditando(false)
+          carregar()
+        }}
+      />
+    )
+  }
 
   return (
     <Modal titulo="" onFechar={onFechar}>
@@ -27,13 +46,21 @@ export function AtendimentoDetalheModal({ atendimentoId, onFechar }) {
 
       {dados && (
         <div className="flex flex-col gap-5 text-sm">
-          <div>
-            <h2 className="text-xl font-bold uppercase tracking-wide text-slate-800">
-              Atendimento
-            </h2>
-            <p className="text-slate-500">
-              {isoParaData(dados.data)} · {ROTULO_MODALIDADE[dados.modalidade]}
-            </p>
+          <div className="flex items-start justify-between">
+            <div>
+              <h2 className="text-xl font-bold uppercase tracking-wide text-slate-800">
+                Atendimento
+              </h2>
+              <p className="text-slate-500">
+                {isoParaData(dados.data)} · {ROTULO_MODALIDADE[dados.modalidade]}
+              </p>
+            </div>
+            <button
+              onClick={() => setEditando(true)}
+              className="rounded-md border border-slate-300 px-3 py-1 text-xs hover:bg-slate-50"
+            >
+              Editar
+            </button>
           </div>
 
           <div className="grid grid-cols-2 gap-4 border-y border-slate-200 py-3">

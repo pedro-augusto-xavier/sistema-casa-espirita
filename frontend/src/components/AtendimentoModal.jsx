@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { api } from '../api/client'
-import { dataParaIso, mascaraData } from '../utils/formatadores'
+import { dataParaIso, isoParaData, mascaraData } from '../utils/formatadores'
 import { Modal } from './Modal'
 import { SeletorPessoa } from './SeletorPessoa'
 
@@ -11,15 +11,20 @@ function hoje() {
   )
 }
 
-export function NovoAtendimentoModal({ pessoaId, onFechar, onCriado }) {
+/** Cria um atendimento novo (passe `pessoaId`) ou edita um existente (passe `existente`). */
+export function AtendimentoModal({ pessoaId, existente, onFechar, onSalvo }) {
+  const editando = Boolean(existente)
+
   const [tipos, setTipos] = useState([])
-  const [data, setData] = useState(hoje())
-  const [atendidoPor, setAtendidoPor] = useState(null)
-  const [modalidade, setModalidade] = useState('presencial')
-  const [presente, setPresente] = useState(true)
-  const [solicitante, setSolicitante] = useState(null)
-  const [tratamentosMarcados, setTratamentosMarcados] = useState([])
-  const [observacao, setObservacao] = useState('')
+  const [data, setData] = useState(existente ? isoParaData(existente.data) : hoje())
+  const [atendidoPor, setAtendidoPor] = useState(existente?.atendido_por ?? null)
+  const [modalidade, setModalidade] = useState(existente?.modalidade ?? 'presencial')
+  const [presente, setPresente] = useState(existente?.presente ?? true)
+  const [solicitante, setSolicitante] = useState(existente?.solicitante ?? null)
+  const [tratamentosMarcados, setTratamentosMarcados] = useState(
+    existente ? existente.tratamentos.map((t) => t.tipo_tratamento_id) : [],
+  )
+  const [observacao, setObservacao] = useState(existente?.observacao ?? '')
   const [erro, setErro] = useState('')
   const [enviando, setEnviando] = useState(false)
 
@@ -46,19 +51,24 @@ export function NovoAtendimentoModal({ pessoaId, onFechar, onCriado }) {
       return
     }
 
+    const corpo = {
+      data: dataIso,
+      atendido_por_id: atendidoPor?.id ?? null,
+      modalidade,
+      presente,
+      solicitante_id: solicitante?.id ?? null,
+      observacao: observacao || null,
+      tratamentos: tratamentosMarcados.map((id) => ({ tipo_tratamento_id: id })),
+    }
+
     setEnviando(true)
     try {
-      await api.post('/atendimentos', {
-        pessoa_id: pessoaId,
-        data: dataIso,
-        atendido_por_id: atendidoPor?.id ?? null,
-        modalidade,
-        presente,
-        solicitante_id: solicitante?.id ?? null,
-        observacao: observacao || null,
-        tratamentos: tratamentosMarcados.map((id) => ({ tipo_tratamento_id: id })),
-      })
-      onCriado()
+      if (editando) {
+        await api.patch(`/atendimentos/${existente.id}`, corpo)
+      } else {
+        await api.post('/atendimentos', { ...corpo, pessoa_id: pessoaId })
+      }
+      onSalvo()
     } catch (e) {
       setErro(e.message)
     } finally {
@@ -67,7 +77,7 @@ export function NovoAtendimentoModal({ pessoaId, onFechar, onCriado }) {
   }
 
   return (
-    <Modal titulo="Registrar atendimento" onFechar={onFechar}>
+    <Modal titulo={editando ? 'Editar atendimento' : 'Registrar atendimento'} onFechar={onFechar}>
       <form onSubmit={aoEnviar} className="flex flex-col gap-4">
         <div className="grid grid-cols-2 gap-4">
           <Campo label="Data">
@@ -165,7 +175,7 @@ export function NovoAtendimentoModal({ pessoaId, onFechar, onCriado }) {
             disabled={enviando}
             className="rounded-md bg-slate-800 px-4 py-2 text-sm font-medium text-white hover:bg-slate-700 disabled:opacity-50"
           >
-            {enviando ? 'Salvando...' : 'Registrar'}
+            {enviando ? 'Salvando...' : editando ? 'Salvar alterações' : 'Registrar'}
           </button>
         </div>
       </form>

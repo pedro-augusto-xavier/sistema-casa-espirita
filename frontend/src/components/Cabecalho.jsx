@@ -13,6 +13,9 @@ export function Cabecalho() {
         <Link to="/grupos" className="text-sm text-slate-500 hover:text-slate-800">
           Grupos
         </Link>
+        <Link to="/agenda" className="text-sm text-slate-500 hover:text-slate-800">
+          Agenda
+        </Link>
         {usuario.papel === 'admin' && (
           <>
             <Link to="/usuarios" className="text-sm text-slate-500 hover:text-slate-800">

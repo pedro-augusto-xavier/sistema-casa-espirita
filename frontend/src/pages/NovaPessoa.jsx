@@ -4,8 +4,8 @@ import { api } from '../api/client'
 
 const VAZIO = {
   nome_completo: '',
-  data_nascimento: '',
-  sexo: 'nao_informado',
+  data_nascimento: '', // dd/mm/aaaa, digitado
+  sexo: '',
   cpf: '',
   telefone: '',
   logradouro: '',
@@ -17,7 +17,23 @@ const VAZIO = {
   cep: '',
   como_conheceu: '',
   observacoes_gerais: '',
-  consentimento_lgpd: false,
+}
+
+function soDigitos(valor) {
+  return valor.replace(/\D/g, '')
+}
+
+function mascaraData(valor) {
+  const d = soDigitos(valor).slice(0, 8)
+  if (d.length > 4) return `${d.slice(0, 2)}/${d.slice(2, 4)}/${d.slice(4)}`
+  if (d.length > 2) return `${d.slice(0, 2)}/${d.slice(2)}`
+  return d
+}
+
+function dataParaIso(dataDigitada) {
+  const d = soDigitos(dataDigitada)
+  if (d.length !== 8) return null
+  return `${d.slice(4, 8)}-${d.slice(2, 4)}-${d.slice(0, 2)}`
 }
 
 export function NovaPessoa() {
@@ -37,11 +53,18 @@ export function NovaPessoa() {
   async function aoEnviar(evento) {
     evento.preventDefault()
     setErro('')
+
+    const nascimentoIso = dataParaIso(form.data_nascimento)
+    if (!nascimentoIso) {
+      setErro('Data de nascimento inválida -- use o formato dd/mm/aaaa.')
+      return
+    }
+
     setEnviando(true)
     try {
       const corpo = {
         ...form,
-        data_nascimento: form.data_nascimento || null,
+        data_nascimento: nascimentoIso,
         cpf: form.cpf || null,
         papeis: Object.entries(papeis)
           .filter(([, marcado]) => marcado)
@@ -75,39 +98,69 @@ export function NovaPessoa() {
           </Campo>
 
           <div className="grid grid-cols-2 gap-4">
-            <Campo label="Data de nascimento">
-              <input type="date" className={estiloInput} {...campo('data_nascimento')} />
+            <Campo label="Data de nascimento *">
+              <input
+                required
+                inputMode="numeric"
+                placeholder="dd/mm/aaaa"
+                maxLength={10}
+                value={form.data_nascimento}
+                onChange={(e) =>
+                  setForm((f) => ({
+                    ...f,
+                    data_nascimento: mascaraData(e.target.value),
+                  }))
+                }
+                className={estiloInput}
+              />
             </Campo>
-            <Campo label="Sexo">
-              <select className={estiloInput} {...campo('sexo')}>
-                <option value="nao_informado">Não informado</option>
+            <Campo label="Sexo *">
+              <select required className={estiloInput} {...campo('sexo')}>
+                <option value="" disabled>
+                  Selecione...
+                </option>
                 <option value="feminino">Feminino</option>
                 <option value="masculino">Masculino</option>
                 <option value="outro">Outro</option>
+                <option value="nao_informado">Prefere não informar</option>
               </select>
             </Campo>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
-            <Campo label="CPF">
+            <Campo label="CPF *">
               <input
-                placeholder="000.000.000-00"
+                required
+                inputMode="numeric"
+                placeholder="Só números"
+                maxLength={11}
+                value={form.cpf}
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, cpf: soDigitos(e.target.value).slice(0, 11) }))
+                }
                 className={estiloInput}
-                {...campo('cpf')}
               />
             </Campo>
             <Campo label="Telefone">
               <input
-                placeholder="(21) 99999-9999"
+                inputMode="numeric"
+                placeholder="Só números, com DDD"
+                maxLength={11}
+                value={form.telefone}
+                onChange={(e) =>
+                  setForm((f) => ({
+                    ...f,
+                    telefone: soDigitos(e.target.value).slice(0, 11),
+                  }))
+                }
                 className={estiloInput}
-                {...campo('telefone')}
               />
             </Campo>
           </div>
 
           <fieldset className="rounded-md border border-slate-200 p-3">
             <legend className="px-1 text-xs font-medium text-slate-500">
-              Endereço
+              Endereço (opcional)
             </legend>
             <div className="grid grid-cols-3 gap-3">
               <input
@@ -173,18 +226,6 @@ export function NovaPessoa() {
               {...campo('observacoes_gerais')}
             />
           </Campo>
-
-          <label className="flex items-start gap-2 text-sm text-slate-700">
-            <input
-              type="checkbox"
-              className="mt-1"
-              checked={form.consentimento_lgpd}
-              onChange={(e) =>
-                setForm((f) => ({ ...f, consentimento_lgpd: e.target.checked }))
-              }
-            />
-            A pessoa concorda com o uso dos seus dados pela casa (LGPD).
-          </label>
 
           {erro && (
             <p className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">

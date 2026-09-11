@@ -21,42 +21,41 @@ export function AtendimentoDetalheModal({ atendimentoId, onFechar }) {
   }, [atendimentoId])
 
   return (
-    <Modal titulo="Atendimento" onFechar={onFechar}>
+    <Modal titulo="" onFechar={onFechar}>
       {erro && <p className="text-sm text-red-600">{erro}</p>}
       {!erro && !dados && <p className="text-sm text-slate-500">Carregando...</p>}
 
       {dados && (
-        <div className="flex flex-col gap-4 text-sm">
-          <dl className="grid grid-cols-2 gap-x-4 gap-y-2">
-            <Item label="Data" valor={isoParaData(dados.data)} />
-            <Item label="Modalidade" valor={ROTULO_MODALIDADE[dados.modalidade]} />
-            <Item label="Atendido por" valor={dados.atendido_por?.nome_completo} />
-            <Item label="Solicitante" valor={dados.solicitante?.nome_completo} />
-            <Item label="Presente" valor={dados.presente ? 'Sim' : 'Não'} />
-            <Item label="Retorno previsto" valor={isoParaData(dados.retorno_previsto)} />
-          </dl>
-
-          {dados.observacao && (
-            <div>
-              <p className="text-xs font-medium text-slate-400">Observação</p>
-              <p className="text-slate-700">{dados.observacao}</p>
-            </div>
-          )}
-
+        <div className="flex flex-col gap-5 text-sm">
           <div>
-            <p className="mb-2 text-xs font-medium text-slate-400">
-              Tratamentos do dia
+            <h2 className="text-xl font-bold uppercase tracking-wide text-slate-800">
+              Atendimento
+            </h2>
+            <p className="text-slate-500">
+              {isoParaData(dados.data)} · {ROTULO_MODALIDADE[dados.modalidade]}
             </p>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4 border-y border-slate-200 py-3">
+            <Campo label="Atendido por" valor={dados.atendido_por?.nome_completo} />
+            <Campo label="Solicitante" valor={dados.solicitante?.nome_completo} />
+            <Campo label="Presente" valor={dados.presente ? 'Sim' : 'Não'} />
+            <Campo label="Retorno previsto" valor={isoParaData(dados.retorno_previsto)} />
+          </div>
+
+          {dados.observacao && <Secao titulo="Observação">{dados.observacao}</Secao>}
+
+          <Secao titulo="Tratamentos">
             {dados.tratamentos.length === 0 ? (
               <p className="text-slate-500">Nenhum tratamento marcado.</p>
             ) : (
               <ul className="flex flex-col gap-2">
                 {dados.tratamentos.map((t) => (
-                  <li key={t.id} className="rounded-md bg-slate-50 p-2">
+                  <li key={t.id}>
                     <p className="font-medium text-slate-700">
                       {t.tipo_tratamento_nome}
                       {t.modalidade && (
-                        <span className="ml-2 text-xs text-slate-500">
+                        <span className="ml-2 text-xs font-normal text-slate-500">
                           ({ROTULO_MODALIDADE[t.modalidade]})
                         </span>
                       )}
@@ -74,18 +73,29 @@ export function AtendimentoDetalheModal({ atendimentoId, onFechar }) {
                 ))}
               </ul>
             )}
-          </div>
+          </Secao>
         </div>
       )}
     </Modal>
   )
 }
 
-function Item({ label, valor }) {
+function Secao({ titulo, children }) {
   return (
     <div>
-      <dt className="text-xs font-medium text-slate-400">{label}</dt>
-      <dd className="text-slate-700">{valor || '—'}</dd>
+      <h3 className="mb-1 text-xs font-bold uppercase tracking-wide text-slate-400">
+        {titulo}
+      </h3>
+      {children}
+    </div>
+  )
+}
+
+function Campo({ label, valor }) {
+  return (
+    <div>
+      <p className="text-xs font-bold uppercase tracking-wide text-slate-400">{label}</p>
+      <p className="text-slate-700">{valor ?? '—'}</p>
     </div>
   )
 }

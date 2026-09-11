@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { api } from '../api/client'
+import { isoParaData, mascaraCpf, mascaraTelefone } from '../utils/formatadores'
 
 const ROTULO_TIPO = {
   atendimento: 'Atendimento',
@@ -82,9 +83,9 @@ export function FichaPessoa() {
           </div>
 
           <dl className="mt-4 grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
-            <Item label="Nascimento" valor={formatarData(pessoa.data_nascimento)} />
-            <Item label="Telefone" valor={pessoa.telefone} />
-            <Item label="CPF" valor={pessoa.cpf} />
+            <Item label="Nascimento" valor={isoParaData(pessoa.data_nascimento)} />
+            <Item label="Telefone" valor={pessoa.telefone && mascaraTelefone(pessoa.telefone)} />
+            <Item label="CPF" valor={pessoa.cpf && mascaraCpf(pessoa.cpf)} />
             <Item label="Como conheceu" valor={pessoa.como_conheceu} />
             <Item
               label="Endereço"
@@ -124,7 +125,7 @@ export function FichaPessoa() {
                     <span className="font-medium text-slate-700">
                       {ROTULO_TIPO[item.tipo] ?? item.tipo}
                     </span>
-                    <span className="text-slate-400">{formatarData(item.data)}</span>
+                    <span className="text-slate-400">{isoParaData(item.data)}</span>
                   </div>
                   <p className="text-sm text-slate-600">{item.titulo}</p>
                   {item.descricao && (
@@ -138,12 +139,6 @@ export function FichaPessoa() {
       </main>
     </div>
   )
-}
-
-function formatarData(iso) {
-  if (!iso) return null
-  const [ano, mes, dia] = iso.split('-')
-  return `${dia}/${mes}/${ano}`
 }
 
 function Item({ label, valor }) {

@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { api } from '../api/client'
+import { dataParaIso, mascaraCpf, mascaraData, mascaraTelefone } from '../utils/formatadores'
 
 const VAZIO = {
   nome_completo: '',
@@ -17,23 +18,6 @@ const VAZIO = {
   cep: '',
   como_conheceu: '',
   observacoes_gerais: '',
-}
-
-function soDigitos(valor) {
-  return valor.replace(/\D/g, '')
-}
-
-function mascaraData(valor) {
-  const d = soDigitos(valor).slice(0, 8)
-  if (d.length > 4) return `${d.slice(0, 2)}/${d.slice(2, 4)}/${d.slice(4)}`
-  if (d.length > 2) return `${d.slice(0, 2)}/${d.slice(2)}`
-  return d
-}
-
-function dataParaIso(dataDigitada) {
-  const d = soDigitos(dataDigitada)
-  if (d.length !== 8) return null
-  return `${d.slice(4, 8)}-${d.slice(2, 4)}-${d.slice(0, 2)}`
 }
 
 export function NovaPessoa() {
@@ -132,11 +116,11 @@ export function NovaPessoa() {
               <input
                 required
                 inputMode="numeric"
-                placeholder="Só números"
-                maxLength={11}
+                placeholder="000.000.000-00"
+                maxLength={14}
                 value={form.cpf}
                 onChange={(e) =>
-                  setForm((f) => ({ ...f, cpf: soDigitos(e.target.value).slice(0, 11) }))
+                  setForm((f) => ({ ...f, cpf: mascaraCpf(e.target.value) }))
                 }
                 className={estiloInput}
               />
@@ -144,14 +128,11 @@ export function NovaPessoa() {
             <Campo label="Telefone">
               <input
                 inputMode="numeric"
-                placeholder="Só números, com DDD"
-                maxLength={11}
+                placeholder="(00) 00000-0000"
+                maxLength={15}
                 value={form.telefone}
                 onChange={(e) =>
-                  setForm((f) => ({
-                    ...f,
-                    telefone: soDigitos(e.target.value).slice(0, 11),
-                  }))
+                  setForm((f) => ({ ...f, telefone: mascaraTelefone(e.target.value) }))
                 }
                 className={estiloInput}
               />

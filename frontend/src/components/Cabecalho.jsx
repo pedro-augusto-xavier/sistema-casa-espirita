@@ -10,6 +10,9 @@ export function Cabecalho() {
         <Link to="/" className="text-lg font-bold text-slate-800">
           Casa Espírita
         </Link>
+        <Link to="/grupos" className="text-sm text-slate-500 hover:text-slate-800">
+          Grupos
+        </Link>
         {usuario.papel === 'admin' && (
           <>
             <Link to="/usuarios" className="text-sm text-slate-500 hover:text-slate-800">

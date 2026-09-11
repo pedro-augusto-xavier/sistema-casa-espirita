@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { api } from '../api/client'
 import { AtendimentoDetalheModal } from '../components/AtendimentoDetalheModal'
-import { NovoAtendimentoModal } from '../components/NovoAtendimentoModal'
+import { AtendimentoModal } from '../components/AtendimentoModal'
 import { NovoTratamentoModal } from '../components/NovoTratamentoModal'
 import { TratamentoDetalheModal } from '../components/TratamentoDetalheModal'
 import { useAuth } from '../auth/AuthContext'
@@ -277,10 +277,10 @@ export function FichaPessoa() {
       </main>
 
       {modalAberto === 'atendimento' && (
-        <NovoAtendimentoModal
+        <AtendimentoModal
           pessoaId={pessoa.id}
           onFechar={() => setModalAberto(null)}
-          onCriado={aoCriarRegistro}
+          onSalvo={aoCriarRegistro}
         />
       )}
       {modalAberto === 'tratamento' && (

@@ -35,8 +35,12 @@ class EventoAgenda(Base):
     ativo: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
 
     escalas: Mapped[list["Escala"]] = relationship(
-        back_populates="evento", cascade="all, delete-orphan"
+        back_populates="evento", cascade="all, delete-orphan", order_by="Escala.id"
     )
+
+    @property
+    def qtd_escalados(self) -> int:
+        return len(self.escalas)
 
 
 class Escala(Base):

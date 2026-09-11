@@ -3,12 +3,6 @@ import { api } from '../api/client'
 import { isoParaData } from '../utils/formatadores'
 import { Modal } from './Modal'
 
-const ROTULO_STATUS_ASSISTIDO = {
-  ativo: 'Em andamento',
-  concluido: 'Concluído',
-  removido: 'Removido',
-}
-
 export function TratamentoDetalheModal({ tratamentoId, onFechar }) {
   const [dados, setDados] = useState(null)
   const [erro, setErro] = useState('')
@@ -59,49 +53,43 @@ export function TratamentoDetalheModal({ tratamentoId, onFechar }) {
   }
 
   return (
-    <Modal titulo="Tratamento" onFechar={onFechar}>
+    <Modal titulo="" onFechar={onFechar}>
       {erro && <p className="text-sm text-red-600">{erro}</p>}
       {!dados && !erro && <p className="text-sm text-slate-500">Carregando...</p>}
 
       {dados && (
-        <div className="flex max-h-[70vh] flex-col gap-4 overflow-y-auto text-sm">
-          <dl className="grid grid-cols-2 gap-x-4 gap-y-2">
-            <Item label="Tipo" valor={dados.tipo_nome} />
-            <Item label="Status" valor={dados.status === 'concluido' ? 'Concluído' : 'Em andamento'} />
-            <Item label="Início" valor={isoParaData(dados.data_inicio)} />
-            <Item label="Solicitante" valor={dados.solicitante?.nome_completo} />
-            <Item label="Sessões previstas" valor={dados.sessoes_previstas} />
-          </dl>
-
-          {dados.observacao && (
-            <div>
-              <p className="text-xs font-medium text-slate-400">Observação</p>
-              <p className="text-slate-700">{dados.observacao}</p>
-            </div>
-          )}
-
-          {dados.situacao_final && (
-            <div>
-              <p className="text-xs font-medium text-slate-400">Situação final</p>
-              <p className="text-slate-700">{dados.situacao_final}</p>
-            </div>
-          )}
-
+        <div className="flex max-h-[75vh] flex-col gap-5 overflow-y-auto text-sm">
           <div>
-            <p className="mb-2 text-xs font-medium text-slate-400">Assistidos</p>
+            <h2 className="text-xl font-bold uppercase tracking-wide text-slate-800">
+              {dados.tipo_nome}
+            </h2>
+            <span
+              className={`mt-1 inline-block rounded-full px-2 py-0.5 text-xs font-medium ${
+                dados.status === 'concluido'
+                  ? 'bg-slate-200 text-slate-600'
+                  : 'bg-emerald-100 text-emerald-700'
+              }`}
+            >
+              {dados.status === 'concluido' ? 'Concluído' : 'Em andamento'}
+            </span>
+          </div>
+
+          <Secao titulo="Responsável">
+            <p className="text-slate-700">{dados.solicitante?.nome_completo || '—'}</p>
+          </Secao>
+
+          <Secao titulo="Assistidos">
             <ul className="flex flex-col gap-1">
               {dados.assistidos.map((a) => (
-                <li
-                  key={a.id}
-                  className="flex items-center justify-between rounded-md bg-slate-50 px-2 py-1.5"
-                >
+                <li key={a.id} className="flex items-center justify-between">
                   <span
-                    className={a.status !== 'ativo' ? 'text-slate-400 line-through' : 'text-slate-700'}
+                    className={
+                      a.status !== 'ativo'
+                        ? 'text-slate-400 line-through decoration-2'
+                        : 'text-slate-700'
+                    }
                   >
                     {a.pessoa.nome_completo}
-                    <span className="ml-2 text-xs no-underline">
-                      ({ROTULO_STATUS_ASSISTIDO[a.status]})
-                    </span>
                   </span>
                   {a.status === 'ativo' && (
                     <button
@@ -114,30 +102,34 @@ export function TratamentoDetalheModal({ tratamentoId, onFechar }) {
                 </li>
               ))}
             </ul>
+          </Secao>
+
+          <div className="grid grid-cols-2 gap-4 border-y border-slate-200 py-3">
+            <Campo label="Início" valor={isoParaData(dados.data_inicio)} />
+            <Campo label="Sessões previstas" valor={dados.sessoes_previstas} />
           </div>
 
-          <div>
-            <p className="mb-2 text-xs font-medium text-slate-400">
-              Diário de evolução
-            </p>
+          {dados.observacao && <Secao titulo="Observação">{dados.observacao}</Secao>}
+          {dados.situacao_final && (
+            <Secao titulo="Situação final">{dados.situacao_final}</Secao>
+          )}
+
+          <Secao titulo="Diário de evolução">
             {dados.evolucoes.length === 0 ? (
               <p className="text-slate-500">Nenhuma anotação ainda.</p>
             ) : (
-              <ul className="flex flex-col gap-2">
+              <div className="flex flex-col gap-3">
                 {dados.evolucoes.map((e) => (
-                  <li key={e.id} className="border-l-2 border-slate-300 pl-3">
-                    <div className="flex items-baseline gap-2">
-                      <span className="text-xs text-slate-400">{isoParaData(e.data)}</span>
-                      {e.registrado_por && (
-                        <span className="text-xs text-slate-400">
-                          — {e.registrado_por.nome_completo}
-                        </span>
-                      )}
-                    </div>
-                    <p className="text-slate-700">{e.texto}</p>
-                  </li>
+                  <p key={e.id} className="leading-relaxed text-slate-700">
+                    <span className="font-bold">{isoParaData(e.data)}</span>
+                    {e.registrado_por && (
+                      <span className="text-slate-400"> — {e.registrado_por.nome_completo}</span>
+                    )}
+                    {' — '}
+                    {e.texto}
+                  </p>
                 ))}
-              </ul>
+              </div>
             )}
 
             <form onSubmit={adicionarEvolucao} className="mt-3 flex gap-2">
@@ -156,18 +148,29 @@ export function TratamentoDetalheModal({ tratamentoId, onFechar }) {
                 Adicionar
               </button>
             </form>
-          </div>
+          </Secao>
         </div>
       )}
     </Modal>
   )
 }
 
-function Item({ label, valor }) {
+function Secao({ titulo, children }) {
   return (
     <div>
-      <dt className="text-xs font-medium text-slate-400">{label}</dt>
-      <dd className="text-slate-700">{valor ?? '—'}</dd>
+      <h3 className="mb-1 text-xs font-bold uppercase tracking-wide text-slate-400">
+        {titulo}
+      </h3>
+      {children}
+    </div>
+  )
+}
+
+function Campo({ label, valor }) {
+  return (
+    <div>
+      <p className="text-xs font-bold uppercase tracking-wide text-slate-400">{label}</p>
+      <p className="text-slate-700">{valor ?? '—'}</p>
     </div>
   )
 }

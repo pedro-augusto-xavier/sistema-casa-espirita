@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { api } from '../api/client'
 import { useAuth } from '../auth/AuthContext'
+import { mascaraTelefone } from '../utils/formatadores'
 
 export function Pessoas() {
   const { usuario, sair } = useAuth()
@@ -103,7 +104,9 @@ export function Pessoas() {
                         {p.nome_completo}
                       </Link>
                     </td>
-                    <td className="px-4 py-2 text-slate-600">{p.telefone || '—'}</td>
+                    <td className="px-4 py-2 text-slate-600">
+                      {p.telefone ? mascaraTelefone(p.telefone) : '—'}
+                    </td>
                     <td className="px-4 py-2 text-slate-600">
                       {p.cidade ? `${p.cidade}${p.uf ? '/' + p.uf : ''}` : '—'}
                     </td>

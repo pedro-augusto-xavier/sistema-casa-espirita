@@ -82,7 +82,7 @@ export function FichaPessoa() {
           </div>
 
           <dl className="mt-4 grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
-            <Item label="Nascimento" valor={pessoa.data_nascimento} />
+            <Item label="Nascimento" valor={formatarData(pessoa.data_nascimento)} />
             <Item label="Telefone" valor={pessoa.telefone} />
             <Item label="CPF" valor={pessoa.cpf} />
             <Item label="Como conheceu" valor={pessoa.como_conheceu} />
@@ -124,7 +124,7 @@ export function FichaPessoa() {
                     <span className="font-medium text-slate-700">
                       {ROTULO_TIPO[item.tipo] ?? item.tipo}
                     </span>
-                    <span className="text-slate-400">{item.data}</span>
+                    <span className="text-slate-400">{formatarData(item.data)}</span>
                   </div>
                   <p className="text-sm text-slate-600">{item.titulo}</p>
                   {item.descricao && (
@@ -138,6 +138,12 @@ export function FichaPessoa() {
       </main>
     </div>
   )
+}
+
+function formatarData(iso) {
+  if (!iso) return null
+  const [ano, mes, dia] = iso.split('-')
+  return `${dia}/${mes}/${ano}`
 }
 
 function Item({ label, valor }) {

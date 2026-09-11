@@ -10,6 +10,7 @@ from app.api.v1.endpoints import (
     atendimentos,
     auditoria,
     auth,
+    grupos,
     pessoas,
     referencias,
     tratamentos,
@@ -24,6 +25,7 @@ protegidas = APIRouter(dependencies=[Depends(get_usuario_atual)])
 protegidas.include_router(pessoas.router)
 protegidas.include_router(atendimentos.router)
 protegidas.include_router(tratamentos.router)
+protegidas.include_router(grupos.router)
 protegidas.include_router(referencias.router)
 protegidas.include_router(usuarios.router)
 protegidas.include_router(auditoria.router)

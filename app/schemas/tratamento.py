@@ -124,9 +124,10 @@ class TratamentoListItem(BaseModel):
 
 
 class ItemHistorico(BaseModel):
-    tipo: Literal["atendimento", "tratamento_inicio", "evolucao"]
+    tipo: Literal["atendimento", "tratamento_inicio", "evolucao", "grupo"]
     data: date
     titulo: str
     descricao: str | None
     atendimento_id: int | None
     tratamento_id: int | None
+    grupo_id: int | None = None

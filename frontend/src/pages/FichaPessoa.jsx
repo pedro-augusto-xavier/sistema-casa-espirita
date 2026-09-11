@@ -5,6 +5,7 @@ import { AtendimentoDetalheModal } from '../components/AtendimentoDetalheModal'
 import { NovoAtendimentoModal } from '../components/NovoAtendimentoModal'
 import { NovoTratamentoModal } from '../components/NovoTratamentoModal'
 import { TratamentoDetalheModal } from '../components/TratamentoDetalheModal'
+import { useAuth } from '../auth/AuthContext'
 import { isoParaData, mascaraCpf, mascaraTelefone } from '../utils/formatadores'
 
 const ROTULO_TIPO = {
@@ -16,6 +17,7 @@ const ROTULO_TIPO = {
 export function FichaPessoa() {
   const { id } = useParams()
   const navigate = useNavigate()
+  const { usuario } = useAuth()
 
   const [pessoa, setPessoa] = useState(null)
   const [historico, setHistorico] = useState([])
@@ -60,6 +62,38 @@ export function FichaPessoa() {
     try {
       await api.del(`/pessoas/${id}`)
       navigate('/')
+    } catch (e) {
+      setErro(e.message)
+    }
+  }
+
+  async function exportarDados() {
+    try {
+      const dados = await api.get(`/pessoas/${id}/exportar`)
+      const blob = new Blob([JSON.stringify(dados, null, 2)], {
+        type: 'application/json',
+      })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `ficha-${pessoa.nome_completo.replace(/\s+/g, '_')}.json`
+      a.click()
+      URL.revokeObjectURL(url)
+    } catch (e) {
+      setErro(e.message)
+    }
+  }
+
+  async function anonimizar() {
+    if (
+      !confirm(
+        `Isso apaga os dados pessoais de ${pessoa.nome_completo} (CPF, telefone, endereço...) e não pode ser desfeito. O histórico de atendimentos é mantido. Continuar?`,
+      )
+    )
+      return
+    try {
+      await api.post(`/pessoas/${id}/anonimizar`)
+      setVersao((v) => v + 1)
     } catch (e) {
       setErro(e.message)
     }
@@ -139,6 +173,19 @@ export function FichaPessoa() {
               {pessoa.observacoes_gerais}
             </p>
           )}
+
+          <div className="mt-4 flex flex-wrap items-center gap-3 border-t border-slate-100 pt-4 text-xs text-slate-400">
+            <span>LGPD:</span>
+            <button onClick={exportarDados} className="text-slate-600 hover:underline">
+              Exportar dados
+            </button>
+            {usuario.papel === 'admin' && !pessoa.anonimizada && (
+              <button onClick={anonimizar} className="text-red-500 hover:underline">
+                Anonimizar (apagar dados pessoais)
+              </button>
+            )}
+            {pessoa.anonimizada && <span>dados já anonimizados</span>}
+          </div>
         </div>
 
         <div className="mt-6 rounded-lg bg-white p-6 shadow-sm">

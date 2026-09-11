@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { api } from '../api/client'
+import { AtendimentoDetalheModal } from '../components/AtendimentoDetalheModal'
 import { NovoAtendimentoModal } from '../components/NovoAtendimentoModal'
 import { NovoTratamentoModal } from '../components/NovoTratamentoModal'
+import { TratamentoDetalheModal } from '../components/TratamentoDetalheModal'
 import { isoParaData, mascaraCpf, mascaraTelefone } from '../utils/formatadores'
 
 const ROTULO_TIPO = {
@@ -20,6 +22,7 @@ export function FichaPessoa() {
   const [erro, setErro] = useState('')
   const [carregando, setCarregando] = useState(true)
   const [modalAberto, setModalAberto] = useState(null) // 'atendimento' | 'tratamento' | null
+  const [detalhe, setDetalhe] = useState(null) // { tipo: 'atendimento' | 'tratamento', id }
   const [versao, setVersao] = useState(0)
 
   useEffect(() => {
@@ -37,6 +40,19 @@ export function FichaPessoa() {
   function aoCriarRegistro() {
     setModalAberto(null)
     setVersao((v) => v + 1)
+  }
+
+  function abrirDetalhe(item) {
+    if (item.tipo === 'atendimento' && item.atendimento_id) {
+      setDetalhe({ tipo: 'atendimento', id: item.atendimento_id })
+    } else if (item.tratamento_id) {
+      setDetalhe({ tipo: 'tratamento', id: item.tratamento_id })
+    }
+  }
+
+  function fecharDetalhe() {
+    setDetalhe(null)
+    setVersao((v) => v + 1) // pode ter mudado algo (evolução, assistido concluído)
   }
 
   async function desativar() {
@@ -146,16 +162,22 @@ export function FichaPessoa() {
             <ul className="mt-4 flex flex-col gap-3">
               {historico.map((item, i) => (
                 <li key={i} className="border-l-2 border-slate-300 pl-3">
-                  <div className="flex items-baseline gap-2 text-sm">
-                    <span className="font-medium text-slate-700">
-                      {ROTULO_TIPO[item.tipo] ?? item.tipo}
-                    </span>
-                    <span className="text-slate-400">{isoParaData(item.data)}</span>
-                  </div>
-                  <p className="text-sm text-slate-600">{item.titulo}</p>
-                  {item.descricao && (
-                    <p className="text-sm text-slate-500">{item.descricao}</p>
-                  )}
+                  <button
+                    type="button"
+                    onClick={() => abrirDetalhe(item)}
+                    className="w-full rounded-md p-1 text-left hover:bg-slate-50"
+                  >
+                    <div className="flex items-baseline gap-2 text-sm">
+                      <span className="font-medium text-slate-700">
+                        {ROTULO_TIPO[item.tipo] ?? item.tipo}
+                      </span>
+                      <span className="text-slate-400">{isoParaData(item.data)}</span>
+                    </div>
+                    <p className="text-sm text-slate-600">{item.titulo}</p>
+                    {item.descricao && (
+                      <p className="text-sm text-slate-500">{item.descricao}</p>
+                    )}
+                  </button>
                 </li>
               ))}
             </ul>
@@ -176,6 +198,13 @@ export function FichaPessoa() {
           onFechar={() => setModalAberto(null)}
           onCriado={aoCriarRegistro}
         />
+      )}
+
+      {detalhe?.tipo === 'atendimento' && (
+        <AtendimentoDetalheModal atendimentoId={detalhe.id} onFechar={fecharDetalhe} />
+      )}
+      {detalhe?.tipo === 'tratamento' && (
+        <TratamentoDetalheModal tratamentoId={detalhe.id} onFechar={fecharDetalhe} />
       )}
     </div>
   )

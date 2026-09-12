@@ -4,7 +4,9 @@ Lê as variáveis do arquivo .env (ou do ambiente do sistema) e valida os tipos.
 Em qualquer lugar do código usamos:  from app.core.config import settings
 """
 
-from pydantic import field_validator
+import json
+
+from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -26,11 +28,15 @@ class Settings(BaseSettings):
     # App
     APP_ENV: str = "dev"
 
-    # Origens autorizadas a chamar a API pelo navegador (o front em dev)
-    CORS_ORIGINS: list[str] = [
-        "http://localhost:5173",
-        "http://127.0.0.1:5173",
-    ]
+    # Origens autorizadas a chamar a API pelo navegador (o front em dev).
+    # Fica como texto puro (não lista) porque pydantic-settings tenta ler
+    # variável de ambiente de tipo lista como JSON antes de qualquer
+    # validação nossa -- e "a,b,c" não é JSON válido. Guardamos como string
+    # e convertemos na propriedade abaixo.
+    CORS_ORIGINS_RAW: str = Field(
+        default="http://localhost:5173,http://127.0.0.1:5173",
+        validation_alias="CORS_ORIGINS",
+    )
 
     @field_validator("DATABASE_URL")
     @classmethod
@@ -43,14 +49,12 @@ class Settings(BaseSettings):
                 return "postgresql+psycopg://" + v[len(prefixo) :]
         return v
 
-    @field_validator("CORS_ORIGINS", mode="before")
-    @classmethod
-    def _origins_por_virgula(cls, v: object) -> object:
-        """Deixa configurar como lista JSON OU como 'a,b,c' (mais fácil
-        de colar no painel de variáveis de ambiente do host)."""
-        if isinstance(v, str) and not v.strip().startswith("["):
-            return [origem.strip() for origem in v.split(",") if origem.strip()]
-        return v
+    @property
+    def CORS_ORIGINS(self) -> list[str]:
+        bruto = self.CORS_ORIGINS_RAW.strip()
+        if bruto.startswith("["):
+            return json.loads(bruto)
+        return [origem.strip() for origem in bruto.split(",") if origem.strip()]
 
     @property
     def is_dev(self) -> bool:

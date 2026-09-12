@@ -96,7 +96,7 @@ export function FichaCaso({ caso, pessoaId, aoMudar, aoAbrir }) {
         {/* ---------- capa ---------- */}
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <Rotulo>Pasta de acompanhamento</Rotulo>
+            <Rotulo>Tratamento</Rotulo>
             <h3 className="mt-0.5 font-display text-2xl font-semibold text-emerald-950">
               {caso.tipo_nome}
             </h3>
@@ -106,7 +106,7 @@ export function FichaCaso({ caso, pessoaId, aoMudar, aoAbrir }) {
               {concluido ? 'Concluída' : 'Em andamento'}
             </Pill>
             <Botao variante="secundario" pequeno onClick={aoAbrir}>
-              Abrir pasta →
+              Abrir tratamento →
             </Botao>
           </div>
         </div>

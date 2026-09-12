@@ -235,7 +235,7 @@ export function FichaPessoa() {
             <div className="mt-6 grid grid-cols-3 divide-x divide-stone-100 rounded-xl bg-stone-50 ring-1 ring-stone-900/5">
               <Numero valor={atendimentos.length} rotulo={atendimentos.length === 1 ? 'atendimento' : 'atendimentos'} />
               <Numero valor={ultimoAtendimento ? isoParaData(ultimoAtendimento) : '—'} rotulo="último atendimento" pequeno />
-              <Numero valor={pastasAbertas} rotulo={pastasAbertas === 1 ? 'pasta aberta' : 'pastas abertas'} />
+              <Numero valor={pastasAbertas} rotulo={pastasAbertas === 1 ? 'tratamento aberto' : 'tratamentos abertos'} />
             </div>
 
             <dl className="mt-6 grid grid-cols-2 gap-x-6 gap-y-4 sm:grid-cols-3">

@@ -215,12 +215,12 @@ export function AtendimentoModal({ pessoa, existente, onFechar, onSalvo }) {
               className="rounded-xl border-l-4 border-amber-400 bg-amber-50/60 p-4 animate-surgir"
             >
               <p className="text-[11px] font-semibold tracking-wider text-amber-800 uppercase">
-                Pasta de {t.nome}
+                Tratamento: {t.nome}
               </p>
 
               {aberta ? (
                 <p className="mt-1 text-sm text-stone-700">
-                  Pasta aberta desde <strong>{isoParaData(aberta.data_inicio)}</strong>
+                  Tratamento aberto desde <strong>{isoParaData(aberta.data_inicio)}</strong>
                   {aberta.sessoes_previstas
                     ? ` — ${aberta.sessoes_realizadas} de ${aberta.sessoes_previstas} vezes feitas`
                     : ''}

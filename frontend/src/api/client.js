@@ -18,7 +18,9 @@ async function request(path, { method = 'GET', body, isForm = false } = {}) {
     body: body ? (isForm ? body : JSON.stringify(body)) : undefined,
   })
 
-  if (res.status === 401) {
+  // 401 na própria tentativa de login é "senha errada", não "sessão expirada"
+  // -- deixa cair pro tratamento padrão, que mostra a mensagem real da API.
+  if (res.status === 401 && path !== '/auth/login') {
     localStorage.removeItem('token')
     if (location.pathname !== '/login') location.href = '/login'
     throw new Error('Sessão expirada, faça login de novo.')

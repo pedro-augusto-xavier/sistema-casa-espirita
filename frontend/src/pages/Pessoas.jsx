@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { api } from '../api/client'
 import { Cabecalho } from '../components/Cabecalho'
+import { ResumoDoDia } from '../components/ResumoDoDia'
 import { mascaraTelefone } from '../utils/formatadores'
 
 export function Pessoas() {
@@ -39,7 +40,9 @@ export function Pessoas() {
       <Cabecalho />
 
       <main className="mx-auto max-w-4xl p-6">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <ResumoDoDia />
+
+        <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <h2 className="text-xl font-bold text-slate-800">Pessoas</h2>
           <Link
             to="/pessoas/nova"

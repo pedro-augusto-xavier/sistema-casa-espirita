@@ -5,7 +5,7 @@ from datetime import date, datetime
 from pydantic import BaseModel, ConfigDict, Field
 
 from app.models.enums import Modalidade
-from app.schemas.pessoa import PessoaMini
+from app.schemas.pessoa import PessoaMini, PessoaOut
 
 # ---------- tratamentos dentro do atendimento ----------
 
@@ -70,7 +70,9 @@ class AtendimentoOut(BaseModel):
 
     id: int
     data: date
-    pessoa: PessoaMini
+    # dados completos da pessoa (nascimento, endereço, telefone) -- o PDF
+    # da visita precisa deles, igual à ficha de papel.
+    pessoa: PessoaOut
     atendido_por: PessoaMini | None
     solicitante: PessoaMini | None
     presente: bool

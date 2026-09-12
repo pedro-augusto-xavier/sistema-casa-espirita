@@ -16,7 +16,7 @@ from app.schemas.atendimento import (
 )
 
 _CARREGAR_TUDO = (
-    selectinload(Atendimento.pessoa),
+    selectinload(Atendimento.pessoa).selectinload(Pessoa.papeis),
     selectinload(Atendimento.atendido_por),
     selectinload(Atendimento.solicitante),
     selectinload(Atendimento.tratamentos).selectinload(

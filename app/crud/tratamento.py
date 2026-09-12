@@ -24,7 +24,9 @@ from app.schemas.tratamento import (
 _CARREGAR_TUDO = (
     selectinload(Tratamento.tipo),
     selectinload(Tratamento.solicitante),
-    selectinload(Tratamento.assistidos).selectinload(TratamentoAssistido.pessoa),
+    selectinload(Tratamento.assistidos)
+    .selectinload(TratamentoAssistido.pessoa)
+    .selectinload(Pessoa.papeis),
     selectinload(Tratamento.evolucoes).selectinload(TratamentoEvolucao.registrado_por),
     selectinload(Tratamento.evolucoes).selectinload(TratamentoEvolucao.pessoa),
 )

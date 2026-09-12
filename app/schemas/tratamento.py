@@ -11,7 +11,7 @@ from typing import Literal
 from pydantic import BaseModel, ConfigDict, Field
 
 from app.models.enums import StatusAssistido, StatusTratamento
-from app.schemas.pessoa import PessoaMini
+from app.schemas.pessoa import PessoaMini, PessoaOut
 
 # ---------- assistidos ----------
 
@@ -32,7 +32,9 @@ class AssistidoOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: int
-    pessoa: PessoaMini
+    # dados completos (não só nome): a ficha em PDF do caso precisa de
+    # nascimento, endereço e telefone, iguais aos da folha de papel.
+    pessoa: PessoaOut
     status: StatusAssistido
     situacao_final: str | None
     data_conclusao: date | None

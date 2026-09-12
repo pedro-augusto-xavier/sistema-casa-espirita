@@ -144,12 +144,10 @@ Dado de religião é dado sensível pela LGPD. O projeto trata isso com:
 - **Exclusão lógica** (soft delete) em vez de apagar na hora.
 - **Backup**: `python -m scripts.backup` gera um dump restaurável em `backups/`.
 
-## Próximos passos (ideias, não compromissos)
+## Deploy
 
-- Exportar a ficha da pessoa em PDF (hoje exporta em `.json`).
-- Hospedar numa nuvem (Render/Railway + Neon/Supabase) pra ter um link ao vivo.
-- Editar um atendimento/tratamento já existente com histórico de alterações
-  campo a campo (hoje a auditoria mostra os campos, mas não o valor anterior).
+Veja [DEPLOY.md](DEPLOY.md) para o passo a passo (Neon + Render + Vercel,
+tudo em plano gratuito).
 
 ## Licença
 

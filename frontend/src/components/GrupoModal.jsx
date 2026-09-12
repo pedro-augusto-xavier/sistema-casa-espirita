@@ -156,6 +156,7 @@ export function GrupoModal({ existente, onFechar, onSalvo }) {
             valor={null}
             aoSelecionar={adicionarParticipante}
             placeholder="Adicionar participante..."
+            permitirCadastro
           />
         </fieldset>
 

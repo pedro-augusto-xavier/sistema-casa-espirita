@@ -294,7 +294,8 @@ export function AtendimentoModal({ pessoa, existente, onFechar, onSalvo }) {
                   <SeletorPessoa
                     valor={null}
                     aoSelecionar={(p) => alternarAssistido(t.id, p)}
-                    placeholder="Adicionar assistido (precisa estar cadastrado)..."
+                    placeholder="Adicionar assistido (filho, pai, amigo...)"
+                    permitirCadastro
                   />
                 </div>
               </div>

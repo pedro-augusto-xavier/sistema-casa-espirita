@@ -171,7 +171,8 @@ export function FichaCaso({ caso, pessoaId, aoMudar, aoAbrir }) {
                   <SeletorPessoa
                     valor={null}
                     aoSelecionar={adicionarAssistido}
-                    placeholder="Buscar pessoa cadastrada..."
+                    placeholder="Buscar ou cadastrar pessoa..."
+                    permitirCadastro
                   />
                 </div>
               ) : (

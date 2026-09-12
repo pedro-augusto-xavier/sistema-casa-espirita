@@ -1,36 +1,64 @@
 import { useState } from 'react'
 import { api } from '../api/client'
 import { isoParaData } from '../utils/formatadores'
-import { Botao, MensagemErro, Pill, Rotulo } from './ui'
+import { SeletorPessoa } from './SeletorPessoa'
+import { Avatar, Botao, MensagemErro, Pill, Rotulo } from './ui'
 
 /**
- * A "ficha de Desobsessão" do papel, em cartão: solicitante, nº de vezes,
- * início, situação final e o diário por data — com a anotação nova direto ali.
+ * A pasta de Desobsessão do papel, em cartão. A capa: Responsável (quem
+ * vem à casa) e Assistidos (por quem ela pediu — riscados quando concluem).
+ * Dentro: nº de vezes, início, observação, situação final e o diário por
+ * data, com a anotação nova direto ali.
  */
-export function FichaCaso({ caso, aoMudar, aoAbrir }) {
+export function FichaCaso({ caso, pessoaId, aoMudar, aoAbrir }) {
   const [nota, setNota] = useState('')
   const [enviando, setEnviando] = useState(false)
   const [erro, setErro] = useState('')
+  const [adicionando, setAdicionando] = useState(false)
 
   const concluido = caso.status === 'concluido'
   const previstas = caso.sessoes_previstas
   const feitas = caso.sessoes_realizadas ?? 0
   const progresso = previstas ? Math.min(100, Math.round((feitas / previstas) * 100)) : null
+  const souResponsavel = caso.solicitante?.id === pessoaId
+
+  async function chamar(fn) {
+    setErro('')
+    try {
+      await fn()
+      aoMudar()
+    } catch (e) {
+      setErro(e.message)
+    }
+  }
 
   async function anotar(evento) {
     evento.preventDefault()
     if (!nota.trim()) return
     setEnviando(true)
-    setErro('')
-    try {
+    await chamar(async () => {
       await api.post(`/tratamentos/${caso.id}/evolucoes`, { texto: nota.trim() })
       setNota('')
-      aoMudar()
-    } catch (e) {
-      setErro(e.message)
-    } finally {
-      setEnviando(false)
-    }
+    })
+    setEnviando(false)
+  }
+
+  function concluirAssistido(a) {
+    const situacao = prompt(`Situação final de ${a.pessoa.nome_completo} (opcional):`)
+    if (situacao === null) return
+    chamar(() =>
+      api.patch(`/tratamentos/${caso.id}/assistidos/${a.id}`, {
+        status: 'concluido',
+        situacao_final: situacao || null,
+        data_conclusao: new Date().toISOString().slice(0, 10),
+      }),
+    )
+  }
+
+  function adicionarAssistido(p) {
+    if (!p) return
+    setAdicionando(false)
+    chamar(() => api.post(`/tratamentos/${caso.id}/assistidos`, { pessoa_id: p.id }))
   }
 
   return (
@@ -39,12 +67,15 @@ export function FichaCaso({ caso, aoMudar, aoAbrir }) {
         concluido ? 'opacity-80' : ''
       }`}
     >
-      <div className={`h-1.5 ${concluido ? 'bg-stone-300' : 'bg-linear-to-r from-amber-500 to-amber-300'}`} />
+      <div
+        className={`h-1.5 ${concluido ? 'bg-stone-300' : 'bg-linear-to-r from-amber-500 to-amber-300'}`}
+      />
 
       <div className="p-5 sm:p-6">
+        {/* ---------- capa ---------- */}
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <Rotulo>Ficha de acompanhamento</Rotulo>
+            <Rotulo>Pasta de acompanhamento</Rotulo>
             <h3 className="mt-0.5 font-display text-2xl font-semibold text-emerald-950">
               {caso.tipo_nome}
             </h3>
@@ -54,18 +85,90 @@ export function FichaCaso({ caso, aoMudar, aoAbrir }) {
               {concluido ? 'Concluída' : 'Em andamento'}
             </Pill>
             <Botao variante="secundario" pequeno onClick={aoAbrir}>
-              Abrir ficha →
+              Abrir pasta →
             </Botao>
           </div>
         </div>
 
-        <dl className="mt-5 grid grid-cols-2 gap-x-6 gap-y-4 sm:grid-cols-4">
-          <div className="col-span-2 sm:col-span-1">
-            <Rotulo>Solicitante</Rotulo>
-            <dd className="mt-0.5 text-sm text-stone-800">
-              {caso.solicitante?.nome_completo || <span className="text-stone-300">—</span>}
-            </dd>
+        <div className="mt-5 grid grid-cols-1 gap-5 sm:grid-cols-2">
+          <div>
+            <Rotulo>Responsável</Rotulo>
+            <p className="mt-1 text-xs text-stone-400">quem vem à casa receber o tratamento</p>
+            {caso.solicitante ? (
+              <div className="mt-2 flex items-center gap-2">
+                <Avatar nome={caso.solicitante.nome_completo} className="h-8 w-8 text-xs" />
+                <span className="font-medium text-stone-800">
+                  {caso.solicitante.nome_completo}
+                  {souResponsavel && <span className="ml-1 text-xs font-normal text-stone-400">(esta ficha)</span>}
+                </span>
+              </div>
+            ) : (
+              <p className="mt-2 text-sm text-stone-300">—</p>
+            )}
           </div>
+
+          <div>
+            <Rotulo>Assistidos</Rotulo>
+            <p className="mt-1 text-xs text-stone-400">por quem pediu — filhos, amigos, ela mesma</p>
+            <ul className="mt-2 flex flex-col gap-1.5">
+              {caso.assistidos.map((a) => {
+                const ativo = a.status === 'ativo'
+                return (
+                  <li key={a.id} className="flex items-center gap-2">
+                    <Avatar
+                      nome={a.pessoa.nome_completo}
+                      className={`h-7 w-7 text-[10px] ${ativo ? '' : 'grayscale'}`}
+                    />
+                    <span
+                      className={`min-w-0 flex-1 truncate text-sm ${
+                        ativo ? 'text-stone-800' : 'text-stone-400 line-through decoration-stone-400'
+                      }`}
+                      title={a.situacao_final || undefined}
+                    >
+                      {a.pessoa.nome_completo}
+                      {a.pessoa.id === pessoaId && (
+                        <span className="ml-1 text-xs text-stone-400 no-underline">(esta ficha)</span>
+                      )}
+                    </span>
+                    {!ativo && a.data_conclusao && (
+                      <span className="text-[10px] text-stone-400">{isoParaData(a.data_conclusao)}</span>
+                    )}
+                    {ativo && !concluido && (
+                      <button
+                        type="button"
+                        onClick={() => concluirAssistido(a)}
+                        className="text-xs text-stone-400 hover:text-emerald-800 hover:underline"
+                      >
+                        concluir
+                      </button>
+                    )}
+                  </li>
+                )
+              })}
+            </ul>
+            {!concluido &&
+              (adicionando ? (
+                <div className="mt-2">
+                  <SeletorPessoa
+                    valor={null}
+                    aoSelecionar={adicionarAssistido}
+                    placeholder="Buscar pessoa cadastrada..."
+                  />
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setAdicionando(true)}
+                  className="mt-2 text-xs text-stone-400 hover:text-emerald-800 hover:underline"
+                >
+                  + adicionar assistido
+                </button>
+              ))}
+          </div>
+        </div>
+
+        {/* ---------- dentro da pasta ---------- */}
+        <dl className="mt-5 grid grid-cols-2 gap-x-6 gap-y-4 border-t border-dashed border-stone-200 pt-4 sm:grid-cols-3">
           <div>
             <Rotulo>Início</Rotulo>
             <dd className="mt-0.5 text-sm text-stone-800">{isoParaData(caso.data_inicio)}</dd>
@@ -125,7 +228,10 @@ export function FichaCaso({ caso, aoMudar, aoAbrir }) {
                   <span className="whitespace-pre-line text-stone-800">
                     {e.texto}
                     {e.registrado_por && (
-                      <span className="text-xs text-stone-400"> ({e.registrado_por.nome_completo})</span>
+                      <span className="text-xs text-stone-400">
+                        {' '}
+                        ({e.registrado_por.nome_completo})
+                      </span>
                     )}
                   </span>
                 </li>

@@ -16,6 +16,9 @@ class AtendimentoTratamentoIn(BaseModel):
     sessoes_previstas: int | None = Field(default=None, ge=0)
     sessoes_realizadas: int = Field(default=0, ge=0)
     observacao: str | None = None
+    # só pros tipos de formato "caso" (Desobsessão): por quem a pessoa
+    # pediu o tratamento (filhos, amigos, ela mesma). Vazio = ela mesma.
+    assistidos: list[int] = Field(default_factory=list)
 
 
 class AtendimentoTratamentoOut(BaseModel):

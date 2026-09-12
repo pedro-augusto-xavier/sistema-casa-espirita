@@ -166,6 +166,10 @@ export function FichaPessoa() {
     )
   }
 
+  // pessoas ligadas por pastas de acompanhamento: de quem esta pessoa é
+  // responsável (filhos, pais...) e de quem ela é assistida
+  const ligadas = pessoasLigadas(casos, pessoa.id)
+
   const atendimentos = historico.filter((h) => h.tipo === 'atendimento')
   const ultimoAtendimento = atendimentos[0]?.data // histórico já vem do mais recente
   const pastasAbertas = casos.filter((c) => c.status !== 'concluido').length
@@ -313,6 +317,30 @@ export function FichaPessoa() {
           </div>
         </section>
 
+        {/* ---------- pessoas ligadas (a família da pasta) ---------- */}
+        {(ligadas.responsavelDe.length > 0 || ligadas.assistidoDe.length > 0) && (
+          <section className="mt-6 rounded-2xl bg-white p-6 shadow-sm ring-1 ring-stone-900/5 animate-entrar">
+            <h2 className="font-display text-xl font-semibold text-emerald-950">Pessoas ligadas</h2>
+            <p className="mt-0.5 text-xs text-stone-400">
+              Cada uma tem a própria ficha — clique pra abrir.
+            </p>
+            <div className="mt-4 flex flex-col gap-4">
+              {ligadas.responsavelDe.length > 0 && (
+                <GrupoLigadas
+                  titulo={`${pessoa.nome_completo.split(' ')[0]} é responsável por`}
+                  pessoas={ligadas.responsavelDe}
+                />
+              )}
+              {ligadas.assistidoDe.length > 0 && (
+                <GrupoLigadas
+                  titulo={`${pessoa.nome_completo.split(' ')[0]} é assistida(o) de`}
+                  pessoas={ligadas.assistidoDe}
+                />
+              )}
+            </div>
+          </section>
+        )}
+
         {/* ---------- fichas de acompanhamento (Desobsessão etc.) ---------- */}
         {casos.length > 0 && (
           <section className="mt-6 flex flex-col gap-4 animate-entrar">
@@ -402,6 +430,67 @@ function formatarAlteracao(campo, valor) {
     return `${campo}: ${formatarValor(valor.de)} → ${formatarValor(valor.para)}`
   }
   return `${campo}: ${formatarValor(valor)}`
+}
+
+/** Junta, de todas as pastas, quem esta pessoa acompanha e quem acompanha ela.
+ * Cada pessoa aparece uma vez, com as pastas (tipos) que a ligam. */
+function pessoasLigadas(casos, meuId) {
+  const responsavelDe = new Map()
+  const assistidoDe = new Map()
+
+  function junta(mapa, p, caso) {
+    if (!p || p.id === meuId) return
+    const atual = mapa.get(p.id) ?? { pessoa: p, pastas: [], concluida: true }
+    atual.pastas.push(caso.tipo_nome)
+    if (caso.status !== 'concluido') atual.concluida = false
+    mapa.set(p.id, atual)
+  }
+
+  for (const caso of casos) {
+    if (caso.solicitante?.id === meuId) {
+      for (const a of caso.assistidos) junta(responsavelDe, a.pessoa, caso)
+    } else if (caso.assistidos.some((a) => a.pessoa.id === meuId)) {
+      junta(assistidoDe, caso.solicitante, caso)
+    }
+  }
+  return {
+    responsavelDe: [...responsavelDe.values()],
+    assistidoDe: [...assistidoDe.values()],
+  }
+}
+
+function GrupoLigadas({ titulo, pessoas }) {
+  return (
+    <div>
+      <p className="text-[11px] font-semibold tracking-wider text-stone-400 uppercase">{titulo}</p>
+      <ul className="mt-2 flex flex-wrap gap-2">
+        {pessoas.map(({ pessoa: p, pastas, concluida }) => (
+          <li key={p.id}>
+            <Link
+              to={`/pessoas/${p.id}`}
+              className={`group flex items-center gap-2.5 rounded-xl bg-stone-50 py-2 pr-4 pl-2 ring-1 ring-stone-900/5 transition hover:bg-emerald-50 hover:ring-emerald-600/30 ${
+                concluida ? 'opacity-60' : ''
+              }`}
+            >
+              <Avatar nome={p.nome_completo} className="h-9 w-9 text-xs" />
+              <span className="leading-tight">
+                <span className="block text-sm font-medium text-stone-800 group-hover:text-emerald-950">
+                  {p.nome_completo}
+                </span>
+                <span className="block text-[11px] text-stone-400">
+                  {[...new Set(pastas)].join(' · ')}
+                  {concluida ? ' · concluída' : ''}
+                </span>
+              </span>
+              <span className="ml-1 text-stone-300 transition group-hover:translate-x-0.5 group-hover:text-emerald-700">
+                →
+              </span>
+            </Link>
+          </li>
+        ))}
+      </ul>
+    </div>
+  )
 }
 
 function Numero({ valor, rotulo, pequeno = false }) {

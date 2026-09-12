@@ -37,20 +37,20 @@ export function Grupos() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-100">
+    <div className="min-h-screen bg-stone-100">
       <Cabecalho />
 
       <main className="mx-auto max-w-3xl p-6">
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-xl font-bold text-slate-800">Grupos</h2>
-            <p className="text-sm text-slate-500">
+            <h2 className="font-display text-2xl font-semibold text-emerald-900">Grupos</h2>
+            <p className="text-sm text-stone-500">
               Grupo Despertar, Grupo de Estudos -- presença por sessão.
             </p>
           </div>
           <button
             onClick={() => setModalAberto(true)}
-            className="rounded-md bg-slate-800 px-4 py-2 text-sm font-medium text-white hover:bg-slate-700"
+            className="rounded-md bg-emerald-800 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700"
           >
             + Nova sessão
           </button>
@@ -60,14 +60,14 @@ export function Grupos() {
           <p className="mt-3 rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">{erro}</p>
         )}
 
-        <div className="mt-4 overflow-hidden rounded-lg bg-white shadow-sm">
+        <div className="mt-4 overflow-hidden rounded-lg bg-white shadow-sm ring-1 ring-stone-900/5">
           {!dados ? (
-            <p className="p-4 text-sm text-slate-500">Carregando...</p>
+            <p className="p-4 text-sm text-stone-500">Carregando...</p>
           ) : dados.items.length === 0 ? (
-            <p className="p-4 text-sm text-slate-500">Nenhuma sessão registrada.</p>
+            <p className="p-4 text-sm text-stone-500">Nenhuma sessão registrada.</p>
           ) : (
             <table className="w-full text-left text-sm">
-              <thead className="border-b border-slate-200 bg-slate-50 text-slate-500">
+              <thead className="border-b border-stone-200 bg-stone-50 text-stone-500">
                 <tr>
                   <th className="px-4 py-2 font-medium">Data</th>
                   <th className="px-4 py-2 font-medium">Tipo</th>
@@ -81,14 +81,14 @@ export function Grupos() {
                   <tr
                     key={s.id}
                     onClick={() => setEditando(s.id)}
-                    className="cursor-pointer border-b border-slate-100 last:border-0 hover:bg-slate-50"
+                    className="cursor-pointer border-b border-stone-100 last:border-0 hover:bg-stone-50"
                   >
-                    <td className="px-4 py-2 text-slate-600">{isoParaData(s.data)}</td>
-                    <td className="px-4 py-2 font-medium text-slate-800">{s.tipo_nome}</td>
-                    <td className="px-4 py-2 text-slate-600">
+                    <td className="px-4 py-2 text-stone-600">{isoParaData(s.data)}</td>
+                    <td className="px-4 py-2 font-medium text-stone-800">{s.tipo_nome}</td>
+                    <td className="px-4 py-2 text-stone-600">
                       {s.responsavel?.nome_completo || '—'}
                     </td>
-                    <td className="px-4 py-2 text-slate-600">{s.qtd_presentes}</td>
+                    <td className="px-4 py-2 text-stone-600">{s.qtd_presentes}</td>
                     <td className="px-4 py-2 text-right">
                       <button
                         onClick={(e) => excluir(s.id, e)}
@@ -105,11 +105,11 @@ export function Grupos() {
         </div>
 
         {dados && dados.pages > 1 && (
-          <div className="mt-4 flex items-center justify-center gap-3 text-sm text-slate-600">
+          <div className="mt-4 flex items-center justify-center gap-3 text-sm text-stone-600">
             <button
               disabled={pagina <= 1}
               onClick={() => setPagina((p) => p - 1)}
-              className="rounded-md border border-slate-300 px-3 py-1 disabled:opacity-40"
+              className="rounded-md border border-stone-300 px-3 py-1 disabled:opacity-40"
             >
               Anterior
             </button>
@@ -119,7 +119,7 @@ export function Grupos() {
             <button
               disabled={pagina >= dados.pages}
               onClick={() => setPagina((p) => p + 1)}
-              className="rounded-md border border-slate-300 px-3 py-1 disabled:opacity-40"
+              className="rounded-md border border-stone-300 px-3 py-1 disabled:opacity-40"
             >
               Próxima
             </button>

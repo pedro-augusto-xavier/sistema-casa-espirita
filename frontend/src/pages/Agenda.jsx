@@ -56,15 +56,15 @@ export function Agenda() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-100">
+    <div className="min-h-screen bg-stone-100">
       <Cabecalho />
 
       <main className="mx-auto max-w-3xl p-6">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <h2 className="text-xl font-bold text-slate-800">Agenda</h2>
+          <h2 className="font-display text-2xl font-semibold text-emerald-900">Agenda</h2>
           <button
             onClick={() => setModalAberto(true)}
-            className="whitespace-nowrap rounded-md bg-slate-800 px-4 py-2 text-sm font-medium text-white hover:bg-slate-700"
+            className="whitespace-nowrap rounded-md bg-emerald-800 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700"
           >
             + Novo evento
           </button>
@@ -77,7 +77,7 @@ export function Agenda() {
               setPagina(1)
               setTipo(e.target.value)
             }}
-            className="rounded-md border border-slate-300 px-3 py-2 text-sm outline-none focus:border-slate-500"
+            className="rounded-md border border-stone-300 px-3 py-2 text-sm outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-600/15"
           >
             <option value="">Todos os tipos</option>
             {Object.entries(ROTULO_TIPO).map(([valor, rotulo]) => (
@@ -92,14 +92,14 @@ export function Agenda() {
           <p className="mt-3 rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">{erro}</p>
         )}
 
-        <div className="mt-4 overflow-hidden rounded-lg bg-white shadow-sm">
+        <div className="mt-4 overflow-hidden rounded-lg bg-white shadow-sm ring-1 ring-stone-900/5">
           {!dados ? (
-            <p className="p-4 text-sm text-slate-500">Carregando...</p>
+            <p className="p-4 text-sm text-stone-500">Carregando...</p>
           ) : dados.items.length === 0 ? (
-            <p className="p-4 text-sm text-slate-500">Nada na agenda.</p>
+            <p className="p-4 text-sm text-stone-500">Nada na agenda.</p>
           ) : (
             <table className="w-full text-left text-sm">
-              <thead className="border-b border-slate-200 bg-slate-50 text-slate-500">
+              <thead className="border-b border-stone-200 bg-stone-50 text-stone-500">
                 <tr>
                   <th className="px-4 py-2 font-medium">Quando</th>
                   <th className="px-4 py-2 font-medium">Título</th>
@@ -113,14 +113,14 @@ export function Agenda() {
                   <tr
                     key={ev.id}
                     onClick={() => setEditando(ev.id)}
-                    className="cursor-pointer border-b border-slate-100 last:border-0 hover:bg-slate-50"
+                    className="cursor-pointer border-b border-stone-100 last:border-0 hover:bg-stone-50"
                   >
-                    <td className="whitespace-nowrap px-4 py-2 text-slate-600">
+                    <td className="whitespace-nowrap px-4 py-2 text-stone-600">
                       {formatarDataHora(ev.data_inicio)}
                     </td>
-                    <td className="px-4 py-2 font-medium text-slate-800">{ev.titulo}</td>
-                    <td className="px-4 py-2 text-slate-600">{ROTULO_TIPO[ev.tipo]}</td>
-                    <td className="px-4 py-2 text-slate-600">{ev.qtd_escalados}</td>
+                    <td className="px-4 py-2 font-medium text-stone-800">{ev.titulo}</td>
+                    <td className="px-4 py-2 text-stone-600">{ROTULO_TIPO[ev.tipo]}</td>
+                    <td className="px-4 py-2 text-stone-600">{ev.qtd_escalados}</td>
                     <td className="px-4 py-2 text-right">
                       <button
                         onClick={(e) => excluir(ev.id, e)}
@@ -137,11 +137,11 @@ export function Agenda() {
         </div>
 
         {dados && dados.pages > 1 && (
-          <div className="mt-4 flex items-center justify-center gap-3 text-sm text-slate-600">
+          <div className="mt-4 flex items-center justify-center gap-3 text-sm text-stone-600">
             <button
               disabled={pagina <= 1}
               onClick={() => setPagina((p) => p - 1)}
-              className="rounded-md border border-slate-300 px-3 py-1 disabled:opacity-40"
+              className="rounded-md border border-stone-300 px-3 py-1 disabled:opacity-40"
             >
               Anterior
             </button>
@@ -151,7 +151,7 @@ export function Agenda() {
             <button
               disabled={pagina >= dados.pages}
               onClick={() => setPagina((p) => p + 1)}
-              className="rounded-md border border-slate-300 px-3 py-1 disabled:opacity-40"
+              className="rounded-md border border-stone-300 px-3 py-1 disabled:opacity-40"
             >
               Próxima
             </button>

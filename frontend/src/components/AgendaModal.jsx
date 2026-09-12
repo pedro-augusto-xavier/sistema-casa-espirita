@@ -136,22 +136,22 @@ export function AgendaModal({ existente, onFechar, onSalvo }) {
         </div>
 
         <fieldset>
-          <legend className="mb-2 text-sm font-medium text-slate-700">Escala</legend>
+          <legend className="mb-2 text-sm font-medium text-stone-700">Escala</legend>
           {escalados.length > 0 && (
             <ul className="mb-2 flex flex-col gap-2">
               {escalados.map((e) => (
                 <li key={e.pessoa.id} className="flex items-center gap-2">
-                  <span className="flex-1 text-sm text-slate-700">{e.pessoa.nome_completo}</span>
+                  <span className="flex-1 text-sm text-stone-700">{e.pessoa.nome_completo}</span>
                   <input
                     placeholder="função (opcional)"
                     value={e.funcao}
                     onChange={(ev) => mudarFuncao(e.pessoa.id, ev.target.value)}
-                    className="w-40 rounded-md border border-slate-300 px-2 py-1 text-xs outline-none focus:border-slate-500"
+                    className="w-40 rounded-md border border-stone-300 px-2 py-1 text-xs outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-600/15"
                   />
                   <button
                     type="button"
                     onClick={() => removerEscalado(e.pessoa.id)}
-                    className="text-slate-400 hover:text-slate-700"
+                    className="text-stone-400 hover:text-stone-700"
                   >
                     ×
                   </button>
@@ -183,14 +183,14 @@ export function AgendaModal({ existente, onFechar, onSalvo }) {
           <button
             type="button"
             onClick={onFechar}
-            className="rounded-md border border-slate-300 px-4 py-2 text-sm hover:bg-slate-50"
+            className="rounded-md border border-stone-300 px-4 py-2 text-sm hover:bg-stone-50"
           >
             Cancelar
           </button>
           <button
             type="submit"
             disabled={enviando}
-            className="rounded-md bg-slate-800 px-4 py-2 text-sm font-medium text-white hover:bg-slate-700 disabled:opacity-50"
+            className="rounded-md bg-emerald-800 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700 disabled:opacity-50"
           >
             {enviando ? 'Salvando...' : editando ? 'Salvar alterações' : 'Criar evento'}
           </button>
@@ -201,11 +201,11 @@ export function AgendaModal({ existente, onFechar, onSalvo }) {
 }
 
 const estiloInput =
-  'w-full rounded-md border border-slate-300 px-3 py-2 text-sm outline-none focus:border-slate-500'
+  'w-full rounded-md border border-stone-300 px-3 py-2 text-sm outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-600/15'
 
 function Campo({ label, children }) {
   return (
-    <label className="block text-sm font-medium text-slate-700">
+    <label className="block text-sm font-medium text-stone-700">
       {label}
       <div className="mt-1">{children}</div>
     </label>

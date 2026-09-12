@@ -68,7 +68,7 @@ export function PessoaForm({
   }
 
   return (
-    <form onSubmit={aoEnviar} className="flex flex-col gap-4 rounded-lg bg-white p-6 shadow-sm">
+    <form onSubmit={aoEnviar} className="flex flex-col gap-4 rounded-lg bg-white p-6 shadow-sm ring-1 ring-stone-900/5">
       <Campo label="Nome completo *">
         <input required className={estiloInput} {...campo('nome_completo')} />
       </Campo>
@@ -126,8 +126,8 @@ export function PessoaForm({
         </Campo>
       </div>
 
-      <fieldset className="rounded-md border border-slate-200 p-3">
-        <legend className="px-1 text-xs font-medium text-slate-500">
+      <fieldset className="rounded-md border border-stone-200 p-3">
+        <legend className="px-1 text-xs font-medium text-stone-500">
           Endereço (opcional)
         </legend>
         <div className="grid grid-cols-3 gap-3">
@@ -158,8 +158,8 @@ export function PessoaForm({
       </Campo>
 
       <fieldset className="flex gap-6">
-        <legend className="mb-1 w-full text-xs font-medium text-slate-500">Papel</legend>
-        <label className="flex items-center gap-2 text-sm text-slate-700">
+        <legend className="mb-1 w-full text-xs font-medium text-stone-500">Papel</legend>
+        <label className="flex items-center gap-2 text-sm text-stone-700">
           <input
             type="checkbox"
             checked={papeis.assistido}
@@ -167,7 +167,7 @@ export function PessoaForm({
           />
           Assistido(a) / frequentador(a)
         </label>
-        <label className="flex items-center gap-2 text-sm text-slate-700">
+        <label className="flex items-center gap-2 text-sm text-stone-700">
           <input
             type="checkbox"
             checked={papeis.trabalhador}
@@ -188,14 +188,14 @@ export function PessoaForm({
       <div className="flex justify-end gap-2 pt-2">
         <Link
           to={linkCancelar}
-          className="rounded-md border border-slate-300 px-4 py-2 text-sm hover:bg-slate-50"
+          className="rounded-md border border-stone-300 px-4 py-2 text-sm hover:bg-stone-50"
         >
           Cancelar
         </Link>
         <button
           type="submit"
           disabled={enviando}
-          className="rounded-md bg-slate-800 px-4 py-2 text-sm font-medium text-white hover:bg-slate-700 disabled:opacity-50"
+          className="rounded-md bg-emerald-800 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700 disabled:opacity-50"
         >
           {enviando ? 'Salvando...' : textoBotao}
         </button>
@@ -205,11 +205,11 @@ export function PessoaForm({
 }
 
 const estiloInput =
-  'w-full rounded-md border border-slate-300 px-3 py-2 text-sm outline-none focus:border-slate-500'
+  'w-full rounded-md border border-stone-300 px-3 py-2 text-sm outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-600/15'
 
 function Campo({ label, children }) {
   return (
-    <label className="block text-sm font-medium text-slate-700">
+    <label className="block text-sm font-medium text-stone-700">
       {label}
       <div className="mt-1">{children}</div>
     </label>

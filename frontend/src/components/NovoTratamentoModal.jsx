@@ -100,14 +100,14 @@ export function NovoTratamentoModal({ pessoaId, onFechar, onCriado }) {
           <button
             type="button"
             onClick={onFechar}
-            className="rounded-md border border-slate-300 px-4 py-2 text-sm hover:bg-slate-50"
+            className="rounded-md border border-stone-300 px-4 py-2 text-sm hover:bg-stone-50"
           >
             Cancelar
           </button>
           <button
             type="submit"
             disabled={enviando}
-            className="rounded-md bg-slate-800 px-4 py-2 text-sm font-medium text-white hover:bg-slate-700 disabled:opacity-50"
+            className="rounded-md bg-emerald-800 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700 disabled:opacity-50"
           >
             {enviando ? 'Salvando...' : 'Abrir caso'}
           </button>
@@ -118,11 +118,11 @@ export function NovoTratamentoModal({ pessoaId, onFechar, onCriado }) {
 }
 
 const estiloInput =
-  'w-full rounded-md border border-slate-300 px-3 py-2 text-sm outline-none focus:border-slate-500'
+  'w-full rounded-md border border-stone-300 px-3 py-2 text-sm outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-600/15'
 
 function Campo({ label, children }) {
   return (
-    <label className="block text-sm font-medium text-slate-700">
+    <label className="block text-sm font-medium text-stone-700">
       {label}
       <div className="mt-1">{children}</div>
     </label>

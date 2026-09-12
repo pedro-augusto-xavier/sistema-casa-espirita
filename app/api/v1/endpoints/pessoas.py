@@ -95,15 +95,16 @@ def editar_pessoa(
                 detail="Já existe outra pessoa com esse CPF",
             )
 
-    pessoa = crud.atualizar(db, pessoa, dados)
-    registrar(
-        db,
-        usuario=usuario,
-        acao=AcaoAuditoria.atualizar,
-        entidade="pessoa",
-        entidade_id=pessoa.id,
-        dados=dados.model_dump(exclude_unset=True, mode="json"),
-    )
+    pessoa, alteracoes = crud.atualizar(db, pessoa, dados)
+    if alteracoes:
+        registrar(
+            db,
+            usuario=usuario,
+            acao=AcaoAuditoria.atualizar,
+            entidade="pessoa",
+            entidade_id=pessoa.id,
+            dados=alteracoes,
+        )
     return PessoaOut.model_validate(pessoa)
 
 

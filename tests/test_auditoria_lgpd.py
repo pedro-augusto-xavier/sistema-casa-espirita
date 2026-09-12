@@ -34,7 +34,22 @@ def test_editar_registra_o_que_mudou(client: TestClient):
         params={"entidade": "pessoa", "entidade_id": p["id"]},
     ).json()["items"]
     atualizacao = next(x for x in logs if x["acao"] == "atualizar")
-    assert atualizacao["dados"]["telefone"] == "21999990000"
+    assert atualizacao["dados"]["telefone"] == {"de": None, "para": "21999990000"}
+
+
+def test_editar_sem_mudanca_real_nao_gera_auditoria(client: TestClient):
+    p = _pessoa(client, nome_completo="Mesmo Nome")
+    total_antes = client.get(
+        "/api/v1/auditoria", params={"entidade": "pessoa", "entidade_id": p["id"]}
+    ).json()["total"]
+
+    # manda o mesmo valor que já está la -- nao é uma mudança de verdade
+    client.patch(f"/api/v1/pessoas/{p['id']}", json={"nome_completo": "Mesmo Nome"})
+
+    total_depois = client.get(
+        "/api/v1/auditoria", params={"entidade": "pessoa", "entidade_id": p["id"]}
+    ).json()["total"]
+    assert total_depois == total_antes
 
 
 def test_operador_nao_ve_auditoria(client: TestClient, client_anon: TestClient):
@@ -102,7 +117,10 @@ def test_exportar_mostra_quem_editou_a_ficha(client: TestClient):
     assert any(e["acao"] == "criar" for e in edicoes)
     atualizacao = next(e for e in edicoes if e["acao"] == "atualizar")
     assert atualizacao["quem"] == "Admin de Teste"
-    assert atualizacao["o_que_mudou"]["nome_completo"] == "Nome Novo"
+    assert atualizacao["o_que_mudou"]["nome_completo"] == {
+        "de": "Nome Antigo",
+        "para": "Nome Novo",
+    }
 
 
 def test_anonimizar_apaga_dados_mas_mantem_historico(client: TestClient):

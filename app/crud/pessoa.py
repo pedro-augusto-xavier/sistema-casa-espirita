@@ -2,7 +2,7 @@
 lógica de banco fica separada da lógica HTTP e dá pra testar isolado.
 """
 
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 
 from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session, selectinload
@@ -91,8 +91,27 @@ def criar(db: Session, dados: PessoaCreate) -> Pessoa:
     return get(db, pessoa.id)  # type: ignore[return-value]
 
 
-def atualizar(db: Session, pessoa: Pessoa, dados: PessoaUpdate) -> Pessoa:
+def _serializa(valor: object) -> object:
+    """Deixa o valor pronto pra guardar em JSON (audit_log.dados)."""
+    if isinstance(valor, date | datetime):
+        return valor.isoformat()
+    return getattr(valor, "value", valor)
+
+
+def atualizar(
+    db: Session, pessoa: Pessoa, dados: PessoaUpdate
+) -> tuple[Pessoa, dict[str, dict[str, object]]]:
+    """Atualiza e devolve também o que mudou (de/para), pra auditoria."""
     mudancas = dados.model_dump(exclude_unset=True, exclude={"papeis"})
+
+    alteracoes: dict[str, dict[str, object]] = {}
+    for campo, valor_novo in mudancas.items():
+        valor_antigo = getattr(pessoa, campo)
+        if valor_antigo != valor_novo:
+            alteracoes[campo] = {
+                "de": _serializa(valor_antigo),
+                "para": _serializa(valor_novo),
+            }
 
     if "consentimento_lgpd" in mudancas:
         novo = mudancas["consentimento_lgpd"]
@@ -105,11 +124,15 @@ def atualizar(db: Session, pessoa: Pessoa, dados: PessoaUpdate) -> Pessoa:
         setattr(pessoa, campo, valor)
 
     if dados.papeis is not None:
+        papeis_antigos = sorted(p.papel.value for p in pessoa.papeis)
         _aplica_papeis(pessoa, dados.papeis)
+        papeis_novos = sorted(p.value for p in dados.papeis)
+        if papeis_antigos != papeis_novos:
+            alteracoes["papeis"] = {"de": papeis_antigos, "para": papeis_novos}
 
     db.commit()
     db.refresh(pessoa)
-    return get(db, pessoa.id)  # type: ignore[return-value]
+    return get(db, pessoa.id), alteracoes  # type: ignore[return-value]
 
 
 def desativar(db: Session, pessoa: Pessoa) -> None:

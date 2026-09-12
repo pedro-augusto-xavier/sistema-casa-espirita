@@ -115,7 +115,7 @@ export function FichaPessoa() {
   }
 
   if (carregando) {
-    return <p className="p-6 text-sm text-slate-500">Carregando...</p>
+    return <p className="p-6 text-sm text-stone-500">Carregando...</p>
   }
 
   if (erro && !pessoa) {
@@ -123,24 +123,24 @@ export function FichaPessoa() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-100">
-      <header className="bg-white px-6 py-4 shadow-sm">
-        <Link to="/" className="text-sm text-slate-500 hover:underline">
+    <div className="min-h-screen bg-stone-100">
+      <header className="bg-white px-6 py-4 shadow-sm ring-1 ring-stone-900/5">
+        <Link to="/" className="text-sm text-stone-500 hover:underline">
           ← Voltar para a lista
         </Link>
       </header>
 
       <main className="mx-auto max-w-3xl p-6">
-        <div className="rounded-lg bg-white p-6 shadow-sm">
+        <div className="rounded-lg bg-white p-6 shadow-sm ring-1 ring-stone-900/5">
           <div className="flex items-start justify-between">
             <div>
-              <h1 className="text-xl font-bold text-slate-800">
+              <h1 className="font-display text-2xl font-semibold text-emerald-900">
                 {pessoa.nome_completo}
               </h1>
-              <p className="text-sm text-slate-500">
+              <p className="text-sm text-stone-500">
                 {pessoa.papeis.length > 0 ? pessoa.papeis.join(', ') : 'sem papel definido'}
                 {!pessoa.ativo && (
-                  <span className="ml-2 rounded-full bg-slate-200 px-2 py-0.5 text-xs text-slate-600">
+                  <span className="ml-2 rounded-full bg-stone-200 px-2 py-0.5 text-xs text-stone-600">
                     inativa
                   </span>
                 )}
@@ -149,7 +149,7 @@ export function FichaPessoa() {
             <div className="flex gap-2">
               <Link
                 to={`/pessoas/${id}/editar`}
-                className="rounded-md border border-slate-300 px-3 py-1 text-sm hover:bg-slate-50"
+                className="rounded-md border border-stone-300 px-3 py-1 text-sm hover:bg-stone-50"
               >
                 Editar
               </Link>
@@ -184,23 +184,23 @@ export function FichaPessoa() {
           </dl>
 
           {pessoa.observacoes_gerais && (
-            <p className="mt-4 rounded-md bg-slate-50 p-3 text-sm text-slate-600">
+            <p className="mt-4 rounded-md bg-stone-50 p-3 text-sm text-stone-600">
               {pessoa.observacoes_gerais}
             </p>
           )}
 
-          <div className="mt-4 flex flex-wrap items-center gap-3 border-t border-slate-100 pt-4 text-xs text-slate-400">
+          <div className="mt-4 flex flex-wrap items-center gap-3 border-t border-stone-100 pt-4 text-xs text-stone-400">
             <button
               onClick={async () => {
                 const { gerarPdfFicha } = await import('../utils/gerarPdfFicha')
                 gerarPdfFicha(pessoa, historico)
               }}
-              className="text-slate-600 hover:underline"
+              className="text-stone-600 hover:underline"
             >
               Baixar PDF
             </button>
             <span>LGPD:</span>
-            <button onClick={exportarDados} className="text-slate-600 hover:underline">
+            <button onClick={exportarDados} className="text-stone-600 hover:underline">
               Exportar dados (JSON)
             </button>
             {usuario.papel === 'admin' && !pessoa.anonimizada && (
@@ -212,7 +212,7 @@ export function FichaPessoa() {
             {usuario.papel === 'admin' && edicoes.length > 0 && (
               <button
                 onClick={() => setMostrarEdicoes((v) => !v)}
-                className="text-slate-600 hover:underline"
+                className="text-stone-600 hover:underline"
               >
                 {mostrarEdicoes ? 'Ocultar' : 'Quem editou esta ficha'}
               </button>
@@ -220,16 +220,16 @@ export function FichaPessoa() {
           </div>
 
           {mostrarEdicoes && (
-            <ul className="mt-2 flex flex-col gap-1.5 border-t border-slate-100 pt-2 text-xs text-slate-500">
+            <ul className="mt-2 flex flex-col gap-1.5 border-t border-stone-100 pt-2 text-xs text-stone-500">
               {edicoes.map((e) => (
                 <li key={e.id}>
-                  <span className="font-medium text-slate-700">
+                  <span className="font-medium text-stone-700">
                     {e.usuario_nome || 'sistema'}
                   </span>{' '}
                   {e.acao === 'criar' ? 'criou a ficha' : 'alterou a ficha'} em{' '}
                   {new Date(e.criado_em).toLocaleString('pt-BR')}
                   {e.dados && Object.keys(e.dados).length > 0 && (
-                    <ul className="ml-4 mt-0.5 list-disc text-slate-400">
+                    <ul className="ml-4 mt-0.5 list-disc text-stone-400">
                       {Object.entries(e.dados).map(([campo, valor]) => (
                         <li key={campo}>{formatarAlteracao(campo, valor)}</li>
                       ))}
@@ -241,19 +241,19 @@ export function FichaPessoa() {
           )}
         </div>
 
-        <div className="mt-6 rounded-lg bg-white p-6 shadow-sm">
+        <div className="mt-6 rounded-lg bg-white p-6 shadow-sm ring-1 ring-stone-900/5">
           <div className="flex items-center justify-between">
-            <h2 className="text-lg font-bold text-slate-800">Histórico</h2>
+            <h2 className="font-display text-xl font-semibold text-emerald-900">Histórico</h2>
             <div className="flex gap-2">
               <button
                 onClick={() => setModalAberto('atendimento')}
-                className="rounded-md border border-slate-300 px-3 py-1.5 text-sm hover:bg-slate-50"
+                className="rounded-md border border-stone-300 px-3 py-1.5 text-sm hover:bg-stone-50"
               >
                 + Atendimento
               </button>
               <button
                 onClick={() => setModalAberto('tratamento')}
-                className="rounded-md border border-slate-300 px-3 py-1.5 text-sm hover:bg-slate-50"
+                className="rounded-md border border-stone-300 px-3 py-1.5 text-sm hover:bg-stone-50"
               >
                 + Tratamento
               </button>
@@ -263,11 +263,11 @@ export function FichaPessoa() {
           {erro && <p className="mt-2 text-sm text-red-600">{erro}</p>}
 
           {historico.length === 0 ? (
-            <p className="mt-2 text-sm text-slate-500">
+            <p className="mt-2 text-sm text-stone-500">
               Nenhum atendimento ou tratamento registrado ainda.
             </p>
           ) : (
-            <ul className="mt-4 flex flex-col divide-y divide-slate-100">
+            <ul className="mt-4 flex flex-col divide-y divide-stone-100">
               {historico.map((item, i) => (
                 <LinhaHistorico
                   key={i}
@@ -326,8 +326,8 @@ function formatarAlteracao(campo, valor) {
 function Item({ label, valor }) {
   return (
     <div>
-      <dt className="text-xs font-medium text-slate-400">{label}</dt>
-      <dd className="text-slate-700">{valor || '—'}</dd>
+      <dt className="text-xs font-medium text-stone-400">{label}</dt>
+      <dd className="text-stone-700">{valor || '—'}</dd>
     </div>
   )
 }
@@ -341,22 +341,22 @@ function LinhaHistorico({ item, aoEditar }) {
     <li className="py-3 first:pt-0 last:pb-0">
       <div className="flex items-start justify-between gap-2">
         <div className="flex items-baseline gap-2">
-          <span className="font-bold text-slate-800">{isoParaData(item.data)}</span>
-          <span className="text-sm font-medium text-slate-500">
+          <span className="font-bold text-stone-800">{isoParaData(item.data)}</span>
+          <span className="text-sm font-medium text-stone-500">
             {ROTULO_TIPO[item.tipo] ?? item.tipo}
           </span>
         </div>
         {aoEditar && (
           <button
             onClick={aoEditar}
-            className="shrink-0 text-xs text-slate-500 hover:text-slate-800 hover:underline"
+            className="shrink-0 text-xs text-stone-500 hover:text-emerald-800 hover:underline"
           >
             {item.tipo === 'atendimento' ? 'Editar' : 'Ver caso'}
           </button>
         )}
       </div>
 
-      <div className="mt-1 flex flex-col gap-0.5 text-sm text-slate-600">
+      <div className="mt-1 flex flex-col gap-0.5 text-sm text-stone-600">
         {item.tipo === 'atendimento' && (
           <>
             <p>
@@ -379,22 +379,22 @@ function LinhaHistorico({ item, aoEditar }) {
                   .join('; ')}
               </p>
             )}
-            {d.observacao && <p className="italic text-slate-500">"{d.observacao}"</p>}
+            {d.observacao && <p className="italic text-stone-500">"{d.observacao}"</p>}
           </>
         )}
 
         {item.tipo === 'tratamento_inicio' && (
           <>
-            <p className="font-medium text-slate-700">{d.tipo_nome}</p>
+            <p className="font-medium text-stone-700">{d.tipo_nome}</p>
             {d.solicitante && <p>Responsável: {d.solicitante}</p>}
             {d.sessoes_previstas != null && <p>{d.sessoes_previstas} sessões previstas</p>}
-            {d.observacao && <p className="italic text-slate-500">"{d.observacao}"</p>}
+            {d.observacao && <p className="italic text-stone-500">"{d.observacao}"</p>}
           </>
         )}
 
         {item.tipo === 'evolucao' && (
           <>
-            <p className="text-xs uppercase tracking-wide text-slate-400">{d.tipo_nome}</p>
+            <p className="text-xs uppercase tracking-wide text-stone-400">{d.tipo_nome}</p>
             <p className="italic">
               "{d.texto}"{d.registrado_por && ` — ${d.registrado_por}`}
             </p>
@@ -403,9 +403,9 @@ function LinhaHistorico({ item, aoEditar }) {
 
         {item.tipo === 'grupo' && (
           <>
-            <p className="font-medium text-slate-700">{d.tipo_nome}</p>
+            <p className="font-medium text-stone-700">{d.tipo_nome}</p>
             {d.responsavel && <p>Responsável: {d.responsavel}</p>}
-            {d.observacao && <p className="italic text-slate-500">"{d.observacao}"</p>}
+            {d.observacao && <p className="italic text-stone-500">"{d.observacao}"</p>}
           </>
         )}
       </div>

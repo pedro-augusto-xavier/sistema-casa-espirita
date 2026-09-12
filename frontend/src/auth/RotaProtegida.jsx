@@ -7,7 +7,7 @@ export function RotaProtegida({ children, somenteAdmin = false }) {
 
   if (carregando) {
     return (
-      <div className="flex min-h-screen items-center justify-center text-slate-500">
+      <div className="flex min-h-screen items-center justify-center text-stone-500">
         Carregando...
       </div>
     )
@@ -17,7 +17,7 @@ export function RotaProtegida({ children, somenteAdmin = false }) {
 
   if (somenteAdmin && usuario.papel !== 'admin') {
     return (
-      <div className="flex min-h-screen items-center justify-center text-slate-500">
+      <div className="flex min-h-screen items-center justify-center text-stone-500">
         Você não tem permissão para ver esta página.
       </div>
     )

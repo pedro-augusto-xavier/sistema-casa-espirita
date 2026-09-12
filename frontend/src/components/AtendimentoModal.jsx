@@ -112,7 +112,7 @@ export function AtendimentoModal({ pessoaId, existente, onFechar, onSalvo }) {
           />
         </Campo>
 
-        <label className="flex items-center gap-2 text-sm font-medium text-slate-700">
+        <label className="flex items-center gap-2 text-sm font-medium text-stone-700">
           <input
             type="checkbox"
             checked={presente}
@@ -132,12 +132,12 @@ export function AtendimentoModal({ pessoaId, existente, onFechar, onSalvo }) {
         )}
 
         <fieldset>
-          <legend className="mb-2 text-sm font-medium text-slate-700">
+          <legend className="mb-2 text-sm font-medium text-stone-700">
             Tratamentos do dia
           </legend>
           <div className="grid grid-cols-2 gap-2">
             {tipos.map((t) => (
-              <label key={t.id} className="flex items-center gap-2 text-sm text-slate-700">
+              <label key={t.id} className="flex items-center gap-2 text-sm text-stone-700">
                 <input
                   type="checkbox"
                   checked={tratamentosMarcados.includes(t.id)}
@@ -166,14 +166,14 @@ export function AtendimentoModal({ pessoaId, existente, onFechar, onSalvo }) {
           <button
             type="button"
             onClick={onFechar}
-            className="rounded-md border border-slate-300 px-4 py-2 text-sm hover:bg-slate-50"
+            className="rounded-md border border-stone-300 px-4 py-2 text-sm hover:bg-stone-50"
           >
             Cancelar
           </button>
           <button
             type="submit"
             disabled={enviando}
-            className="rounded-md bg-slate-800 px-4 py-2 text-sm font-medium text-white hover:bg-slate-700 disabled:opacity-50"
+            className="rounded-md bg-emerald-800 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700 disabled:opacity-50"
           >
             {enviando ? 'Salvando...' : editando ? 'Salvar alterações' : 'Registrar'}
           </button>
@@ -184,11 +184,11 @@ export function AtendimentoModal({ pessoaId, existente, onFechar, onSalvo }) {
 }
 
 const estiloInput =
-  'w-full rounded-md border border-slate-300 px-3 py-2 text-sm outline-none focus:border-slate-500'
+  'w-full rounded-md border border-stone-300 px-3 py-2 text-sm outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-600/15'
 
 function Campo({ label, children }) {
   return (
-    <label className="block text-sm font-medium text-slate-700">
+    <label className="block text-sm font-medium text-stone-700">
       {label}
       <div className="mt-1">{children}</div>
     </label>

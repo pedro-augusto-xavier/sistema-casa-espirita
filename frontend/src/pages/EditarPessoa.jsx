@@ -45,17 +45,17 @@ export function EditarPessoa() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-100">
-      <header className="bg-white px-6 py-4 shadow-sm">
-        <Link to={`/pessoas/${id}`} className="text-sm text-slate-500 hover:underline">
+    <div className="min-h-screen bg-stone-100">
+      <header className="bg-white px-6 py-4 shadow-sm ring-1 ring-stone-900/5">
+        <Link to={`/pessoas/${id}`} className="text-sm text-stone-500 hover:underline">
           ← Voltar para a ficha
         </Link>
-        <h1 className="text-lg font-bold text-slate-800">Editar pessoa</h1>
+        <h1 className="font-display text-xl font-semibold text-emerald-900">Editar pessoa</h1>
       </header>
 
       <main className="mx-auto max-w-2xl p-6">
         {erro && <p className="text-sm text-red-600">{erro}</p>}
-        {!erro && !valores && <p className="text-sm text-slate-500">Carregando...</p>}
+        {!erro && !valores && <p className="text-sm text-stone-500">Carregando...</p>}
         {valores && papeis && (
           <PessoaForm
             valoresIniciais={valores}

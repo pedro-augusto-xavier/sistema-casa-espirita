@@ -36,17 +36,17 @@ export function Pessoas() {
   }, [busca, papel, incluirInativos, pagina])
 
   return (
-    <div className="min-h-screen bg-slate-100">
+    <div className="min-h-screen bg-stone-100">
       <Cabecalho />
 
       <main className="mx-auto max-w-4xl p-6">
         <ResumoDoDia />
 
         <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <h2 className="text-xl font-bold text-slate-800">Pessoas</h2>
+          <h2 className="font-display text-2xl font-semibold text-emerald-900">Pessoas</h2>
           <Link
             to="/pessoas/nova"
-            className="whitespace-nowrap rounded-md bg-slate-800 px-4 py-2 text-sm font-medium text-white hover:bg-slate-700 sm:hidden"
+            className="whitespace-nowrap rounded-md bg-emerald-800 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700 sm:hidden"
           >
             + Nova pessoa
           </Link>
@@ -61,7 +61,7 @@ export function Pessoas() {
               setPagina(1)
               setBusca(e.target.value)
             }}
-            className="w-64 rounded-md border border-slate-300 px-3 py-2 text-sm outline-none focus:border-slate-500"
+            className="w-64 rounded-md border border-stone-300 px-3 py-2 text-sm outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-600/15"
           />
           <select
             value={papel}
@@ -69,13 +69,13 @@ export function Pessoas() {
               setPagina(1)
               setPapel(e.target.value)
             }}
-            className="rounded-md border border-slate-300 px-3 py-2 text-sm outline-none focus:border-slate-500"
+            className="rounded-md border border-stone-300 px-3 py-2 text-sm outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-600/15"
           >
             <option value="">Todos os papéis</option>
             <option value="assistido">Assistido(a)</option>
             <option value="trabalhador">Trabalhador(a)</option>
           </select>
-          <label className="flex items-center gap-1.5 text-sm text-slate-600">
+          <label className="flex items-center gap-1.5 text-sm text-stone-600">
             <input
               type="checkbox"
               checked={incluirInativos}
@@ -88,26 +88,26 @@ export function Pessoas() {
           </label>
           <Link
             to="/pessoas/nova"
-            className="ml-auto hidden whitespace-nowrap rounded-md bg-slate-800 px-4 py-2 text-sm font-medium text-white hover:bg-slate-700 sm:inline-block"
+            className="ml-auto hidden whitespace-nowrap rounded-md bg-emerald-800 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700 sm:inline-block"
           >
             + Nova pessoa
           </Link>
         </div>
 
-        <div className="mt-4 overflow-hidden rounded-lg bg-white shadow-sm">
+        <div className="mt-4 overflow-hidden rounded-lg bg-white shadow-sm ring-1 ring-stone-900/5">
           {erro && <p className="p-4 text-sm text-red-600">{erro}</p>}
 
           {!erro && carregando && (
-            <p className="p-4 text-sm text-slate-500">Carregando...</p>
+            <p className="p-4 text-sm text-stone-500">Carregando...</p>
           )}
 
           {!erro && !carregando && dados?.items.length === 0 && (
-            <p className="p-4 text-sm text-slate-500">Nenhuma pessoa encontrada.</p>
+            <p className="p-4 text-sm text-stone-500">Nenhuma pessoa encontrada.</p>
           )}
 
           {!erro && !carregando && dados?.items.length > 0 && (
             <table className="w-full text-left text-sm">
-              <thead className="border-b border-slate-200 bg-slate-50 text-slate-500">
+              <thead className="border-b border-stone-200 bg-stone-50 text-stone-500">
                 <tr>
                   <th className="px-4 py-2 font-medium">Nome</th>
                   <th className="px-4 py-2 font-medium">Telefone</th>
@@ -117,27 +117,27 @@ export function Pessoas() {
               </thead>
               <tbody>
                 {dados.items.map((p) => (
-                  <tr key={p.id} className="border-b border-slate-100 last:border-0">
+                  <tr key={p.id} className="border-b border-stone-100 last:border-0">
                     <td className="px-4 py-2">
                       <Link
                         to={`/pessoas/${p.id}`}
-                        className="font-medium text-slate-800 hover:underline"
+                        className="font-medium text-stone-800 hover:underline"
                       >
                         {p.nome_completo}
                       </Link>
                       {!p.ativo && (
-                        <span className="ml-2 rounded-full bg-slate-200 px-2 py-0.5 text-xs text-slate-500">
+                        <span className="ml-2 rounded-full bg-stone-200 px-2 py-0.5 text-xs text-stone-500">
                           inativa
                         </span>
                       )}
                     </td>
-                    <td className="px-4 py-2 text-slate-600">
+                    <td className="px-4 py-2 text-stone-600">
                       {p.telefone ? mascaraTelefone(p.telefone) : '—'}
                     </td>
-                    <td className="px-4 py-2 text-slate-600">
+                    <td className="px-4 py-2 text-stone-600">
                       {p.cidade ? `${p.cidade}${p.uf ? '/' + p.uf : ''}` : '—'}
                     </td>
-                    <td className="px-4 py-2 text-slate-600">
+                    <td className="px-4 py-2 text-stone-600">
                       {p.papeis.join(', ') || '—'}
                     </td>
                   </tr>
@@ -148,11 +148,11 @@ export function Pessoas() {
         </div>
 
         {dados && dados.pages > 1 && (
-          <div className="mt-4 flex items-center justify-center gap-3 text-sm text-slate-600">
+          <div className="mt-4 flex items-center justify-center gap-3 text-sm text-stone-600">
             <button
               disabled={pagina <= 1}
               onClick={() => setPagina((p) => p - 1)}
-              className="rounded-md border border-slate-300 px-3 py-1 disabled:opacity-40"
+              className="rounded-md border border-stone-300 px-3 py-1 disabled:opacity-40"
             >
               Anterior
             </button>
@@ -162,7 +162,7 @@ export function Pessoas() {
             <button
               disabled={pagina >= dados.pages}
               onClick={() => setPagina((p) => p + 1)}
-              className="rounded-md border border-slate-300 px-3 py-1 disabled:opacity-40"
+              className="rounded-md border border-stone-300 px-3 py-1 disabled:opacity-40"
             >
               Próxima
             </button>

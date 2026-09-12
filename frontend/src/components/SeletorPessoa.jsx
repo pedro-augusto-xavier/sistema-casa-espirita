@@ -26,12 +26,12 @@ export function SeletorPessoa({ valor, aoSelecionar, papel, placeholder = 'Busca
 
   if (valor) {
     return (
-      <div className="flex items-center justify-between rounded-md border border-slate-300 px-3 py-2 text-sm">
+      <div className="flex items-center justify-between rounded-md border border-stone-300 px-3 py-2 text-sm">
         <span>{valor.nome_completo}</span>
         <button
           type="button"
           onClick={() => aoSelecionar(null)}
-          className="text-slate-400 hover:text-slate-600"
+          className="text-stone-400 hover:text-stone-600"
         >
           Trocar
         </button>
@@ -51,10 +51,10 @@ export function SeletorPessoa({ valor, aoSelecionar, papel, placeholder = 'Busca
         }}
         onFocus={() => setAberto(true)}
         onBlur={() => setTimeout(() => setAberto(false), 150)}
-        className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm outline-none focus:border-slate-500"
+        className="w-full rounded-md border border-stone-300 px-3 py-2 text-sm outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-600/15"
       />
       {aberto && opcoes.length > 0 && (
-        <ul className="absolute z-10 mt-1 max-h-48 w-full overflow-auto rounded-md border border-slate-200 bg-white text-sm shadow-lg">
+        <ul className="absolute z-10 mt-1 max-h-48 w-full overflow-auto rounded-md border border-stone-200 bg-white text-sm shadow-lg ring-1 ring-stone-900/10">
           {opcoes.map((p) => (
             <li key={p.id}>
               <button
@@ -64,7 +64,7 @@ export function SeletorPessoa({ valor, aoSelecionar, papel, placeholder = 'Busca
                   setBusca('')
                   setAberto(false)
                 }}
-                className="block w-full px-3 py-2 text-left hover:bg-slate-50"
+                className="block w-full px-3 py-2 text-left hover:bg-stone-50"
               >
                 {p.nome_completo}
               </button>

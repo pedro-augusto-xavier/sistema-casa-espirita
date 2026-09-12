@@ -91,7 +91,7 @@ export function GrupoModal({ existente, onFechar, onSalvo }) {
               value={tipoId}
               onChange={(e) => setTipoId(e.target.value)}
               disabled={editando}
-              className={`${estiloInput} disabled:bg-slate-100`}
+              className={`${estiloInput} disabled:bg-stone-100`}
             >
               {tipos.map((t) => (
                 <option key={t.id} value={t.id}>
@@ -121,19 +121,19 @@ export function GrupoModal({ existente, onFechar, onSalvo }) {
         </Campo>
 
         <fieldset>
-          <legend className="mb-2 text-sm font-medium text-slate-700">Presentes</legend>
+          <legend className="mb-2 text-sm font-medium text-stone-700">Presentes</legend>
           {presentes.length > 0 && (
             <ul className="mb-2 flex flex-wrap gap-2">
               {presentes.map((p) => (
                 <li
                   key={p.id}
-                  className="flex items-center gap-1 rounded-full bg-slate-100 px-3 py-1 text-xs text-slate-700"
+                  className="flex items-center gap-1 rounded-full bg-stone-100 px-3 py-1 text-xs text-stone-700"
                 >
                   {p.nome_completo}
                   <button
                     type="button"
                     onClick={() => removerParticipante(p.id)}
-                    className="text-slate-400 hover:text-slate-700"
+                    className="text-stone-400 hover:text-stone-700"
                   >
                     ×
                   </button>
@@ -165,14 +165,14 @@ export function GrupoModal({ existente, onFechar, onSalvo }) {
           <button
             type="button"
             onClick={onFechar}
-            className="rounded-md border border-slate-300 px-4 py-2 text-sm hover:bg-slate-50"
+            className="rounded-md border border-stone-300 px-4 py-2 text-sm hover:bg-stone-50"
           >
             Cancelar
           </button>
           <button
             type="submit"
             disabled={enviando}
-            className="rounded-md bg-slate-800 px-4 py-2 text-sm font-medium text-white hover:bg-slate-700 disabled:opacity-50"
+            className="rounded-md bg-emerald-800 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700 disabled:opacity-50"
           >
             {enviando ? 'Salvando...' : editando ? 'Salvar alterações' : 'Registrar'}
           </button>
@@ -183,11 +183,11 @@ export function GrupoModal({ existente, onFechar, onSalvo }) {
 }
 
 const estiloInput =
-  'w-full rounded-md border border-slate-300 px-3 py-2 text-sm outline-none focus:border-slate-500'
+  'w-full rounded-md border border-stone-300 px-3 py-2 text-sm outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-600/15'
 
 function Campo({ label, children }) {
   return (
-    <label className="block text-sm font-medium text-slate-700">
+    <label className="block text-sm font-medium text-stone-700">
       {label}
       <div className="mt-1">{children}</div>
     </label>

@@ -156,14 +156,6 @@ export function AtendimentoModal({ pessoa, existente, onFechar, onSalvo }) {
           />
         </Campo>
 
-        <Campo label="Solicitante" dica={presente ? 'opcional' : 'quem trouxe a informação'}>
-          <SeletorPessoa
-            valor={solicitante}
-            aoSelecionar={setSolicitante}
-            placeholder="Buscar pessoa..."
-          />
-        </Campo>
-
         <label className="flex cursor-pointer items-center gap-2 rounded-lg border border-stone-200 px-3 py-2 text-sm text-stone-700 select-none hover:bg-stone-50">
           <input
             type="checkbox"
@@ -173,6 +165,18 @@ export function AtendimentoModal({ pessoa, existente, onFechar, onSalvo }) {
           />
           A pessoa esteve presente
         </label>
+
+        {!presente && (
+          <div className="animate-surgir">
+            <Campo label="Quem veio no lugar dela" dica="ex: o pai registrando pelo filho">
+              <SeletorPessoa
+                valor={solicitante}
+                aoSelecionar={setSolicitante}
+                placeholder="Buscar pessoa..."
+              />
+            </Campo>
+          </div>
+        )}
 
         <fieldset>
           <legend className="mb-2 text-sm font-medium text-stone-700">Tratamentos do dia</legend>

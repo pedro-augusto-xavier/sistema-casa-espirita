@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
 import { api } from '../api/client'
 import { isoParaData } from '../utils/formatadores'
 import { SeletorPessoa } from './SeletorPessoa'
@@ -10,6 +11,26 @@ import { Avatar, Botao, MensagemErro, Pill, Rotulo } from './ui'
  * Dentro: nº de vezes, início, observação, situação final e o diário por
  * data, com a anotação nova direto ali.
  */
+/** Nome que leva à ficha da pessoa — menos quando já é a ficha aberta. */
+function NomePessoa({ pessoa, estaFicha, className = '' }) {
+  if (estaFicha) {
+    return (
+      <span className={`text-stone-800 ${className}`}>
+        {pessoa.nome_completo}
+        <span className="ml-1 text-xs font-normal text-stone-400">(esta ficha)</span>
+      </span>
+    )
+  }
+  return (
+    <Link
+      to={`/pessoas/${pessoa.id}`}
+      className={`text-stone-800 underline decoration-stone-300 underline-offset-2 transition hover:text-emerald-800 hover:decoration-emerald-600 ${className}`}
+    >
+      {pessoa.nome_completo}
+    </Link>
+  )
+}
+
 export function FichaCaso({ caso, pessoaId, aoMudar, aoAbrir }) {
   const [nota, setNota] = useState('')
   const [enviando, setEnviando] = useState(false)
@@ -97,10 +118,7 @@ export function FichaCaso({ caso, pessoaId, aoMudar, aoAbrir }) {
             {caso.solicitante ? (
               <div className="mt-2 flex items-center gap-2">
                 <Avatar nome={caso.solicitante.nome_completo} className="h-8 w-8 text-xs" />
-                <span className="font-medium text-stone-800">
-                  {caso.solicitante.nome_completo}
-                  {souResponsavel && <span className="ml-1 text-xs font-normal text-stone-400">(esta ficha)</span>}
-                </span>
+                <NomePessoa pessoa={caso.solicitante} estaFicha={souResponsavel} className="font-medium" />
               </div>
             ) : (
               <p className="mt-2 text-sm text-stone-300">—</p>
@@ -121,14 +139,15 @@ export function FichaCaso({ caso, pessoaId, aoMudar, aoAbrir }) {
                     />
                     <span
                       className={`min-w-0 flex-1 truncate text-sm ${
-                        ativo ? 'text-stone-800' : 'text-stone-400 line-through decoration-stone-400'
+                        ativo ? '' : 'line-through decoration-stone-400'
                       }`}
                       title={a.situacao_final || undefined}
                     >
-                      {a.pessoa.nome_completo}
-                      {a.pessoa.id === pessoaId && (
-                        <span className="ml-1 text-xs text-stone-400 no-underline">(esta ficha)</span>
-                      )}
+                      <NomePessoa
+                        pessoa={a.pessoa}
+                        estaFicha={a.pessoa.id === pessoaId}
+                        className={ativo ? '' : 'text-stone-400'}
+                      />
                     </span>
                     {!ativo && a.data_conclusao && (
                       <span className="text-[10px] text-stone-400">{isoParaData(a.data_conclusao)}</span>

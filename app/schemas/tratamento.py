@@ -131,3 +131,4 @@ class ItemHistorico(BaseModel):
     atendimento_id: int | None
     tratamento_id: int | None
     grupo_id: int | None = None
+    detalhes: dict[str, object] | None = None

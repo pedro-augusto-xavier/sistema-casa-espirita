@@ -97,6 +97,31 @@ class Tratamento(TimestampMixin, Base):
     def qtd_evolucoes(self) -> int:
         return len(self.evolucoes)
 
+    @property
+    def sessoes_realizadas(self) -> int:
+        """Quantas vezes o assistido já veio: atendimentos dele, a partir do
+        início do caso, em que este tipo de tratamento foi marcado. É o
+        contador ao lado do "nº vezes" da ficha de papel."""
+        from sqlalchemy import distinct, func, select
+        from sqlalchemy.orm import object_session
+
+        from app.models.atendimento import Atendimento, AtendimentoTratamento
+
+        db = object_session(self)
+        pessoas = [a.pessoa_id for a in self.assistidos]
+        if db is None or not pessoas:
+            return 0
+        stmt = (
+            select(func.count(distinct(Atendimento.id)))
+            .join(Atendimento.tratamentos)
+            .where(
+                Atendimento.pessoa_id.in_(pessoas),
+                Atendimento.data >= self.data_inicio,
+                AtendimentoTratamento.tipo_tratamento_id == self.tipo_tratamento_id,
+            )
+        )
+        return db.scalar(stmt) or 0
+
 
 class TratamentoAssistido(Base):
     __tablename__ = "tratamento_assistido"

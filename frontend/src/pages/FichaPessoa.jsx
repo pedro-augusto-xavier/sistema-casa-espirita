@@ -15,6 +15,12 @@ const ROTULO_TIPO = {
   grupo: 'Grupo',
 }
 
+const ROTULO_MODALIDADE = {
+  presencial: 'Presencial',
+  video: 'Vídeo',
+  distancia: 'À distância',
+}
+
 export function FichaPessoa() {
   const { id } = useParams()
   const navigate = useNavigate()
@@ -260,26 +266,17 @@ export function FichaPessoa() {
               Nenhum atendimento ou tratamento registrado ainda.
             </p>
           ) : (
-            <ul className="mt-4 flex flex-col gap-3">
+            <ul className="mt-4 flex flex-col divide-y divide-slate-100">
               {historico.map((item, i) => (
-                <li key={i} className="border-l-2 border-slate-300 pl-3">
-                  <button
-                    type="button"
-                    onClick={() => abrirDetalhe(item)}
-                    className="w-full rounded-md p-1 text-left hover:bg-slate-50"
-                  >
-                    <div className="flex items-baseline gap-2 text-sm">
-                      <span className="font-medium text-slate-700">
-                        {ROTULO_TIPO[item.tipo] ?? item.tipo}
-                      </span>
-                      <span className="text-slate-400">{isoParaData(item.data)}</span>
-                    </div>
-                    <p className="text-sm text-slate-600">{item.titulo}</p>
-                    {item.descricao && (
-                      <p className="text-sm text-slate-500">{item.descricao}</p>
-                    )}
-                  </button>
-                </li>
+                <LinhaHistorico
+                  key={i}
+                  item={item}
+                  aoEditar={
+                    item.atendimento_id || item.tratamento_id
+                      ? () => abrirDetalhe(item)
+                      : null
+                  }
+                />
               ))}
             </ul>
           )}
@@ -317,5 +314,86 @@ function Item({ label, valor }) {
       <dt className="text-xs font-medium text-slate-400">{label}</dt>
       <dd className="text-slate-700">{valor || '—'}</dd>
     </div>
+  )
+}
+
+/** Uma linha do histórico, no estilo da ficha de papel: data em destaque
+ * e todos os campos daquele tipo já visíveis, sem precisar clicar. */
+function LinhaHistorico({ item, aoEditar }) {
+  const d = item.detalhes ?? {}
+
+  return (
+    <li className="py-3 first:pt-0 last:pb-0">
+      <div className="flex items-start justify-between gap-2">
+        <div className="flex items-baseline gap-2">
+          <span className="font-bold text-slate-800">{isoParaData(item.data)}</span>
+          <span className="text-sm font-medium text-slate-500">
+            {ROTULO_TIPO[item.tipo] ?? item.tipo}
+          </span>
+        </div>
+        {aoEditar && (
+          <button
+            onClick={aoEditar}
+            className="shrink-0 text-xs text-slate-500 hover:text-slate-800 hover:underline"
+          >
+            {item.tipo === 'atendimento' ? 'Editar' : 'Ver caso'}
+          </button>
+        )}
+      </div>
+
+      <div className="mt-1 flex flex-col gap-0.5 text-sm text-slate-600">
+        {item.tipo === 'atendimento' && (
+          <>
+            <p>
+              {ROTULO_MODALIDADE[d.modalidade] ?? d.modalidade}
+              {d.presente === false && ' · não esteve presente'}
+            </p>
+            {d.atendido_por && <p>Atendido por: {d.atendido_por}</p>}
+            {d.solicitante && <p>Solicitante: {d.solicitante}</p>}
+            {d.tratamentos?.length > 0 && (
+              <p>
+                Tratamentos:{' '}
+                {d.tratamentos
+                  .map(
+                    (t) =>
+                      t.nome +
+                      (t.sessoes_previstas
+                        ? ` (${t.sessoes_realizadas}/${t.sessoes_previstas} sessões)`
+                        : ''),
+                  )
+                  .join('; ')}
+              </p>
+            )}
+            {d.observacao && <p className="italic text-slate-500">"{d.observacao}"</p>}
+          </>
+        )}
+
+        {item.tipo === 'tratamento_inicio' && (
+          <>
+            <p className="font-medium text-slate-700">{d.tipo_nome}</p>
+            {d.solicitante && <p>Responsável: {d.solicitante}</p>}
+            {d.sessoes_previstas != null && <p>{d.sessoes_previstas} sessões previstas</p>}
+            {d.observacao && <p className="italic text-slate-500">"{d.observacao}"</p>}
+          </>
+        )}
+
+        {item.tipo === 'evolucao' && (
+          <>
+            <p className="text-xs uppercase tracking-wide text-slate-400">{d.tipo_nome}</p>
+            <p className="italic">
+              "{d.texto}"{d.registrado_por && ` — ${d.registrado_por}`}
+            </p>
+          </>
+        )}
+
+        {item.tipo === 'grupo' && (
+          <>
+            <p className="font-medium text-slate-700">{d.tipo_nome}</p>
+            {d.responsavel && <p>Responsável: {d.responsavel}</p>}
+            {d.observacao && <p className="italic text-slate-500">"{d.observacao}"</p>}
+          </>
+        )}
+      </div>
+    </li>
   )
 }

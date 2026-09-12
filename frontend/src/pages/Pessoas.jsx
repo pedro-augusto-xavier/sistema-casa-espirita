@@ -3,7 +3,22 @@ import { Link } from 'react-router-dom'
 import { api } from '../api/client'
 import { Cabecalho } from '../components/Cabecalho'
 import { ResumoDoDia } from '../components/ResumoDoDia'
+import {
+  Avatar,
+  BotaoLink,
+  Carregando,
+  EstadoVazio,
+  MensagemErro,
+  Paginacao,
+  Pill,
+  TituloPagina,
+} from '../components/ui'
 import { mascaraTelefone } from '../utils/formatadores'
+
+const ROTULO_PAPEL = {
+  assistido: 'Assistido(a)',
+  trabalhador: 'Trabalhador(a)',
+}
 
 export function Pessoas() {
   const [busca, setBusca] = useState('')
@@ -35,47 +50,57 @@ export function Pessoas() {
     return () => clearTimeout(timer)
   }, [busca, papel, incluirInativos, pagina])
 
+  const semFiltro = !busca.trim() && !papel && !incluirInativos
+
   return (
     <div className="min-h-screen bg-stone-100">
       <Cabecalho />
 
-      <main className="mx-auto max-w-4xl p-6">
+      <main className="mx-auto max-w-5xl px-4 py-6 sm:px-6 sm:py-8">
         <ResumoDoDia />
 
-        <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <h2 className="font-display text-2xl font-semibold text-emerald-900">Pessoas</h2>
-          <Link
-            to="/pessoas/nova"
-            className="whitespace-nowrap rounded-md bg-emerald-800 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700 sm:hidden"
-          >
-            + Nova pessoa
-          </Link>
+        <div className="mt-8">
+          <TituloPagina
+            titulo="Pessoas"
+            subtitulo={
+              dados
+                ? `${dados.total} ${dados.total === 1 ? 'ficha' : 'fichas'}${
+                    semFiltro ? ' ativas' : ' encontradas'
+                  }`
+                : null
+            }
+            acoes={<BotaoLink to="/pessoas/nova" variante="primario">+ Nova pessoa</BotaoLink>}
+          />
         </div>
 
-        <div className="mt-3 flex flex-wrap items-center gap-2">
-          <input
-            type="text"
-            placeholder="Buscar por nome, telefone ou CPF..."
-            value={busca}
-            onChange={(e) => {
-              setPagina(1)
-              setBusca(e.target.value)
-            }}
-            className="w-64 rounded-md border border-stone-300 px-3 py-2 text-sm outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-600/15"
-          />
+        {/* barra de filtros */}
+        <div className="mt-5 flex flex-wrap items-center gap-2 rounded-xl bg-white p-2 shadow-sm ring-1 ring-stone-900/5">
+          <div className="relative min-w-56 flex-1">
+            <IconeBusca className="pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-stone-400" />
+            <input
+              type="search"
+              placeholder="Buscar por nome, telefone ou CPF..."
+              value={busca}
+              onChange={(e) => {
+                setPagina(1)
+                setBusca(e.target.value)
+              }}
+              className="campo border-transparent bg-stone-50 pl-9 shadow-none focus:bg-white"
+            />
+          </div>
           <select
             value={papel}
             onChange={(e) => {
               setPagina(1)
               setPapel(e.target.value)
             }}
-            className="rounded-md border border-stone-300 px-3 py-2 text-sm outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-600/15"
+            className="campo w-auto border-transparent bg-stone-50 shadow-none focus:bg-white"
           >
             <option value="">Todos os papéis</option>
             <option value="assistido">Assistido(a)</option>
             <option value="trabalhador">Trabalhador(a)</option>
           </select>
-          <label className="flex items-center gap-1.5 text-sm text-stone-600">
+          <label className="flex cursor-pointer items-center gap-2 rounded-lg px-3 py-2 text-sm text-stone-600 select-none hover:bg-stone-50">
             <input
               type="checkbox"
               checked={incluirInativos}
@@ -83,92 +108,92 @@ export function Pessoas() {
                 setPagina(1)
                 setIncluirInativos(e.target.checked)
               }}
+              className="accent-emerald-700"
             />
             Mostrar inativos
           </label>
-          <Link
-            to="/pessoas/nova"
-            className="ml-auto hidden whitespace-nowrap rounded-md bg-emerald-800 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700 sm:inline-block"
-          >
-            + Nova pessoa
-          </Link>
         </div>
 
-        <div className="mt-4 overflow-hidden rounded-lg bg-white shadow-sm ring-1 ring-stone-900/5">
-          {erro && <p className="p-4 text-sm text-red-600">{erro}</p>}
+        <div className="mt-4 overflow-hidden rounded-xl bg-white shadow-sm ring-1 ring-stone-900/5">
+          <MensagemErro className="m-4">{erro}</MensagemErro>
 
-          {!erro && carregando && (
-            <p className="p-4 text-sm text-stone-500">Carregando...</p>
-          )}
+          {!erro && carregando && <Carregando />}
 
           {!erro && !carregando && dados?.items.length === 0 && (
-            <p className="p-4 text-sm text-stone-500">Nenhuma pessoa encontrada.</p>
+            <EstadoVazio
+              titulo={semFiltro ? 'Nenhuma pessoa cadastrada ainda' : 'Nenhuma pessoa encontrada'}
+              descricao={
+                semFiltro
+                  ? 'Comece cadastrando a primeira ficha.'
+                  : 'Tente outra busca ou limpe os filtros.'
+              }
+              acao={
+                semFiltro && (
+                  <BotaoLink to="/pessoas/nova" variante="primario">
+                    + Nova pessoa
+                  </BotaoLink>
+                )
+              }
+            />
           )}
 
           {!erro && !carregando && dados?.items.length > 0 && (
-            <table className="w-full text-left text-sm">
-              <thead className="border-b border-stone-200 bg-stone-50 text-stone-500">
-                <tr>
-                  <th className="px-4 py-2 font-medium">Nome</th>
-                  <th className="px-4 py-2 font-medium">Telefone</th>
-                  <th className="px-4 py-2 font-medium">Cidade</th>
-                  <th className="px-4 py-2 font-medium">Papel</th>
-                </tr>
-              </thead>
-              <tbody>
-                {dados.items.map((p) => (
-                  <tr key={p.id} className="border-b border-stone-100 last:border-0">
-                    <td className="px-4 py-2">
-                      <Link
-                        to={`/pessoas/${p.id}`}
-                        className="font-medium text-stone-800 hover:underline"
-                      >
+            <ul className="divide-y divide-stone-100">
+              {dados.items.map((p) => (
+                <li key={p.id}>
+                  <Link
+                    to={`/pessoas/${p.id}`}
+                    className="group flex items-center gap-4 px-4 py-3 transition hover:bg-emerald-50/50 sm:px-5"
+                  >
+                    <Avatar nome={p.nome_completo} />
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate font-medium text-stone-800 group-hover:text-emerald-950">
                         {p.nome_completo}
-                      </Link>
-                      {!p.ativo && (
-                        <span className="ml-2 rounded-full bg-stone-200 px-2 py-0.5 text-xs text-stone-500">
-                          inativa
-                        </span>
-                      )}
-                    </td>
-                    <td className="px-4 py-2 text-stone-600">
-                      {p.telefone ? mascaraTelefone(p.telefone) : '—'}
-                    </td>
-                    <td className="px-4 py-2 text-stone-600">
-                      {p.cidade ? `${p.cidade}${p.uf ? '/' + p.uf : ''}` : '—'}
-                    </td>
-                    <td className="px-4 py-2 text-stone-600">
-                      {p.papeis.join(', ') || '—'}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                      </p>
+                      <p className="truncate text-xs text-stone-500">
+                        {[
+                          p.telefone ? mascaraTelefone(p.telefone) : null,
+                          p.cidade ? `${p.cidade}${p.uf ? '/' + p.uf : ''}` : null,
+                        ]
+                          .filter(Boolean)
+                          .join(' · ') || 'sem contato cadastrado'}
+                      </p>
+                    </div>
+                    <div className="hidden shrink-0 flex-wrap justify-end gap-1.5 sm:flex">
+                      {p.papeis.map((papelNome) => (
+                        <Pill key={papelNome} tom={papelNome === 'trabalhador' ? 'ambar' : 'verde'}>
+                          {ROTULO_PAPEL[papelNome] ?? papelNome}
+                        </Pill>
+                      ))}
+                      {!p.ativo && <Pill tom="cinza">inativa</Pill>}
+                    </div>
+                    <IconeSeta className="h-4 w-4 shrink-0 text-stone-300 transition group-hover:translate-x-0.5 group-hover:text-emerald-700" />
+                  </Link>
+                </li>
+              ))}
+            </ul>
           )}
         </div>
 
-        {dados && dados.pages > 1 && (
-          <div className="mt-4 flex items-center justify-center gap-3 text-sm text-stone-600">
-            <button
-              disabled={pagina <= 1}
-              onClick={() => setPagina((p) => p - 1)}
-              className="rounded-md border border-stone-300 px-3 py-1 disabled:opacity-40"
-            >
-              Anterior
-            </button>
-            <span>
-              Página {dados.page} de {dados.pages}
-            </span>
-            <button
-              disabled={pagina >= dados.pages}
-              onClick={() => setPagina((p) => p + 1)}
-              className="rounded-md border border-stone-300 px-3 py-1 disabled:opacity-40"
-            >
-              Próxima
-            </button>
-          </div>
-        )}
+        {dados && <Paginacao pagina={pagina} totalPaginas={dados.pages} aoMudar={setPagina} />}
       </main>
     </div>
+  )
+}
+
+function IconeBusca({ className }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className={className}>
+      <circle cx="11" cy="11" r="6.5" />
+      <path d="m20 20-4-4" strokeLinecap="round" />
+    </svg>
+  )
+}
+
+function IconeSeta({ className }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={className}>
+      <path d="m9 6 6 6-6 6" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
   )
 }

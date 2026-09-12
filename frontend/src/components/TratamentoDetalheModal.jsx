@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { api } from '../api/client'
 import { isoParaData } from '../utils/formatadores'
 import { Modal } from './Modal'
+import { Avatar, Botao, Carregando, MensagemErro, Pill, Rotulo } from './ui'
 
 export function TratamentoDetalheModal({ tratamentoId, onFechar }) {
   const [dados, setDados] = useState(null)
@@ -77,154 +78,158 @@ export function TratamentoDetalheModal({ tratamentoId, onFechar }) {
     }
   }
 
+  const concluido = dados?.status === 'concluido'
+
   return (
-    <Modal titulo="" onFechar={onFechar}>
-      {erro && <p className="text-sm text-red-600">{erro}</p>}
-      {!dados && !erro && <p className="text-sm text-stone-500">Carregando...</p>}
+    <Modal titulo="" onFechar={onFechar} largura="max-w-xl">
+      <MensagemErro>{erro}</MensagemErro>
+      {!dados && !erro && <Carregando />}
 
       {dados && (
-        <div className="flex max-h-[75vh] flex-col gap-5 overflow-y-auto text-sm">
-          <div className="flex items-start justify-between">
-            <div>
-              <h2 className="font-display text-xl font-semibold uppercase tracking-wide text-emerald-900">
-                {dados.tipo_nome}
-              </h2>
-              <span
-                className={`mt-1 inline-block rounded-full px-2 py-0.5 text-xs font-medium ${
-                  dados.status === 'concluido'
-                    ? 'bg-stone-200 text-stone-600'
-                    : 'bg-emerald-100 text-emerald-700'
-                }`}
-              >
-                {dados.status === 'concluido' ? 'Concluído' : 'Em andamento'}
+        <div className="flex flex-col gap-5 text-sm">
+          <div className="border-b-2 border-emerald-900/80 pb-4">
+            <Rotulo>Tratamento</Rotulo>
+            <p className="mt-1 font-display text-3xl font-semibold text-emerald-950">
+              {dados.tipo_nome}
+            </p>
+            <div className="mt-2 flex flex-wrap items-center gap-1.5">
+              <Pill tom={concluido ? 'cinza' : 'verde'}>
+                {concluido ? 'Concluído' : 'Em andamento'}
+              </Pill>
+              <span className="text-xs text-stone-500">
+                desde {isoParaData(dados.data_inicio)}
+                {dados.sessoes_previstas ? ` · ${dados.sessoes_previstas} sessões previstas` : ''}
               </span>
             </div>
-            <div className="flex shrink-0 gap-2">
-              <button
-                onClick={async () => {
-                  const { gerarPdfTratamento } = await import(
-                    '../utils/gerarPdfTratamento'
-                  )
-                  gerarPdfTratamento(dados)
-                }}
-                className="rounded-md border border-stone-300 px-3 py-1 text-xs hover:bg-stone-50"
-              >
-                Baixar PDF
-              </button>
-              {dados.status !== 'concluido' && (
-                <button
-                  onClick={fecharCaso}
-                  className="rounded-md border border-stone-300 px-3 py-1 text-xs hover:bg-stone-50"
-                >
-                  Fechar caso
-                </button>
-              )}
-              <button
-                onClick={excluir}
-                className="rounded-md border border-red-200 px-3 py-1 text-xs text-red-600 hover:bg-red-50"
-              >
-                Excluir
-              </button>
+          </div>
+
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div>
+              <Rotulo>Responsável</Rotulo>
+              <p className="mt-0.5 text-stone-800">
+                {dados.solicitante?.nome_completo || <span className="text-stone-300">—</span>}
+              </p>
+            </div>
+            <div>
+              <Rotulo>Assistidos</Rotulo>
+              <ul className="mt-1 flex flex-col gap-1">
+                {dados.assistidos.map((a) => (
+                  <li key={a.id} className="flex items-center gap-2">
+                    <Avatar nome={a.pessoa.nome_completo} className="h-6 w-6 text-[9px]" />
+                    <span
+                      className={`min-w-0 flex-1 truncate ${
+                        a.status !== 'ativo' ? 'text-stone-400 line-through' : 'text-stone-800'
+                      }`}
+                    >
+                      {a.pessoa.nome_completo}
+                    </span>
+                    {a.status === 'ativo' && !concluido && (
+                      <button
+                        type="button"
+                        onClick={() => concluirAssistido(a.id)}
+                        className="text-xs text-stone-400 hover:text-emerald-800 hover:underline"
+                      >
+                        concluir
+                      </button>
+                    )}
+                  </li>
+                ))}
+              </ul>
             </div>
           </div>
 
-          <Secao titulo="Responsável">
-            <p className="text-stone-700">{dados.solicitante?.nome_completo || '—'}</p>
-          </Secao>
-
-          <Secao titulo="Assistidos">
-            <ul className="flex flex-col gap-1">
-              {dados.assistidos.map((a) => (
-                <li key={a.id} className="flex items-center justify-between">
-                  <span
-                    className={
-                      a.status !== 'ativo'
-                        ? 'text-stone-400 line-through decoration-2'
-                        : 'text-stone-700'
-                    }
-                  >
-                    {a.pessoa.nome_completo}
-                  </span>
-                  {a.status === 'ativo' && (
-                    <button
-                      onClick={() => concluirAssistido(a.id)}
-                      className="text-xs text-stone-500 hover:text-emerald-800 hover:underline"
-                    >
-                      Concluir
-                    </button>
-                  )}
-                </li>
-              ))}
-            </ul>
-          </Secao>
-
-          <div className="grid grid-cols-2 gap-4 border-y border-stone-200 py-3">
-            <Campo label="Início" valor={isoParaData(dados.data_inicio)} />
-            <Campo label="Sessões previstas" valor={dados.sessoes_previstas} />
-          </div>
-
-          {dados.observacao && <Secao titulo="Observação">{dados.observacao}</Secao>}
+          {dados.observacao && (
+            <div>
+              <Rotulo className="mb-1.5">Observação</Rotulo>
+              <p className="rounded-xl border-l-4 border-amber-400 bg-amber-50/60 p-3 leading-relaxed whitespace-pre-line text-stone-700">
+                {dados.observacao}
+              </p>
+            </div>
+          )}
           {dados.situacao_final && (
-            <Secao titulo="Situação final">{dados.situacao_final}</Secao>
+            <div>
+              <Rotulo className="mb-1.5">Situação final</Rotulo>
+              <p className="rounded-xl bg-stone-50 p-3 leading-relaxed text-stone-700 ring-1 ring-stone-900/5">
+                {dados.situacao_final}
+              </p>
+            </div>
           )}
 
-          <Secao titulo="Diário de evolução">
+          {/* ---------- diário ---------- */}
+          <div>
+            <div className="flex items-baseline gap-2">
+              <h3 className="font-display text-lg font-semibold text-emerald-950">
+                Diário de evolução
+              </h3>
+              {dados.evolucoes.length > 0 && (
+                <span className="text-xs text-stone-400">{dados.evolucoes.length}</span>
+              )}
+            </div>
+
             {dados.evolucoes.length === 0 ? (
-              <p className="text-stone-500">Nenhuma anotação ainda.</p>
+              <p className="mt-2 text-stone-400">Nenhuma anotação ainda.</p>
             ) : (
-              <div className="flex flex-col gap-3">
+              <ol className="relative mt-3 ml-1.5 border-l-2 border-stone-200 pl-5">
                 {dados.evolucoes.map((e) => (
-                  <p key={e.id} className="leading-relaxed text-stone-700">
-                    <span className="font-bold">{isoParaData(e.data)}</span>
-                    {e.registrado_por && (
-                      <span className="text-stone-400"> — {e.registrado_por.nome_completo}</span>
-                    )}
-                    {' — '}
-                    {e.texto}
-                  </p>
+                  <li key={e.id} className="relative pb-4 last:pb-0">
+                    <span className="absolute top-1.5 -left-6.5 h-2.5 w-2.5 rounded-full bg-sky-500 ring-4 ring-white" />
+                    <p className="text-xs font-semibold text-stone-500">
+                      {isoParaData(e.data)}
+                      {e.registrado_por && (
+                        <span className="font-normal text-stone-400">
+                          {' '}
+                          — {e.registrado_por.nome_completo}
+                        </span>
+                      )}
+                    </p>
+                    <p className="mt-0.5 leading-relaxed whitespace-pre-line text-stone-700">
+                      {e.texto}
+                    </p>
+                  </li>
                 ))}
-              </div>
+              </ol>
             )}
 
-            <form onSubmit={adicionarEvolucao} className="mt-3 flex gap-2">
-              <input
-                type="text"
-                placeholder="Nova anotação..."
-                value={novaEvolucao}
-                onChange={(e) => setNovaEvolucao(e.target.value)}
-                className="flex-1 rounded-md border border-stone-300 px-3 py-2 text-sm outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-600/15"
-              />
-              <button
-                type="submit"
-                disabled={enviando}
-                className="rounded-md bg-emerald-800 px-3 py-2 text-sm font-medium text-white hover:bg-emerald-700 disabled:opacity-50"
-              >
-                Adicionar
-              </button>
-            </form>
-          </Secao>
+            {!concluido && (
+              <form onSubmit={adicionarEvolucao} className="mt-4 flex gap-2">
+                <input
+                  type="text"
+                  placeholder="Nova anotação no diário..."
+                  value={novaEvolucao}
+                  onChange={(e) => setNovaEvolucao(e.target.value)}
+                  className="campo flex-1"
+                />
+                <Botao type="submit" disabled={enviando || !novaEvolucao.trim()}>
+                  Anotar
+                </Botao>
+              </form>
+            )}
+          </div>
+
+          <div className="flex flex-wrap items-center justify-between gap-2 border-t border-stone-100 pt-4">
+            <Botao
+              variante="fantasma"
+              pequeno
+              onClick={async () => {
+                const { gerarPdfTratamento } = await import('../utils/gerarPdfTratamento')
+                gerarPdfTratamento(dados)
+              }}
+            >
+              ⬇ Baixar PDF
+            </Botao>
+            <div className="flex gap-2">
+              <Botao variante="perigo" pequeno onClick={excluir}>
+                Excluir
+              </Botao>
+              {!concluido && (
+                <Botao variante="secundario" pequeno onClick={fecharCaso}>
+                  Fechar caso
+                </Botao>
+              )}
+            </div>
+          </div>
         </div>
       )}
     </Modal>
-  )
-}
-
-function Secao({ titulo, children }) {
-  return (
-    <div>
-      <h3 className="mb-1 text-xs font-bold uppercase tracking-wide text-stone-400">
-        {titulo}
-      </h3>
-      {children}
-    </div>
-  )
-}
-
-function Campo({ label, valor }) {
-  return (
-    <div>
-      <p className="text-xs font-bold uppercase tracking-wide text-stone-400">{label}</p>
-      <p className="text-stone-700">{valor ?? '—'}</p>
-    </div>
   )
 }

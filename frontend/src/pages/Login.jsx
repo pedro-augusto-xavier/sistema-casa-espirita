@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../auth/AuthContext'
 import { Emblema } from '../components/Emblema'
+import { Botao, MensagemErro } from '../components/ui'
 
 export function Login() {
   const { entrar } = useAuth()
@@ -27,21 +28,27 @@ export function Login() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-linear-to-br from-stone-100 via-emerald-50 to-amber-50 px-4 py-10">
-      <div className="w-full max-w-sm">
+    <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-linear-to-br from-stone-100 via-emerald-50 to-amber-50 px-4 py-10">
+      {/* marca d'água do brasão ao fundo */}
+      <Emblema className="pointer-events-none absolute -top-24 -right-24 h-112 w-md opacity-[0.06]" />
+      <Emblema className="pointer-events-none absolute -bottom-32 -left-32 h-96 w-96 opacity-[0.05]" />
+
+      <div className="relative w-full max-w-sm animate-entrar">
         <div className="flex flex-col items-center text-center">
-          <Emblema className="h-20 w-20" />
-          <h1 className="mt-4 font-display text-2xl font-semibold tracking-wide text-emerald-900">
-            Casa Espírita Amor e Perdão
+          <Emblema className="h-24 w-24 drop-shadow-sm" />
+          <h1 className="mt-5 font-display text-3xl font-semibold tracking-wide text-emerald-950">
+            Casa Espírita
+            <br />
+            Amor e Perdão
           </h1>
-          <p className="mt-1 text-xs font-medium uppercase tracking-widest text-stone-500">
-            Nova Friburgo — RJ
+          <p className="mt-2 text-xs font-medium tracking-[0.25em] text-stone-500 uppercase">
+            Nova Friburgo · RJ
           </p>
         </div>
 
         <form
           onSubmit={aoEnviar}
-          className="mt-8 w-full rounded-xl border border-stone-200/70 bg-white/90 p-8 shadow-xl shadow-stone-900/5 ring-1 ring-stone-900/5 backdrop-blur-sm"
+          className="mt-8 w-full rounded-2xl border border-white/70 bg-white/85 p-8 shadow-xl shadow-emerald-900/10 ring-1 ring-stone-900/5 backdrop-blur-sm"
         >
           <p className="text-sm text-stone-500">Entre com seu e-mail e senha.</p>
 
@@ -51,9 +58,10 @@ export function Login() {
               type="email"
               required
               autoFocus
+              autoComplete="username"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="mt-1 w-full rounded-md border border-stone-300 px-3 py-2 text-sm outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-600/15"
+              className="campo mt-1"
             />
           </label>
 
@@ -62,26 +70,23 @@ export function Login() {
             <input
               type="password"
               required
+              autoComplete="current-password"
               value={senha}
               onChange={(e) => setSenha(e.target.value)}
-              className="mt-1 w-full rounded-md border border-stone-300 px-3 py-2 text-sm outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-600/15"
+              className="campo mt-1"
             />
           </label>
 
-          {erro && (
-            <p className="mt-4 rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">
-              {erro}
-            </p>
-          )}
+          <MensagemErro className="mt-4">{erro}</MensagemErro>
 
-          <button
-            type="submit"
-            disabled={enviando}
-            className="mt-6 w-full rounded-md bg-emerald-800 py-2 text-sm font-medium text-white shadow-sm hover:bg-emerald-700 disabled:opacity-50"
-          >
+          <Botao type="submit" disabled={enviando} className="mt-6 w-full">
             {enviando ? 'Entrando...' : 'Entrar'}
-          </button>
+          </Botao>
         </form>
+
+        <p className="mt-6 text-center text-xs text-stone-400">
+          Acesso restrito à equipe da casa.
+        </p>
       </div>
     </div>
   )

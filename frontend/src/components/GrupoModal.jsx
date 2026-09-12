@@ -3,6 +3,7 @@ import { api } from '../api/client'
 import { dataParaIso, isoParaData, mascaraData } from '../utils/formatadores'
 import { Modal } from './Modal'
 import { SeletorPessoa } from './SeletorPessoa'
+import { Avatar, Botao, Campo, MensagemErro } from './ui'
 
 function hoje() {
   const d = new Date()
@@ -56,7 +57,7 @@ export function GrupoModal({ existente, onFechar, onSalvo }) {
     }
     const dataIso = dataParaIso(data)
     if (!dataIso) {
-      setErro('Data inválida -- use o formato dd/mm/aaaa.')
+      setErro('Data inválida — use o formato dd/mm/aaaa.')
       return
     }
 
@@ -83,7 +84,10 @@ export function GrupoModal({ existente, onFechar, onSalvo }) {
   }
 
   return (
-    <Modal titulo={editando ? 'Editar sessão de grupo' : 'Nova sessão de grupo'} onFechar={onFechar}>
+    <Modal
+      titulo={editando ? 'Editar sessão de grupo' : 'Nova sessão de grupo'}
+      onFechar={onFechar}
+    >
       <form onSubmit={aoEnviar} className="flex flex-col gap-4">
         <div className="grid grid-cols-2 gap-4">
           <Campo label="Tipo">
@@ -91,7 +95,7 @@ export function GrupoModal({ existente, onFechar, onSalvo }) {
               value={tipoId}
               onChange={(e) => setTipoId(e.target.value)}
               disabled={editando}
-              className={`${estiloInput} disabled:bg-stone-100`}
+              className="campo"
             >
               {tipos.map((t) => (
                 <option key={t.id} value={t.id}>
@@ -107,12 +111,12 @@ export function GrupoModal({ existente, onFechar, onSalvo }) {
               maxLength={10}
               value={data}
               onChange={(e) => setData(mascaraData(e.target.value))}
-              className={estiloInput}
+              className="campo"
             />
           </Campo>
         </div>
 
-        <Campo label="Responsável (dirigente)">
+        <Campo label="Responsável" dica="dirigente">
           <SeletorPessoa
             valor={responsavel}
             aoSelecionar={setResponsavel}
@@ -121,19 +125,26 @@ export function GrupoModal({ existente, onFechar, onSalvo }) {
         </Campo>
 
         <fieldset>
-          <legend className="mb-2 text-sm font-medium text-stone-700">Presentes</legend>
+          <legend className="mb-2 flex items-baseline gap-2 text-sm font-medium text-stone-700">
+            Presentes
+            {presentes.length > 0 && (
+              <span className="text-xs font-normal text-stone-400">{presentes.length}</span>
+            )}
+          </legend>
           {presentes.length > 0 && (
-            <ul className="mb-2 flex flex-wrap gap-2">
+            <ul className="mb-2 flex flex-wrap gap-1.5">
               {presentes.map((p) => (
                 <li
                   key={p.id}
-                  className="flex items-center gap-1 rounded-full bg-stone-100 px-3 py-1 text-xs text-stone-700"
+                  className="flex items-center gap-1.5 rounded-full bg-emerald-50 py-0.5 pr-1 pl-0.5 text-xs text-emerald-950 ring-1 ring-emerald-800/10"
                 >
+                  <Avatar nome={p.nome_completo} className="h-5 w-5 text-[8px]" />
                   {p.nome_completo}
                   <button
                     type="button"
                     onClick={() => removerParticipante(p.id)}
-                    className="text-stone-400 hover:text-stone-700"
+                    aria-label={`Remover ${p.nome_completo}`}
+                    className="flex h-4 w-4 items-center justify-center rounded-full text-stone-400 hover:bg-white hover:text-red-600"
                   >
                     ×
                   </button>
@@ -153,43 +164,21 @@ export function GrupoModal({ existente, onFechar, onSalvo }) {
             rows={2}
             value={observacao}
             onChange={(e) => setObservacao(e.target.value)}
-            className={estiloInput}
+            className="campo"
           />
         </Campo>
 
-        {erro && (
-          <p className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">{erro}</p>
-        )}
+        <MensagemErro>{erro}</MensagemErro>
 
-        <div className="flex justify-end gap-2">
-          <button
-            type="button"
-            onClick={onFechar}
-            className="rounded-md border border-stone-300 px-4 py-2 text-sm hover:bg-stone-50"
-          >
+        <div className="flex justify-end gap-2 pt-1">
+          <Botao variante="secundario" onClick={onFechar}>
             Cancelar
-          </button>
-          <button
-            type="submit"
-            disabled={enviando}
-            className="rounded-md bg-emerald-800 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700 disabled:opacity-50"
-          >
+          </Botao>
+          <Botao type="submit" disabled={enviando}>
             {enviando ? 'Salvando...' : editando ? 'Salvar alterações' : 'Registrar'}
-          </button>
+          </Botao>
         </div>
       </form>
     </Modal>
-  )
-}
-
-const estiloInput =
-  'w-full rounded-md border border-stone-300 px-3 py-2 text-sm outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-600/15'
-
-function Campo({ label, children }) {
-  return (
-    <label className="block text-sm font-medium text-stone-700">
-      {label}
-      <div className="mt-1">{children}</div>
-    </label>
   )
 }

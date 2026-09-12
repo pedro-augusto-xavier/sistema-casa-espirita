@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { api } from '../api/client'
 import { Modal } from './Modal'
 import { SeletorPessoa } from './SeletorPessoa'
+import { Avatar, Botao, Campo, MensagemErro } from './ui'
 
 const TIPOS = [
   { valor: 'trabalho', rotulo: 'Trabalho' },
@@ -89,15 +90,17 @@ export function AgendaModal({ existente, onFechar, onSalvo }) {
         <Campo label="Título">
           <input
             required
+            autoFocus
             value={titulo}
             onChange={(e) => setTitulo(e.target.value)}
-            className={estiloInput}
+            className="campo"
+            placeholder="ex: Reunião pública de terça"
           />
         </Campo>
 
         <div className="grid grid-cols-2 gap-4">
           <Campo label="Tipo">
-            <select value={tipo} onChange={(e) => setTipo(e.target.value)} className={estiloInput}>
+            <select value={tipo} onChange={(e) => setTipo(e.target.value)} className="campo">
               {TIPOS.map((t) => (
                 <option key={t.valor} value={t.valor}>
                   {t.rotulo}
@@ -105,12 +108,12 @@ export function AgendaModal({ existente, onFechar, onSalvo }) {
               ))}
             </select>
           </Campo>
-          <Campo label="Recorrência (opcional)">
+          <Campo label="Recorrência" dica="opcional">
             <input
               placeholder="ex: semanal:terça"
               value={recorrencia}
               onChange={(e) => setRecorrencia(e.target.value)}
-              className={estiloInput}
+              className="campo"
             />
           </Campo>
         </div>
@@ -122,36 +125,48 @@ export function AgendaModal({ existente, onFechar, onSalvo }) {
               type="datetime-local"
               value={dataInicio}
               onChange={(e) => setDataInicio(e.target.value)}
-              className={estiloInput}
+              className="campo"
             />
           </Campo>
-          <Campo label="Fim (opcional)">
+          <Campo label="Fim" dica="opcional">
             <input
               type="datetime-local"
               value={dataFim}
               onChange={(e) => setDataFim(e.target.value)}
-              className={estiloInput}
+              className="campo"
             />
           </Campo>
         </div>
 
         <fieldset>
-          <legend className="mb-2 text-sm font-medium text-stone-700">Escala</legend>
+          <legend className="mb-2 flex items-baseline gap-2 text-sm font-medium text-stone-700">
+            Escala
+            {escalados.length > 0 && (
+              <span className="text-xs font-normal text-stone-400">{escalados.length}</span>
+            )}
+          </legend>
           {escalados.length > 0 && (
-            <ul className="mb-2 flex flex-col gap-2">
+            <ul className="mb-2 flex flex-col gap-1.5">
               {escalados.map((e) => (
-                <li key={e.pessoa.id} className="flex items-center gap-2">
-                  <span className="flex-1 text-sm text-stone-700">{e.pessoa.nome_completo}</span>
+                <li
+                  key={e.pessoa.id}
+                  className="flex items-center gap-2 rounded-lg bg-stone-50 py-1.5 pr-1.5 pl-2 ring-1 ring-stone-900/5"
+                >
+                  <Avatar nome={e.pessoa.nome_completo} className="h-7 w-7 text-[10px]" />
+                  <span className="min-w-0 flex-1 truncate text-sm text-stone-800">
+                    {e.pessoa.nome_completo}
+                  </span>
                   <input
-                    placeholder="função (opcional)"
+                    placeholder="função"
                     value={e.funcao}
                     onChange={(ev) => mudarFuncao(e.pessoa.id, ev.target.value)}
-                    className="w-40 rounded-md border border-stone-300 px-2 py-1 text-xs outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-600/15"
+                    className="campo w-32 px-2 py-1 text-xs"
                   />
                   <button
                     type="button"
                     onClick={() => removerEscalado(e.pessoa.id)}
-                    className="text-stone-400 hover:text-stone-700"
+                    aria-label={`Remover ${e.pessoa.nome_completo}`}
+                    className="flex h-7 w-7 items-center justify-center rounded-md text-stone-400 hover:bg-white hover:text-red-600"
                   >
                     ×
                   </button>
@@ -171,43 +186,21 @@ export function AgendaModal({ existente, onFechar, onSalvo }) {
             rows={2}
             value={descricao}
             onChange={(e) => setDescricao(e.target.value)}
-            className={estiloInput}
+            className="campo"
           />
         </Campo>
 
-        {erro && (
-          <p className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">{erro}</p>
-        )}
+        <MensagemErro>{erro}</MensagemErro>
 
-        <div className="flex justify-end gap-2">
-          <button
-            type="button"
-            onClick={onFechar}
-            className="rounded-md border border-stone-300 px-4 py-2 text-sm hover:bg-stone-50"
-          >
+        <div className="flex justify-end gap-2 pt-1">
+          <Botao variante="secundario" onClick={onFechar}>
             Cancelar
-          </button>
-          <button
-            type="submit"
-            disabled={enviando}
-            className="rounded-md bg-emerald-800 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700 disabled:opacity-50"
-          >
+          </Botao>
+          <Botao type="submit" disabled={enviando}>
             {enviando ? 'Salvando...' : editando ? 'Salvar alterações' : 'Criar evento'}
-          </button>
+          </Botao>
         </div>
       </form>
     </Modal>
-  )
-}
-
-const estiloInput =
-  'w-full rounded-md border border-stone-300 px-3 py-2 text-sm outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-600/15'
-
-function Campo({ label, children }) {
-  return (
-    <label className="block text-sm font-medium text-stone-700">
-      {label}
-      <div className="mt-1">{children}</div>
-    </label>
   )
 }

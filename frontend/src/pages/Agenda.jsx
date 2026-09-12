@@ -2,6 +2,15 @@ import { useEffect, useState } from 'react'
 import { api } from '../api/client'
 import { AgendaModal } from '../components/AgendaModal'
 import { Cabecalho } from '../components/Cabecalho'
+import {
+  Botao,
+  Carregando,
+  EstadoVazio,
+  MensagemErro,
+  Paginacao,
+  Pill,
+  TituloPagina,
+} from '../components/ui'
 
 const ROTULO_TIPO = {
   trabalho: 'Trabalho',
@@ -10,15 +19,14 @@ const ROTULO_TIPO = {
   outro: 'Outro',
 }
 
-function formatarDataHora(iso) {
-  return new Date(iso).toLocaleString('pt-BR', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  })
+const TOM_TIPO = {
+  trabalho: 'verde',
+  palestra: 'ambar',
+  grupo: 'azul',
+  outro: 'cinza',
 }
+
+const MESES = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez']
 
 export function Agenda() {
   const [dados, setDados] = useState(null)
@@ -59,110 +67,131 @@ export function Agenda() {
     <div className="min-h-screen bg-stone-100">
       <Cabecalho />
 
-      <main className="mx-auto max-w-3xl p-6">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <h2 className="font-display text-2xl font-semibold text-emerald-900">Agenda</h2>
-          <button
-            onClick={() => setModalAberto(true)}
-            className="whitespace-nowrap rounded-md bg-emerald-800 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700"
-          >
-            + Novo evento
-          </button>
+      <main className="mx-auto max-w-4xl px-4 py-6 sm:px-6 sm:py-8">
+        <TituloPagina
+          titulo="Agenda"
+          subtitulo="Trabalhos, palestras e grupos — com a escala de quem participa."
+          acoes={<Botao onClick={() => setModalAberto(true)}>+ Novo evento</Botao>}
+        />
+
+        {/* filtro por tipo, em forma de "chips" */}
+        <div className="mt-5 flex flex-wrap gap-1.5">
+          <Chip ativo={tipo === ''} onClick={() => { setPagina(1); setTipo('') }}>
+            Todos
+          </Chip>
+          {Object.entries(ROTULO_TIPO).map(([valor, rotulo]) => (
+            <Chip
+              key={valor}
+              ativo={tipo === valor}
+              onClick={() => {
+                setPagina(1)
+                setTipo(valor)
+              }}
+            >
+              {rotulo}
+            </Chip>
+          ))}
         </div>
 
-        <div className="mt-3">
-          <select
-            value={tipo}
-            onChange={(e) => {
-              setPagina(1)
-              setTipo(e.target.value)
-            }}
-            className="rounded-md border border-stone-300 px-3 py-2 text-sm outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-600/15"
-          >
-            <option value="">Todos os tipos</option>
-            {Object.entries(ROTULO_TIPO).map(([valor, rotulo]) => (
-              <option key={valor} value={valor}>
-                {rotulo}
-              </option>
-            ))}
-          </select>
-        </div>
+        <MensagemErro className="mt-4">{erro}</MensagemErro>
 
-        {erro && (
-          <p className="mt-3 rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">{erro}</p>
-        )}
-
-        <div className="mt-4 overflow-hidden rounded-lg bg-white shadow-sm ring-1 ring-stone-900/5">
+        <div className="mt-4 overflow-hidden rounded-xl bg-white shadow-sm ring-1 ring-stone-900/5">
           {!dados ? (
-            <p className="p-4 text-sm text-stone-500">Carregando...</p>
+            <Carregando />
           ) : dados.items.length === 0 ? (
-            <p className="p-4 text-sm text-stone-500">Nada na agenda.</p>
+            <EstadoVazio
+              titulo="Nada na agenda"
+              descricao={
+                tipo
+                  ? 'Nenhum evento desse tipo. Tente outro filtro.'
+                  : 'Cadastre o próximo trabalho, palestra ou reunião de grupo.'
+              }
+              acao={!tipo && <Botao onClick={() => setModalAberto(true)}>+ Novo evento</Botao>}
+            />
           ) : (
-            <table className="w-full text-left text-sm">
-              <thead className="border-b border-stone-200 bg-stone-50 text-stone-500">
-                <tr>
-                  <th className="px-4 py-2 font-medium">Quando</th>
-                  <th className="px-4 py-2 font-medium">Título</th>
-                  <th className="px-4 py-2 font-medium">Tipo</th>
-                  <th className="px-4 py-2 font-medium">Escalados</th>
-                  <th className="px-4 py-2" />
-                </tr>
-              </thead>
-              <tbody>
-                {dados.items.map((ev) => (
-                  <tr
-                    key={ev.id}
+            <ul className="divide-y divide-stone-100">
+              {dados.items.map((ev) => (
+                <li key={ev.id}>
+                  <button
+                    type="button"
                     onClick={() => setEditando(ev.id)}
-                    className="cursor-pointer border-b border-stone-100 last:border-0 hover:bg-stone-50"
+                    className="group flex w-full items-center gap-4 px-4 py-3 text-left transition hover:bg-emerald-50/50 sm:px-5"
                   >
-                    <td className="whitespace-nowrap px-4 py-2 text-stone-600">
-                      {formatarDataHora(ev.data_inicio)}
-                    </td>
-                    <td className="px-4 py-2 font-medium text-stone-800">{ev.titulo}</td>
-                    <td className="px-4 py-2 text-stone-600">{ROTULO_TIPO[ev.tipo]}</td>
-                    <td className="px-4 py-2 text-stone-600">{ev.qtd_escalados}</td>
-                    <td className="px-4 py-2 text-right">
-                      <button
-                        onClick={(e) => excluir(ev.id, e)}
-                        className="text-xs text-red-500 hover:underline"
-                      >
-                        Excluir
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                    <DataHora iso={ev.data_inicio} />
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate font-medium text-stone-800 group-hover:text-emerald-950">
+                        {ev.titulo}
+                      </p>
+                      <p className="mt-0.5 flex flex-wrap items-center gap-2 text-xs text-stone-500">
+                        <Pill tom={TOM_TIPO[ev.tipo] ?? 'cinza'}>{ROTULO_TIPO[ev.tipo]}</Pill>
+                        <span>
+                          {ev.qtd_escalados === 0
+                            ? 'ninguém escalado'
+                            : `${ev.qtd_escalados} ${ev.qtd_escalados === 1 ? 'pessoa escalada' : 'pessoas escaladas'}`}
+                        </span>
+                      </p>
+                    </div>
+                    <span
+                      role="button"
+                      tabIndex={0}
+                      onClick={(e) => excluir(ev.id, e)}
+                      onKeyDown={(e) => e.key === 'Enter' && excluir(ev.id, e)}
+                      className="rounded-lg px-2 py-1 text-xs text-stone-400 opacity-0 transition group-hover:opacity-100 hover:bg-red-50 hover:text-red-600 focus:opacity-100"
+                    >
+                      Excluir
+                    </span>
+                  </button>
+                </li>
+              ))}
+            </ul>
           )}
         </div>
 
-        {dados && dados.pages > 1 && (
-          <div className="mt-4 flex items-center justify-center gap-3 text-sm text-stone-600">
-            <button
-              disabled={pagina <= 1}
-              onClick={() => setPagina((p) => p - 1)}
-              className="rounded-md border border-stone-300 px-3 py-1 disabled:opacity-40"
-            >
-              Anterior
-            </button>
-            <span>
-              Página {dados.page} de {dados.pages}
-            </span>
-            <button
-              disabled={pagina >= dados.pages}
-              onClick={() => setPagina((p) => p + 1)}
-              className="rounded-md border border-stone-300 px-3 py-1 disabled:opacity-40"
-            >
-              Próxima
-            </button>
-          </div>
-        )}
+        {dados && <Paginacao pagina={pagina} totalPaginas={dados.pages} aoMudar={setPagina} />}
       </main>
 
       {modalAberto && <AgendaModal onFechar={() => setModalAberto(false)} onSalvo={aoSalvar} />}
       {editando && (
         <DetalheEvento id={editando} onFechar={() => setEditando(null)} onSalvo={aoSalvar} />
       )}
+    </div>
+  )
+}
+
+function Chip({ ativo, onClick, children }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`rounded-full px-3 py-1 text-sm transition ${
+        ativo
+          ? 'bg-emerald-800 font-medium text-white shadow-sm'
+          : 'bg-white text-stone-600 ring-1 ring-stone-900/10 hover:bg-stone-50'
+      }`}
+    >
+      {children}
+    </button>
+  )
+}
+
+function DataHora({ iso }) {
+  const d = new Date(iso)
+  const passado = d < new Date()
+  return (
+    <div
+      className={`flex h-14 w-14 shrink-0 flex-col items-center justify-center rounded-lg ring-1 ring-stone-900/5 ${
+        passado ? 'bg-stone-100' : 'bg-amber-50'
+      }`}
+    >
+      <span className="font-display text-lg leading-none font-semibold text-emerald-950">
+        {String(d.getDate()).padStart(2, '0')}
+      </span>
+      <span className="mt-0.5 text-[10px] leading-none tracking-wider text-stone-500 uppercase">
+        {MESES[d.getMonth()]}
+      </span>
+      <span className="mt-1 text-[10px] leading-none text-stone-400">
+        {String(d.getHours()).padStart(2, '0')}:{String(d.getMinutes()).padStart(2, '0')}
+      </span>
     </div>
   )
 }
@@ -178,7 +207,7 @@ function DetalheEvento({ id, onFechar, onSalvo }) {
       .catch((e) => setErro(e.message))
   }, [id])
 
-  if (erro) return <p className="p-6 text-sm text-red-600">{erro}</p>
+  if (erro) return <MensagemErro className="m-6">{erro}</MensagemErro>
   if (!existente) return null
 
   return <AgendaModal existente={existente} onFechar={onFechar} onSalvo={onSalvo} />

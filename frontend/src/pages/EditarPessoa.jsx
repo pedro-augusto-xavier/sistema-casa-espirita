@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { api } from '../api/client'
+import { Cabecalho } from '../components/Cabecalho'
 import { PessoaForm } from '../components/PessoaForm'
+import { Carregando, MensagemErro, TituloPagina } from '../components/ui'
 import { isoParaData, mascaraCpf, mascaraTelefone } from '../utils/formatadores'
 
 export function EditarPessoa() {
@@ -46,25 +48,38 @@ export function EditarPessoa() {
 
   return (
     <div className="min-h-screen bg-stone-100">
-      <header className="bg-white px-6 py-4 shadow-sm ring-1 ring-stone-900/5">
-        <Link to={`/pessoas/${id}`} className="text-sm text-stone-500 hover:underline">
+      <Cabecalho />
+
+      <main className="mx-auto max-w-3xl px-4 py-6 sm:px-6 sm:py-8">
+        <Link
+          to={`/pessoas/${id}`}
+          className="inline-flex items-center gap-1 text-sm text-stone-500 transition hover:text-emerald-800"
+        >
           ← Voltar para a ficha
         </Link>
-        <h1 className="font-display text-xl font-semibold text-emerald-900">Editar pessoa</h1>
-      </header>
 
-      <main className="mx-auto max-w-2xl p-6">
-        {erro && <p className="text-sm text-red-600">{erro}</p>}
-        {!erro && !valores && <p className="text-sm text-stone-500">Carregando...</p>}
-        {valores && papeis && (
-          <PessoaForm
-            valoresIniciais={valores}
-            papeisIniciais={papeis}
-            aoSalvar={salvar}
-            linkCancelar={`/pessoas/${id}`}
-            textoBotao="Salvar alterações"
+        <div className="mt-4">
+          <TituloPagina
+            titulo="Editar pessoa"
+            subtitulo={valores ? valores.nome_completo : null}
           />
-        )}
+        </div>
+
+        <div className="mt-6">
+          <MensagemErro>{erro}</MensagemErro>
+          {!erro && !valores && <Carregando />}
+          {valores && papeis && (
+            <div className="animate-entrar">
+              <PessoaForm
+                valoresIniciais={valores}
+                papeisIniciais={papeis}
+                aoSalvar={salvar}
+                linkCancelar={`/pessoas/${id}`}
+                textoBotao="Salvar alterações"
+              />
+            </div>
+          )}
+        </div>
       </main>
     </div>
   )

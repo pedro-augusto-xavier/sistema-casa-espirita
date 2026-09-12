@@ -102,10 +102,14 @@ def _monta_tratamentos(
 def _abre_fichas_de_acompanhamento(
     db: Session, dados: AtendimentoCreate, itens: list[AtendimentoTratamentoIn]
 ) -> None:
-    """Tratamentos de formato "caso" (Desobsessão etc.) têm uma ficha própria,
-    com nº de vezes, diário e situação final. Quando um deles é marcado no
-    atendimento e a pessoa ainda não tem essa ficha aberta, abrimos uma --
-    igual a pegar a folha de Desobsessão em branco no armário."""
+    """Tratamentos de formato "caso" (Desobsessão etc.) têm uma pasta própria:
+    na capa, o Responsável (quem vem à casa receber o tratamento) e os
+    Assistidos (por quem ele pediu -- filhos, amigos, ele mesmo); dentro,
+    nº de vezes, diário e situação final.
+
+    Quando um deles é marcado no atendimento, a pessoa atendida vira o
+    responsável. Se ela ainda não tem a pasta aberta, abrimos uma; se já
+    tem, só acrescentamos assistidos novos e completamos o nº de vezes."""
     if not itens:
         return
     tipos_caso = set(
@@ -119,26 +123,36 @@ def _abre_fichas_de_acompanhamento(
     for item in itens:
         if item.tipo_tratamento_id not in tipos_caso:
             continue
+
+        assistidos = list(dict.fromkeys(item.assistidos)) or [dados.pessoa_id]
+        for pessoa_id in assistidos:
+            _checa_pessoa(db, pessoa_id, "assistidos")
+
         aberto = db.scalar(
             select(Tratamento).where(
                 Tratamento.tipo_tratamento_id == item.tipo_tratamento_id,
                 Tratamento.status == StatusTratamento.em_andamento,
-                Tratamento.assistidos.any(
+                (Tratamento.solicitante_id == dados.pessoa_id)
+                | Tratamento.assistidos.any(
                     TratamentoAssistido.pessoa_id == dados.pessoa_id
                 ),
             )
         )
         if aberto is not None:
-            # já tem ficha: só completa o nº de vezes se ainda não tinha
             if aberto.sessoes_previstas is None and item.sessoes_previstas:
                 aberto.sessoes_previstas = item.sessoes_previstas
+            ja_tem = {a.pessoa_id for a in aberto.assistidos}
+            for pessoa_id in assistidos:
+                if pessoa_id not in ja_tem:
+                    aberto.assistidos.append(TratamentoAssistido(pessoa_id=pessoa_id))
             continue
+
         ficha = Tratamento(
             tipo_tratamento_id=item.tipo_tratamento_id,
-            solicitante_id=dados.solicitante_id,
+            solicitante_id=dados.pessoa_id,  # o responsável é quem foi atendido
             sessoes_previstas=item.sessoes_previstas,
             observacao=item.observacao,
-            assistidos=[TratamentoAssistido(pessoa_id=dados.pessoa_id)],
+            assistidos=[TratamentoAssistido(pessoa_id=p) for p in assistidos],
         )
         if dados.data is not None:
             ficha.data_inicio = dados.data

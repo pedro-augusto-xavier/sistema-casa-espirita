@@ -99,9 +99,9 @@ class Tratamento(TimestampMixin, Base):
 
     @property
     def sessoes_realizadas(self) -> int:
-        """Quantas vezes o assistido já veio: atendimentos dele, a partir do
-        início do caso, em que este tipo de tratamento foi marcado. É o
-        contador ao lado do "nº vezes" da ficha de papel."""
+        """Quantas vezes já vieram por este caso: atendimentos do responsável
+        ou dos assistidos, a partir do início, em que este tipo foi marcado.
+        É o contador ao lado do "nº vezes" da ficha de papel."""
         from sqlalchemy import distinct, func, select
         from sqlalchemy.orm import object_session
 
@@ -109,6 +109,8 @@ class Tratamento(TimestampMixin, Base):
 
         db = object_session(self)
         pessoas = [a.pessoa_id for a in self.assistidos]
+        if self.solicitante_id is not None:
+            pessoas.append(self.solicitante_id)
         if db is None or not pessoas:
             return 0
         stmt = (

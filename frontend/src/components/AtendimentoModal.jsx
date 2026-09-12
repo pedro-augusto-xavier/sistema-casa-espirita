@@ -3,7 +3,7 @@ import { api } from '../api/client'
 import { dataParaIso, isoParaData, mascaraData } from '../utils/formatadores'
 import { Modal } from './Modal'
 import { SeletorPessoa } from './SeletorPessoa'
-import { Botao, Campo, MensagemErro } from './ui'
+import { Avatar, Botao, Campo, MensagemErro } from './ui'
 
 function hoje() {
   const d = new Date()
@@ -12,9 +12,10 @@ function hoje() {
   )
 }
 
-/** Cria um atendimento novo (passe `pessoaId`) ou edita um existente (passe `existente`). */
-export function AtendimentoModal({ pessoaId, existente, onFechar, onSalvo }) {
+/** Cria um atendimento novo (passe `pessoa`) ou edita um existente (passe `existente`). */
+export function AtendimentoModal({ pessoa, existente, onFechar, onSalvo }) {
   const editando = Boolean(existente)
+  const pessoaAtual = pessoa ?? existente?.pessoa
 
   const [tipos, setTipos] = useState([])
   const [data, setData] = useState(existente ? isoParaData(existente.data) : hoje())
@@ -31,12 +32,14 @@ export function AtendimentoModal({ pessoaId, existente, onFechar, onSalvo }) {
       (existente?.tratamentos ?? []).map((t) => [t.tipo_tratamento_id, t.sessoes_previstas ?? '']),
     ),
   )
+  // assistidos por tipo "caso": por quem a pessoa pediu (começa com ela mesma)
+  const [assistidosPorTipo, setAssistidosPorTipo] = useState({})
   const [fichasAbertas, setFichasAbertas] = useState([])
   const [observacao, setObservacao] = useState(existente?.observacao ?? '')
   const [erro, setErro] = useState('')
   const [enviando, setEnviando] = useState(false)
 
-  const idPessoa = pessoaId ?? existente?.pessoa?.id
+  const idPessoa = pessoaAtual?.id
 
   useEffect(() => {
     // tudo que pode ser marcado num atendimento individual (fica de fora só os grupos)
@@ -65,6 +68,19 @@ export function AtendimentoModal({ pessoaId, existente, onFechar, onSalvo }) {
     (t) => t.formato === 'caso' && tratamentosMarcados.includes(t.id),
   )
 
+  function assistidosDe(tipoId) {
+    return assistidosPorTipo[tipoId] ?? (pessoaAtual ? [pessoaAtual] : [])
+  }
+
+  function alternarAssistido(tipoId, p) {
+    if (!p) return
+    setAssistidosPorTipo((atual) => {
+      const lista = assistidosDe(tipoId)
+      const tem = lista.some((x) => x.id === p.id)
+      return { ...atual, [tipoId]: tem ? lista.filter((x) => x.id !== p.id) : [...lista, p] }
+    })
+  }
+
   async function aoEnviar(evento) {
     evento.preventDefault()
     setErro('')
@@ -85,6 +101,7 @@ export function AtendimentoModal({ pessoaId, existente, onFechar, onSalvo }) {
       tratamentos: tratamentosMarcados.map((id) => ({
         tipo_tratamento_id: id,
         sessoes_previstas: vezesPorTipo[id] ? Number(vezesPorTipo[id]) : null,
+        assistidos: assistidosDe(id).map((p) => p.id),
       })),
     }
 
@@ -93,7 +110,7 @@ export function AtendimentoModal({ pessoaId, existente, onFechar, onSalvo }) {
       if (editando) {
         await api.patch(`/atendimentos/${existente.id}`, corpo)
       } else {
-        await api.post('/atendimentos', { ...corpo, pessoa_id: pessoaId })
+        await api.post('/atendimentos', { ...corpo, pessoa_id: idPessoa })
       }
       onSalvo()
     } catch (e) {
@@ -182,32 +199,36 @@ export function AtendimentoModal({ pessoaId, existente, onFechar, onSalvo }) {
           </div>
         </fieldset>
 
-        {/* tratamentos de "caso" (Desobsessão) têm ficha própria com nº de vezes */}
+        {/* tratamentos de "caso" (Desobsessão) têm pasta própria: a capa tem
+            Responsável (quem vem à casa) e Assistidos (por quem ela pediu) */}
         {casosMarcados.map((t) => {
           const aberta = fichasAbertas.find((f) => f.tipo_tratamento_id === t.id)
+          const assistidos = assistidosDe(t.id)
+          const euMesmo = pessoaAtual && assistidos.some((p) => p.id === pessoaAtual.id)
           return (
             <div
               key={t.id}
               className="rounded-xl border-l-4 border-amber-400 bg-amber-50/60 p-4 animate-surgir"
             >
               <p className="text-[11px] font-semibold tracking-wider text-amber-800 uppercase">
-                Ficha de {t.nome}
+                Pasta de {t.nome}
               </p>
+
               {aberta ? (
                 <p className="mt-1 text-sm text-stone-700">
-                  Já tem ficha aberta desde <strong>{isoParaData(aberta.data_inicio)}</strong>
+                  Pasta aberta desde <strong>{isoParaData(aberta.data_inicio)}</strong>
                   {aberta.sessoes_previstas
                     ? ` — ${aberta.sessoes_realizadas} de ${aberta.sessoes_previstas} vezes feitas`
                     : ''}
                   . Este atendimento conta como mais uma vez.
                 </p>
               ) : (
-                <>
-                  <p className="mt-1 text-sm text-stone-600">
-                    Ao salvar, abre a ficha de acompanhamento na página da pessoa, com diário e
-                    situação final.
+                <div className="mt-2 grid grid-cols-1 gap-3 sm:grid-cols-[1fr_auto]">
+                  <p className="text-sm text-stone-700">
+                    <span className="text-stone-500">Responsável:</span>{' '}
+                    <strong>{pessoaAtual?.nome_completo}</strong>
                   </p>
-                  <label className="mt-3 flex items-center gap-3 text-sm font-medium text-stone-700">
+                  <label className="flex items-center gap-2 text-sm font-medium text-stone-700">
                     Nº de vezes
                     <input
                       type="number"
@@ -217,11 +238,62 @@ export function AtendimentoModal({ pessoaId, existente, onFechar, onSalvo }) {
                       onChange={(e) =>
                         setVezesPorTipo((v) => ({ ...v, [t.id]: e.target.value }))
                       }
-                      className="campo w-24"
+                      className="campo w-20"
                     />
                   </label>
-                </>
+                </div>
               )}
+
+              <div className="mt-3">
+                <p className="text-sm font-medium text-stone-700">
+                  {aberta ? 'Incluir assistidos' : 'Assistidos'}
+                  <span className="ml-1.5 text-xs font-normal text-stone-500">
+                    por quem {pessoaAtual ? 'ela' : 'a pessoa'} pediu — filhos, amigos, ela mesma
+                  </span>
+                </p>
+                <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+                  {pessoaAtual && (
+                    <button
+                      type="button"
+                      onClick={() => alternarAssistido(t.id, pessoaAtual)}
+                      aria-pressed={euMesmo}
+                      className={`rounded-full px-3 py-1 text-xs transition ${
+                        euMesmo
+                          ? 'bg-emerald-800 font-medium text-white'
+                          : 'bg-white text-stone-600 ring-1 ring-stone-900/10 hover:bg-stone-50'
+                      }`}
+                    >
+                      {euMesmo ? '✓ ' : ''}ela mesma
+                    </button>
+                  )}
+                  {assistidos
+                    .filter((p) => p.id !== pessoaAtual?.id)
+                    .map((p) => (
+                      <span
+                        key={p.id}
+                        className="flex items-center gap-1.5 rounded-full bg-white py-0.5 pr-1 pl-0.5 text-xs text-emerald-950 ring-1 ring-emerald-800/15"
+                      >
+                        <Avatar nome={p.nome_completo} className="h-5 w-5 text-[8px]" />
+                        {p.nome_completo}
+                        <button
+                          type="button"
+                          onClick={() => alternarAssistido(t.id, p)}
+                          aria-label={`Remover ${p.nome_completo}`}
+                          className="flex h-4 w-4 items-center justify-center rounded-full text-stone-400 hover:bg-stone-100 hover:text-red-600"
+                        >
+                          ×
+                        </button>
+                      </span>
+                    ))}
+                </div>
+                <div className="mt-2">
+                  <SeletorPessoa
+                    valor={null}
+                    aoSelecionar={(p) => alternarAssistido(t.id, p)}
+                    placeholder="Adicionar assistido (precisa estar cadastrado)..."
+                  />
+                </div>
+              </div>
             </div>
           )
         })}

@@ -60,10 +60,11 @@ def test_criar_atendimento_com_tratamentos(client: TestClient):
 
 
 def test_marcar_desobsessao_abre_ficha_de_acompanhamento(client: TestClient):
-    """Marcar um tipo 'caso' no atendimento abre o caso (a ficha de papel)
-    uma vez só; os atendimentos seguintes contam como sessões."""
+    """Marcar um tipo 'caso' no atendimento abre a pasta (a ficha de papel)
+    uma vez só; a pessoa atendida vira o responsável e, sem assistidos
+    informados, ela mesma é a assistida. Os atendimentos seguintes contam
+    como sessões."""
     pessoa = _cria_pessoa(client, "Bernardo Pinto")
-    vovo = _cria_pessoa(client, "Vovó Xica")
     desob = _id_tipo(client, "Desobsessão Presencial")
 
     r = client.post(
@@ -71,7 +72,6 @@ def test_marcar_desobsessao_abre_ficha_de_acompanhamento(client: TestClient):
         json={
             "pessoa_id": pessoa,
             "data": "2026-08-06",
-            "solicitante_id": vovo,
             "tratamentos": [{"tipo_tratamento_id": desob, "sessoes_previstas": 3}],
         },
     )
@@ -81,7 +81,7 @@ def test_marcar_desobsessao_abre_ficha_de_acompanhamento(client: TestClient):
     assert fichas["total"] == 1
     ficha = client.get(f"/api/v1/tratamentos/{fichas['items'][0]['id']}").json()
     assert ficha["tipo_nome"] == "Desobsessão Presencial"
-    assert ficha["solicitante"]["nome_completo"] == "Vovó Xica"
+    assert ficha["solicitante"]["id"] == pessoa
     assert ficha["sessoes_previstas"] == 3
     assert ficha["sessoes_realizadas"] == 1
     assert ficha["data_inicio"] == "2026-08-06"
@@ -111,6 +111,59 @@ def test_marcar_desobsessao_abre_ficha_de_acompanhamento(client: TestClient):
     assert tipos.count("atendimento") == 2
     assert "tratamento_inicio" in tipos
     assert "evolucao" in tipos
+
+
+def test_responsavel_pede_desobsessao_para_outras_pessoas(client: TestClient):
+    """A capa da pasta: Responsável (quem vem à casa) e Assistidos (por
+    quem ela pediu). A pasta aparece na ficha de todo mundo envolvido."""
+    marcela = _cria_pessoa(client, "Marcela Araujo Cabral")
+    benicio = _cria_pessoa(client, "Benicio Siqueira Vasconcelos")
+    jorge = _cria_pessoa(client, "Jorge Luiz Cabral de Vasconcelos")
+    desob = _id_tipo(client, "Desobsessão Presencial")
+
+    r = client.post(
+        "/api/v1/atendimentos",
+        json={
+            "pessoa_id": marcela,
+            "data": "2026-08-06",
+            "tratamentos": [
+                {
+                    "tipo_tratamento_id": desob,
+                    "sessoes_previstas": 3,
+                    "assistidos": [benicio, jorge],
+                }
+            ],
+        },
+    )
+    assert r.status_code == 201, r.text
+
+    pasta = client.get("/api/v1/tratamentos", params={"pessoa_id": marcela}).json()
+    assert pasta["total"] == 1
+    ficha = client.get(f"/api/v1/tratamentos/{pasta['items'][0]['id']}").json()
+    assert ficha["solicitante"]["id"] == marcela
+    assert {a["pessoa"]["id"] for a in ficha["assistidos"]} == {benicio, jorge}
+    # quem veio foi a Marcela: conta como 1 vez
+    assert ficha["sessoes_realizadas"] == 1
+
+    # a pasta também aparece na ficha do Jorge
+    do_jorge = client.get("/api/v1/tratamentos", params={"pessoa_id": jorge}).json()
+    assert [t["id"] for t in do_jorge["items"]] == [ficha["id"]]
+
+    # na próxima vez ela inclui ela mesma: entra na mesma pasta, sem abrir outra
+    r = client.post(
+        "/api/v1/atendimentos",
+        json={
+            "pessoa_id": marcela,
+            "data": "2026-08-13",
+            "tratamentos": [{"tipo_tratamento_id": desob, "assistidos": [marcela]}],
+        },
+    )
+    assert r.status_code == 201, r.text
+    ficha = client.get(f"/api/v1/tratamentos/{ficha['id']}").json()
+    assert {a["pessoa"]["id"] for a in ficha["assistidos"]} == {benicio, jorge, marcela}
+    assert ficha["sessoes_realizadas"] == 2
+    pasta = client.get("/api/v1/tratamentos", params={"pessoa_id": marcela}).json()
+    assert pasta["total"] == 1
 
 
 def test_atendimento_com_pessoa_inexistente_da_404(client: TestClient):

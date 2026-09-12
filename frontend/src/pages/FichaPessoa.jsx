@@ -166,6 +166,10 @@ export function FichaPessoa() {
     )
   }
 
+  const atendimentos = historico.filter((h) => h.tipo === 'atendimento')
+  const ultimoAtendimento = atendimentos[0]?.data // histórico já vem do mais recente
+  const pastasAbertas = casos.filter((c) => c.status !== 'concluido').length
+
   const endereco = [
     pessoa.logradouro,
     pessoa.numero,
@@ -223,7 +227,14 @@ export function FichaPessoa() {
               </div>
             </div>
 
-            <dl className="mt-7 grid grid-cols-2 gap-x-6 gap-y-4 sm:grid-cols-3">
+            {/* números da pessoa: quantas vezes veio, quando foi a última, pastas abertas */}
+            <div className="mt-6 grid grid-cols-3 divide-x divide-stone-100 rounded-xl bg-stone-50 ring-1 ring-stone-900/5">
+              <Numero valor={atendimentos.length} rotulo={atendimentos.length === 1 ? 'atendimento' : 'atendimentos'} />
+              <Numero valor={ultimoAtendimento ? isoParaData(ultimoAtendimento) : '—'} rotulo="último atendimento" pequeno />
+              <Numero valor={pastasAbertas} rotulo={pastasAbertas === 1 ? 'pasta aberta' : 'pastas abertas'} />
+            </div>
+
+            <dl className="mt-6 grid grid-cols-2 gap-x-6 gap-y-4 sm:grid-cols-3">
               <Item label="Nascimento" valor={isoParaData(pessoa.data_nascimento)} />
               <Item label="Telefone" valor={pessoa.telefone && mascaraTelefone(pessoa.telefone)} />
               <Item label="CPF" valor={pessoa.cpf && mascaraCpf(pessoa.cpf)} />
@@ -309,6 +320,7 @@ export function FichaPessoa() {
               <FichaCaso
                 key={c.id}
                 caso={c}
+                pessoaId={pessoa.id}
                 aoMudar={() => setVersao((v) => v + 1)}
                 aoAbrir={() => setDetalhe({ tipo: 'tratamento', id: c.id })}
               />
@@ -362,7 +374,7 @@ export function FichaPessoa() {
 
       {modalAberto === 'atendimento' && (
         <AtendimentoModal
-          pessoaId={pessoa.id}
+          pessoa={pessoa}
           onFechar={() => setModalAberto(null)}
           onSalvo={aoCriarRegistro}
         />
@@ -390,6 +402,19 @@ function formatarAlteracao(campo, valor) {
     return `${campo}: ${formatarValor(valor.de)} → ${formatarValor(valor.para)}`
   }
   return `${campo}: ${formatarValor(valor)}`
+}
+
+function Numero({ valor, rotulo, pequeno = false }) {
+  return (
+    <div className="px-4 py-3 text-center">
+      <p
+        className={`font-display font-semibold text-emerald-950 ${pequeno ? 'text-lg leading-8' : 'text-2xl'}`}
+      >
+        {valor}
+      </p>
+      <p className="text-[10px] tracking-wider text-stone-400 uppercase">{rotulo}</p>
+    </div>
+  )
 }
 
 function Item({ label, valor, className = '' }) {

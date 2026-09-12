@@ -32,6 +32,14 @@ _CARREGAR_TUDO = (
 )
 
 
+def _envolve_pessoa(pessoa_id: int):
+    """Casos em que a pessoa é o responsável (quem vem à casa) ou um dos
+    assistidos (por quem ela pediu) -- a pasta aparece na ficha dos dois."""
+    return (Tratamento.solicitante_id == pessoa_id) | Tratamento.assistidos.any(
+        TratamentoAssistido.pessoa_id == pessoa_id
+    )
+
+
 def _pessoa_ou_erro(db: Session, pessoa_id: int, campo: str) -> None:
     if db.get(Pessoa, pessoa_id) is None:
         raise NaoEncontrado(f"{campo}: pessoa {pessoa_id} não existe")
@@ -62,9 +70,7 @@ def listar(
     if tipo_tratamento_id is not None:
         stmt = stmt.where(Tratamento.tipo_tratamento_id == tipo_tratamento_id)
     if pessoa_id is not None:
-        stmt = stmt.where(
-            Tratamento.assistidos.any(TratamentoAssistido.pessoa_id == pessoa_id)
-        )
+        stmt = stmt.where(_envolve_pessoa(pessoa_id))
 
     total = db.scalar(select(func.count()).select_from(stmt.subquery())) or 0
 
@@ -285,11 +291,7 @@ def historico_pessoa(db: Session, pessoa_id: int) -> list[dict]:
         .options(
             selectinload(Tratamento.tipo), selectinload(Tratamento.solicitante)
         )
-        .where(
-            Tratamento.assistidos.any(
-                TratamentoAssistido.pessoa_id == pessoa_id
-            )
-        )
+        .where(_envolve_pessoa(pessoa_id))
     ).all()
     for t in casos:
         itens.append(

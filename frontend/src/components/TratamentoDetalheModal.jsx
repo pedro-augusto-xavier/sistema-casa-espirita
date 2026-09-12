@@ -107,12 +107,14 @@ export function TratamentoDetalheModal({ tratamentoId, onFechar }) {
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
               <Rotulo>Responsável</Rotulo>
-              <p className="mt-0.5 text-stone-800">
+              <p className="text-xs text-stone-400">quem vem à casa</p>
+              <p className="mt-1 text-stone-800">
                 {dados.solicitante?.nome_completo || <span className="text-stone-300">—</span>}
               </p>
             </div>
             <div>
               <Rotulo>Assistidos</Rotulo>
+              <p className="text-xs text-stone-400">por quem pediu</p>
               <ul className="mt-1 flex flex-col gap-1">
                 {dados.assistidos.map((a) => (
                   <li key={a.id} className="flex items-center gap-2">

@@ -66,6 +66,17 @@ export function TratamentoDetalheModal({ tratamentoId, onFechar }) {
     }
   }
 
+  async function excluir() {
+    if (!confirm('Excluir este tratamento (caso, assistidos e diário)? Não pode ser desfeito.'))
+      return
+    try {
+      await api.del(`/tratamentos/${tratamentoId}`)
+      onFechar()
+    } catch (e) {
+      setErro(e.message)
+    }
+  }
+
   return (
     <Modal titulo="" onFechar={onFechar}>
       {erro && <p className="text-sm text-red-600">{erro}</p>}
@@ -108,6 +119,12 @@ export function TratamentoDetalheModal({ tratamentoId, onFechar }) {
                   Fechar caso
                 </button>
               )}
+              <button
+                onClick={excluir}
+                className="rounded-md border border-red-200 px-3 py-1 text-xs text-red-600 hover:bg-red-50"
+              >
+                Excluir
+              </button>
             </div>
           </div>
 

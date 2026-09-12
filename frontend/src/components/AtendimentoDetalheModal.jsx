@@ -26,6 +26,16 @@ export function AtendimentoDetalheModal({ atendimentoId, onFechar }) {
       .catch((e) => setErro(e.message))
   }
 
+  async function excluir() {
+    if (!confirm('Excluir este atendimento? Não pode ser desfeito.')) return
+    try {
+      await api.del(`/atendimentos/${atendimentoId}`)
+      onFechar()
+    } catch (e) {
+      setErro(e.message)
+    }
+  }
+
   if (editando && dados) {
     return (
       <AtendimentoModal
@@ -55,12 +65,31 @@ export function AtendimentoDetalheModal({ atendimentoId, onFechar }) {
                 {isoParaData(dados.data)} · {ROTULO_MODALIDADE[dados.modalidade]}
               </p>
             </div>
-            <button
-              onClick={() => setEditando(true)}
-              className="rounded-md border border-slate-300 px-3 py-1 text-xs hover:bg-slate-50"
-            >
-              Editar
-            </button>
+            <div className="flex shrink-0 gap-2">
+              <button
+                onClick={async () => {
+                  const { gerarPdfAtendimento } = await import(
+                    '../utils/gerarPdfAtendimento'
+                  )
+                  gerarPdfAtendimento(dados)
+                }}
+                className="rounded-md border border-slate-300 px-3 py-1 text-xs hover:bg-slate-50"
+              >
+                Baixar PDF
+              </button>
+              <button
+                onClick={() => setEditando(true)}
+                className="rounded-md border border-slate-300 px-3 py-1 text-xs hover:bg-slate-50"
+              >
+                Editar
+              </button>
+              <button
+                onClick={excluir}
+                className="rounded-md border border-red-200 px-3 py-1 text-xs text-red-600 hover:bg-red-50"
+              >
+                Excluir
+              </button>
+            </div>
           </div>
 
           <div className="grid grid-cols-2 gap-4 border-y border-slate-200 py-3">

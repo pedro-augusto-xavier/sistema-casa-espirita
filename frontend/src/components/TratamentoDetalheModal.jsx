@@ -88,14 +88,27 @@ export function TratamentoDetalheModal({ tratamentoId, onFechar }) {
                 {dados.status === 'concluido' ? 'Concluído' : 'Em andamento'}
               </span>
             </div>
-            {dados.status !== 'concluido' && (
+            <div className="flex shrink-0 gap-2">
               <button
-                onClick={fecharCaso}
+                onClick={async () => {
+                  const { gerarPdfTratamento } = await import(
+                    '../utils/gerarPdfTratamento'
+                  )
+                  gerarPdfTratamento(dados)
+                }}
                 className="rounded-md border border-slate-300 px-3 py-1 text-xs hover:bg-slate-50"
               >
-                Fechar caso
+                Baixar PDF
               </button>
-            )}
+              {dados.status !== 'concluido' && (
+                <button
+                  onClick={fecharCaso}
+                  className="rounded-md border border-slate-300 px-3 py-1 text-xs hover:bg-slate-50"
+                >
+                  Fechar caso
+                </button>
+              )}
+            </div>
           </div>
 
           <Secao titulo="Responsável">

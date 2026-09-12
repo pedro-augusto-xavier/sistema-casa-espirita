@@ -220,7 +220,7 @@ export function FichaPessoa() {
           </div>
 
           {mostrarEdicoes && (
-            <ul className="mt-2 flex flex-col gap-1 border-t border-slate-100 pt-2 text-xs text-slate-500">
+            <ul className="mt-2 flex flex-col gap-1.5 border-t border-slate-100 pt-2 text-xs text-slate-500">
               {edicoes.map((e) => (
                 <li key={e.id}>
                   <span className="font-medium text-slate-700">
@@ -229,10 +229,11 @@ export function FichaPessoa() {
                   {e.acao === 'criar' ? 'criou a ficha' : 'alterou a ficha'} em{' '}
                   {new Date(e.criado_em).toLocaleString('pt-BR')}
                   {e.dados && Object.keys(e.dados).length > 0 && (
-                    <span className="text-slate-400">
-                      {' '}
-                      — campos: {Object.keys(e.dados).join(', ')}
-                    </span>
+                    <ul className="ml-4 mt-0.5 list-disc text-slate-400">
+                      {Object.entries(e.dados).map(([campo, valor]) => (
+                        <li key={campo}>{formatarAlteracao(campo, valor)}</li>
+                      ))}
+                    </ul>
                   )}
                 </li>
               ))}
@@ -306,6 +307,20 @@ export function FichaPessoa() {
       )}
     </div>
   )
+}
+
+function formatarValor(v) {
+  if (v === null || v === undefined || v === '') return '(vazio)'
+  if (Array.isArray(v)) return v.join(', ') || '(vazio)'
+  return String(v)
+}
+
+/** "campo: de → para" quando dá pra comparar; senão só mostra o valor. */
+function formatarAlteracao(campo, valor) {
+  if (valor && typeof valor === 'object' && 'de' in valor && 'para' in valor) {
+    return `${campo}: ${formatarValor(valor.de)} → ${formatarValor(valor.para)}`
+  }
+  return `${campo}: ${formatarValor(valor)}`
 }
 
 function Item({ label, valor }) {

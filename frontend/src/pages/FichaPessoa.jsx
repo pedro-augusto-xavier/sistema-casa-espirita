@@ -4,7 +4,6 @@ import { api } from '../api/client'
 import { AtendimentoDetalheModal } from '../components/AtendimentoDetalheModal'
 import { AtendimentoModal } from '../components/AtendimentoModal'
 import { Cabecalho } from '../components/Cabecalho'
-import { NovoTratamentoModal } from '../components/NovoTratamentoModal'
 import { TratamentoDetalheModal } from '../components/TratamentoDetalheModal'
 import {
   Avatar,
@@ -55,7 +54,7 @@ export function FichaPessoa() {
   const [mostrarEdicoes, setMostrarEdicoes] = useState(false)
   const [erro, setErro] = useState('')
   const [carregando, setCarregando] = useState(true)
-  const [modalAberto, setModalAberto] = useState(null) // 'atendimento' | 'tratamento' | null
+  const [modalAberto, setModalAberto] = useState(null) // 'atendimento' | null
   const [detalhe, setDetalhe] = useState(null) // { tipo: 'atendimento' | 'tratamento', id }
   const [versao, setVersao] = useState(0)
 
@@ -304,34 +303,34 @@ export function FichaPessoa() {
                 </span>
               )}
             </div>
-            <div className="flex gap-2">
-              <Botao pequeno onClick={() => setModalAberto('atendimento')}>
-                + Atendimento
-              </Botao>
-              <Botao variante="secundario" pequeno onClick={() => setModalAberto('tratamento')}>
-                + Tratamento
-              </Botao>
-            </div>
+            <Botao onClick={() => setModalAberto('atendimento')}>+ Registrar atendimento</Botao>
           </div>
 
           {historico.length === 0 ? (
             <EstadoVazio
-              titulo="Nenhum registro ainda"
-              descricao="Cada visita, tratamento ou grupo vai aparecer aqui, do mais recente ao mais antigo."
-              acao={<Botao onClick={() => setModalAberto('atendimento')}>Registrar atendimento</Botao>}
+              titulo="Nenhum atendimento ainda"
+              descricao="Cada visita vai aparecer aqui, da mais recente à mais antiga. Clique num registro para abrir, editar ou baixar o PDF."
+              acao={
+                <Botao onClick={() => setModalAberto('atendimento')}>+ Registrar atendimento</Botao>
+              }
             />
           ) : (
-            <ol className="relative mt-6 ml-2.5 border-l-2 border-stone-200 pl-7">
-              {historico.map((item, i) => (
-                <LinhaHistorico
-                  key={i}
-                  item={item}
-                  aoEditar={
-                    item.atendimento_id || item.tratamento_id ? () => abrirDetalhe(item) : null
-                  }
-                />
-              ))}
-            </ol>
+            <>
+              <p className="mt-1 text-xs text-stone-400">
+                Clique num registro para abrir, editar ou baixar o PDF.
+              </p>
+              <ol className="relative mt-5 ml-2.5 border-l-2 border-stone-200 pl-7">
+                {historico.map((item, i) => (
+                  <LinhaHistorico
+                    key={i}
+                    item={item}
+                    aoAbrir={
+                      item.atendimento_id || item.tratamento_id ? () => abrirDetalhe(item) : null
+                    }
+                  />
+                ))}
+              </ol>
+            </>
           )}
         </section>
       </main>
@@ -341,13 +340,6 @@ export function FichaPessoa() {
           pessoaId={pessoa.id}
           onFechar={() => setModalAberto(null)}
           onSalvo={aoCriarRegistro}
-        />
-      )}
-      {modalAberto === 'tratamento' && (
-        <NovoTratamentoModal
-          pessoaId={pessoa.id}
-          onFechar={() => setModalAberto(null)}
-          onCriado={aoCriarRegistro}
         />
       )}
 
@@ -385,10 +377,11 @@ function Item({ label, valor, className = '' }) {
 }
 
 /** Um registro da linha do tempo, no estilo da ficha de papel: data em
- * destaque e todos os campos daquele tipo já visíveis, sem precisar clicar. */
-function LinhaHistorico({ item, aoEditar }) {
+ * destaque, a observação em evidência e o card inteiro clicável. */
+function LinhaHistorico({ item, aoAbrir }) {
   const d = item.detalhes ?? {}
   const estilo = ESTILO_TIPO[item.tipo] ?? ESTILO_TIPO.grupo
+  const Envoltorio = aoAbrir ? 'button' : 'div'
 
   return (
     <li className="relative pb-6 last:pb-0">
@@ -398,7 +391,15 @@ function LinhaHistorico({ item, aoEditar }) {
         <span className="h-1.5 w-1.5 rounded-full bg-white" />
       </span>
 
-      <div className="rounded-xl bg-stone-50/70 p-4 ring-1 ring-stone-900/5 transition hover:bg-white hover:shadow-sm">
+      <Envoltorio
+        type={aoAbrir ? 'button' : undefined}
+        onClick={aoAbrir ?? undefined}
+        className={`group block w-full rounded-xl bg-stone-50/70 p-4 text-left ring-1 ring-stone-900/5 transition ${
+          aoAbrir
+            ? 'cursor-pointer hover:bg-white hover:shadow-md hover:ring-emerald-600/30 focus-visible:ring-2 focus-visible:ring-emerald-500/40 focus-visible:outline-none'
+            : ''
+        }`}
+      >
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div className="flex flex-wrap items-center gap-2">
             <span className="font-display text-lg font-semibold text-emerald-950">
@@ -406,10 +407,10 @@ function LinhaHistorico({ item, aoEditar }) {
             </span>
             <Pill tom={estilo.tom}>{ROTULO_TIPO[item.tipo] ?? item.tipo}</Pill>
           </div>
-          {aoEditar && (
-            <Botao variante="fantasma" pequeno onClick={aoEditar}>
-              {item.tipo === 'atendimento' ? 'Editar' : 'Ver caso'} →
-            </Botao>
+          {aoAbrir && (
+            <span className="text-xs text-stone-400 transition group-hover:text-emerald-800">
+              abrir →
+            </span>
           )}
         </div>
 
@@ -487,7 +488,7 @@ function LinhaHistorico({ item, aoEditar }) {
             </>
           )}
         </div>
-      </div>
+      </Envoltorio>
     </li>
   )
 }
@@ -496,8 +497,11 @@ function Rotulo({ children }) {
   return <span className="text-stone-400">{children}:</span>
 }
 
+/** A observação é o que mais importa ler na ficha: caixa âmbar, texto maior. */
 function Citacao({ children }) {
   return (
-    <p className="mt-1 border-l-2 border-stone-300 pl-3 text-stone-600 italic">“{children}”</p>
+    <div className="mt-2 rounded-lg border-l-4 border-amber-400 bg-amber-50/70 px-3 py-2">
+      <p className="text-[15px] leading-relaxed whitespace-pre-line text-stone-800">{children}</p>
+    </div>
   )
 }

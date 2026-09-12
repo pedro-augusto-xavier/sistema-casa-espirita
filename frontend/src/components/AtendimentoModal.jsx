@@ -30,9 +30,10 @@ export function AtendimentoModal({ pessoaId, existente, onFechar, onSalvo }) {
   const [enviando, setEnviando] = useState(false)
 
   useEffect(() => {
+    // tudo que pode ser marcado num atendimento individual (fica de fora só os grupos)
     api
-      .get('/tipos-tratamento?formato=individual')
-      .then(setTipos)
+      .get('/tipos-tratamento')
+      .then((lista) => setTipos(lista.filter((t) => t.formato !== 'grupo')))
       .catch((e) => setErro(e.message))
   }, [])
 

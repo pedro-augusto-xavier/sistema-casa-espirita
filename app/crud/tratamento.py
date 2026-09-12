@@ -223,8 +223,13 @@ def remover_evolucao(db: Session, evolucao: TratamentoEvolucao) -> None:
 
 
 def historico_pessoa(db: Session, pessoa_id: int) -> list[dict]:
-    """Linha do tempo: atendimentos + inícios de caso + evoluções da pessoa."""
-    from app.models.atendimento import Atendimento
+    """Linha do tempo: atendimentos + inícios de caso + evoluções + grupos.
+
+    `detalhes` carrega os campos completos de cada tipo, pra tela mostrar
+    tudo direto (sem precisar abrir um modal só pra ler).
+    """
+    from app.models.atendimento import Atendimento, AtendimentoTratamento
+    from app.models.grupo import Presenca, SessaoGrupo
 
     itens: list[dict] = []
 
@@ -232,7 +237,10 @@ def historico_pessoa(db: Session, pessoa_id: int) -> list[dict]:
         select(Atendimento)
         .options(
             selectinload(Atendimento.atendido_por),
-            selectinload(Atendimento.tratamentos),
+            selectinload(Atendimento.solicitante),
+            selectinload(Atendimento.tratamentos).selectinload(
+                AtendimentoTratamento.tipo_tratamento
+            ),
         )
         .where(Atendimento.pessoa_id == pessoa_id)
     ).all()
@@ -248,12 +256,33 @@ def historico_pessoa(db: Session, pessoa_id: int) -> list[dict]:
                 "atendimento_id": a.id,
                 "tratamento_id": None,
                 "grupo_id": None,
+                "detalhes": {
+                    "modalidade": a.modalidade.value,
+                    "presente": a.presente,
+                    "atendido_por": quem,
+                    "solicitante": (
+                        a.solicitante.nome_completo if a.solicitante else None
+                    ),
+                    "observacao": a.observacao,
+                    "tratamentos": [
+                        {
+                            "nome": t.tipo_tratamento.nome,
+                            "modalidade": t.modalidade.value if t.modalidade else None,
+                            "sessoes_previstas": t.sessoes_previstas,
+                            "sessoes_realizadas": t.sessoes_realizadas,
+                            "observacao": t.observacao,
+                        }
+                        for t in a.tratamentos
+                    ],
+                },
             }
         )
 
     casos = db.scalars(
         select(Tratamento)
-        .options(selectinload(Tratamento.tipo))
+        .options(
+            selectinload(Tratamento.tipo), selectinload(Tratamento.solicitante)
+        )
         .where(
             Tratamento.assistidos.any(
                 TratamentoAssistido.pessoa_id == pessoa_id
@@ -270,12 +299,24 @@ def historico_pessoa(db: Session, pessoa_id: int) -> list[dict]:
                 "atendimento_id": None,
                 "tratamento_id": t.id,
                 "grupo_id": None,
+                "detalhes": {
+                    "tipo_nome": t.tipo.nome,
+                    "solicitante": (
+                        t.solicitante.nome_completo if t.solicitante else None
+                    ),
+                    "sessoes_previstas": t.sessoes_previstas,
+                    "status": t.status.value,
+                    "observacao": t.observacao,
+                },
             }
         )
 
     evolucoes = db.scalars(
         select(TratamentoEvolucao)
-        .options(selectinload(TratamentoEvolucao.tratamento))
+        .options(
+            selectinload(TratamentoEvolucao.tratamento).selectinload(Tratamento.tipo),
+            selectinload(TratamentoEvolucao.registrado_por),
+        )
         .where(TratamentoEvolucao.pessoa_id == pessoa_id)
     ).all()
     for e in evolucoes:
@@ -288,14 +329,22 @@ def historico_pessoa(db: Session, pessoa_id: int) -> list[dict]:
                 "atendimento_id": None,
                 "tratamento_id": e.tratamento_id,
                 "grupo_id": None,
+                "detalhes": {
+                    "tipo_nome": e.tratamento.tipo.nome,
+                    "texto": e.texto,
+                    "registrado_por": (
+                        e.registrado_por.nome_completo if e.registrado_por else None
+                    ),
+                },
             }
         )
 
-    from app.models.grupo import Presenca, SessaoGrupo
-
     sessoes = db.scalars(
         select(SessaoGrupo)
-        .options(selectinload(SessaoGrupo.tipo_tratamento))
+        .options(
+            selectinload(SessaoGrupo.tipo_tratamento),
+            selectinload(SessaoGrupo.responsavel),
+        )
         .where(SessaoGrupo.presencas.any(Presenca.pessoa_id == pessoa_id))
     ).all()
     for s in sessoes:
@@ -308,6 +357,13 @@ def historico_pessoa(db: Session, pessoa_id: int) -> list[dict]:
                 "atendimento_id": None,
                 "tratamento_id": None,
                 "grupo_id": s.id,
+                "detalhes": {
+                    "tipo_nome": s.tipo_tratamento.nome,
+                    "responsavel": (
+                        s.responsavel.nome_completo if s.responsavel else None
+                    ),
+                    "observacao": s.observacao,
+                },
             }
         )
 

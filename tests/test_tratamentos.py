@@ -147,3 +147,11 @@ def test_historico_junta_tudo_por_data(client: TestClient):
     assert datas == sorted(datas, reverse=True)
     tipos = {h["tipo"] for h in hist}
     assert tipos == {"atendimento", "tratamento_inicio", "evolucao"}
+
+    # cada item traz os detalhes completos, não só o resumo em texto
+    por_tipo = {h["tipo"]: h for h in hist}
+    detalhes_atendimento = por_tipo["atendimento"]["detalhes"]
+    assert detalhes_atendimento["tratamentos"][0]["nome"] == "Reflexologia"
+    detalhes_caso = por_tipo["tratamento_inicio"]["detalhes"]
+    assert detalhes_caso["tipo_nome"] == "Desobsessão Presencial"
+    assert por_tipo["evolucao"]["detalhes"]["texto"] == "melhora"

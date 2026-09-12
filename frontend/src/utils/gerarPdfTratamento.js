@@ -79,7 +79,12 @@ export function gerarPdfTratamento(tratamento) {
     campo('Solicitante Atendimento Fraterno:', tratamento.solicitante?.nome_completo)
     campo(
       'Nº vezes:',
-      tratamento.sessoes_previstas != null ? String(tratamento.sessoes_previstas) : '',
+      [
+        tratamento.sessoes_previstas != null ? `${tratamento.sessoes_previstas}x` : '',
+        tratamento.sessoes_realizadas ? `(${tratamento.sessoes_realizadas} feitas)` : '',
+      ]
+        .filter(Boolean)
+        .join(' '),
     )
 
     y += 2

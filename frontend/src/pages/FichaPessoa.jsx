@@ -4,6 +4,7 @@ import { api } from '../api/client'
 import { AtendimentoDetalheModal } from '../components/AtendimentoDetalheModal'
 import { AtendimentoModal } from '../components/AtendimentoModal'
 import { Cabecalho } from '../components/Cabecalho'
+import { FichaCaso } from '../components/FichaCaso'
 import { TratamentoDetalheModal } from '../components/TratamentoDetalheModal'
 import {
   Avatar,
@@ -50,6 +51,7 @@ export function FichaPessoa() {
 
   const [pessoa, setPessoa] = useState(null)
   const [historico, setHistorico] = useState([])
+  const [casos, setCasos] = useState([]) // fichas de acompanhamento (Desobsessão etc.)
   const [edicoes, setEdicoes] = useState([])
   const [mostrarEdicoes, setMostrarEdicoes] = useState(false)
   const [erro, setErro] = useState('')
@@ -61,10 +63,18 @@ export function FichaPessoa() {
   useEffect(() => {
     setCarregando(true)
     setErro('')
-    Promise.all([api.get(`/pessoas/${id}`), api.get(`/pessoas/${id}/historico`)])
-      .then(([p, h]) => {
+    Promise.all([
+      api.get(`/pessoas/${id}`),
+      api.get(`/pessoas/${id}/historico`),
+      api
+        .get(`/tratamentos?pessoa_id=${id}&size=50`)
+        .then((d) => Promise.all(d.items.map((t) => api.get(`/tratamentos/${t.id}`)))),
+    ])
+      .then(([p, h, c]) => {
         setPessoa(p)
         setHistorico(h)
+        // abertas primeiro, depois as concluídas
+        setCasos([...c].sort((a, b) => (a.status === b.status ? 0 : a.status === 'concluido' ? 1 : -1)))
         if (p && usuario.papel === 'admin') {
           api
             .get(`/auditoria?entidade=pessoa&entidade_id=${id}&size=50`)
@@ -292,6 +302,20 @@ export function FichaPessoa() {
           </div>
         </section>
 
+        {/* ---------- fichas de acompanhamento (Desobsessão etc.) ---------- */}
+        {casos.length > 0 && (
+          <section className="mt-6 flex flex-col gap-4 animate-entrar">
+            {casos.map((c) => (
+              <FichaCaso
+                key={c.id}
+                caso={c}
+                aoMudar={() => setVersao((v) => v + 1)}
+                aoAbrir={() => setDetalhe({ tipo: 'tratamento', id: c.id })}
+              />
+            ))}
+          </section>
+        )}
+
         {/* ---------- histórico ---------- */}
         <section className="mt-6 rounded-2xl bg-white p-6 shadow-sm ring-1 ring-stone-900/5 sm:p-8">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -320,7 +344,8 @@ export function FichaPessoa() {
                 Clique num registro para abrir, editar ou baixar o PDF.
               </p>
               <ol className="relative mt-5 ml-2.5 border-l-2 border-stone-200 pl-7">
-                {historico.map((item, i) => (
+                {/* as anotações do diário já aparecem na ficha de acompanhamento */}
+                {historico.filter((item) => item.tipo !== 'evolucao').map((item, i) => (
                   <LinhaHistorico
                     key={i}
                     item={item}
@@ -438,9 +463,7 @@ function LinhaHistorico({ item, aoAbrir }) {
                   {d.tratamentos.map((t, i) => (
                     <Pill key={i} tom="verde">
                       {t.nome}
-                      {t.sessoes_previstas
-                        ? ` · ${t.sessoes_realizadas}/${t.sessoes_previstas} sessões`
-                        : ''}
+                      {t.sessoes_previstas ? ` · ${t.sessoes_previstas}x` : ''}
                     </Pill>
                   ))}
                 </div>

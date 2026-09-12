@@ -104,9 +104,7 @@ export function AtendimentoDetalheModal({ atendimentoId, onFechar }) {
                   <li key={t.id}>
                     <Pill tom="verde" className="text-sm">
                       {t.tipo_tratamento_nome}
-                      {t.sessoes_previstas
-                        ? ` · ${t.sessoes_realizadas}/${t.sessoes_previstas} sessões`
-                        : ''}
+                      {t.sessoes_previstas ? ` · ${t.sessoes_previstas}x` : ''}
                     </Pill>
                   </li>
                 ))}

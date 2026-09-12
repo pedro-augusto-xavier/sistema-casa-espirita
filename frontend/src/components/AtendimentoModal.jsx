@@ -25,9 +25,18 @@ export function AtendimentoModal({ pessoaId, existente, onFechar, onSalvo }) {
   const [tratamentosMarcados, setTratamentosMarcados] = useState(
     existente ? existente.tratamentos.map((t) => t.tipo_tratamento_id) : [],
   )
+  // "nº de vezes" por tipo de tratamento (só faz sentido pros de formato "caso")
+  const [vezesPorTipo, setVezesPorTipo] = useState(() =>
+    Object.fromEntries(
+      (existente?.tratamentos ?? []).map((t) => [t.tipo_tratamento_id, t.sessoes_previstas ?? '']),
+    ),
+  )
+  const [fichasAbertas, setFichasAbertas] = useState([])
   const [observacao, setObservacao] = useState(existente?.observacao ?? '')
   const [erro, setErro] = useState('')
   const [enviando, setEnviando] = useState(false)
+
+  const idPessoa = pessoaId ?? existente?.pessoa?.id
 
   useEffect(() => {
     // tudo que pode ser marcado num atendimento individual (fica de fora só os grupos)
@@ -37,11 +46,24 @@ export function AtendimentoModal({ pessoaId, existente, onFechar, onSalvo }) {
       .catch((e) => setErro(e.message))
   }, [])
 
+  useEffect(() => {
+    // fichas de acompanhamento (Desobsessão etc.) que a pessoa já tem abertas
+    if (!idPessoa) return
+    api
+      .get(`/tratamentos?pessoa_id=${idPessoa}&status=em_andamento&size=50`)
+      .then((d) => setFichasAbertas(d.items))
+      .catch(() => setFichasAbertas([]))
+  }, [idPessoa])
+
   function alternarTratamento(id) {
     setTratamentosMarcados((atual) =>
       atual.includes(id) ? atual.filter((t) => t !== id) : [...atual, id],
     )
   }
+
+  const casosMarcados = tipos.filter(
+    (t) => t.formato === 'caso' && tratamentosMarcados.includes(t.id),
+  )
 
   async function aoEnviar(evento) {
     evento.preventDefault()
@@ -60,7 +82,10 @@ export function AtendimentoModal({ pessoaId, existente, onFechar, onSalvo }) {
       presente,
       solicitante_id: solicitante?.id ?? null,
       observacao: observacao || null,
-      tratamentos: tratamentosMarcados.map((id) => ({ tipo_tratamento_id: id })),
+      tratamentos: tratamentosMarcados.map((id) => ({
+        tipo_tratamento_id: id,
+        sessoes_previstas: vezesPorTipo[id] ? Number(vezesPorTipo[id]) : null,
+      })),
     }
 
     setEnviando(true)
@@ -114,6 +139,14 @@ export function AtendimentoModal({ pessoaId, existente, onFechar, onSalvo }) {
           />
         </Campo>
 
+        <Campo label="Solicitante" dica={presente ? 'opcional' : 'quem trouxe a informação'}>
+          <SeletorPessoa
+            valor={solicitante}
+            aoSelecionar={setSolicitante}
+            placeholder="Buscar pessoa..."
+          />
+        </Campo>
+
         <label className="flex cursor-pointer items-center gap-2 rounded-lg border border-stone-200 px-3 py-2 text-sm text-stone-700 select-none hover:bg-stone-50">
           <input
             type="checkbox"
@@ -123,18 +156,6 @@ export function AtendimentoModal({ pessoaId, existente, onFechar, onSalvo }) {
           />
           A pessoa esteve presente
         </label>
-
-        {!presente && (
-          <div className="animate-surgir">
-            <Campo label="Quem trouxe a informação" dica="solicitante">
-              <SeletorPessoa
-                valor={solicitante}
-                aoSelecionar={setSolicitante}
-                placeholder="Buscar pessoa..."
-              />
-            </Campo>
-          </div>
-        )}
 
         <fieldset>
           <legend className="mb-2 text-sm font-medium text-stone-700">Tratamentos do dia</legend>
@@ -160,6 +181,50 @@ export function AtendimentoModal({ pessoaId, existente, onFechar, onSalvo }) {
             })}
           </div>
         </fieldset>
+
+        {/* tratamentos de "caso" (Desobsessão) têm ficha própria com nº de vezes */}
+        {casosMarcados.map((t) => {
+          const aberta = fichasAbertas.find((f) => f.tipo_tratamento_id === t.id)
+          return (
+            <div
+              key={t.id}
+              className="rounded-xl border-l-4 border-amber-400 bg-amber-50/60 p-4 animate-surgir"
+            >
+              <p className="text-[11px] font-semibold tracking-wider text-amber-800 uppercase">
+                Ficha de {t.nome}
+              </p>
+              {aberta ? (
+                <p className="mt-1 text-sm text-stone-700">
+                  Já tem ficha aberta desde <strong>{isoParaData(aberta.data_inicio)}</strong>
+                  {aberta.sessoes_previstas
+                    ? ` — ${aberta.sessoes_realizadas} de ${aberta.sessoes_previstas} vezes feitas`
+                    : ''}
+                  . Este atendimento conta como mais uma vez.
+                </p>
+              ) : (
+                <>
+                  <p className="mt-1 text-sm text-stone-600">
+                    Ao salvar, abre a ficha de acompanhamento na página da pessoa, com diário e
+                    situação final.
+                  </p>
+                  <label className="mt-3 flex items-center gap-3 text-sm font-medium text-stone-700">
+                    Nº de vezes
+                    <input
+                      type="number"
+                      min="1"
+                      placeholder="ex: 3"
+                      value={vezesPorTipo[t.id] ?? ''}
+                      onChange={(e) =>
+                        setVezesPorTipo((v) => ({ ...v, [t.id]: e.target.value }))
+                      }
+                      className="campo w-24"
+                    />
+                  </label>
+                </>
+              )}
+            </div>
+          )
+        })}
 
         <Campo label="Observação">
           <textarea

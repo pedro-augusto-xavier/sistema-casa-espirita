@@ -7,8 +7,9 @@ from sqlalchemy.orm import Session, selectinload
 
 from app.core.errors import NaoEncontrado
 from app.models.atendimento import Atendimento, AtendimentoTratamento
+from app.models.enums import FormatoTratamento, StatusTratamento
 from app.models.pessoa import Pessoa
-from app.models.tratamento import TipoTratamento
+from app.models.tratamento import TipoTratamento, Tratamento, TratamentoAssistido
 from app.schemas.atendimento import (
     AtendimentoCreate,
     AtendimentoTratamentoIn,
@@ -98,6 +99,52 @@ def _monta_tratamentos(
     ]
 
 
+def _abre_fichas_de_acompanhamento(
+    db: Session, dados: AtendimentoCreate, itens: list[AtendimentoTratamentoIn]
+) -> None:
+    """Tratamentos de formato "caso" (Desobsessão etc.) têm uma ficha própria,
+    com nº de vezes, diário e situação final. Quando um deles é marcado no
+    atendimento e a pessoa ainda não tem essa ficha aberta, abrimos uma --
+    igual a pegar a folha de Desobsessão em branco no armário."""
+    if not itens:
+        return
+    tipos_caso = set(
+        db.scalars(
+            select(TipoTratamento.id).where(
+                TipoTratamento.id.in_({i.tipo_tratamento_id for i in itens}),
+                TipoTratamento.formato == FormatoTratamento.caso,
+            )
+        ).all()
+    )
+    for item in itens:
+        if item.tipo_tratamento_id not in tipos_caso:
+            continue
+        aberto = db.scalar(
+            select(Tratamento).where(
+                Tratamento.tipo_tratamento_id == item.tipo_tratamento_id,
+                Tratamento.status == StatusTratamento.em_andamento,
+                Tratamento.assistidos.any(
+                    TratamentoAssistido.pessoa_id == dados.pessoa_id
+                ),
+            )
+        )
+        if aberto is not None:
+            # já tem ficha: só completa o nº de vezes se ainda não tinha
+            if aberto.sessoes_previstas is None and item.sessoes_previstas:
+                aberto.sessoes_previstas = item.sessoes_previstas
+            continue
+        ficha = Tratamento(
+            tipo_tratamento_id=item.tipo_tratamento_id,
+            solicitante_id=dados.solicitante_id,
+            sessoes_previstas=item.sessoes_previstas,
+            observacao=item.observacao,
+            assistidos=[TratamentoAssistido(pessoa_id=dados.pessoa_id)],
+        )
+        if dados.data is not None:
+            ficha.data_inicio = dados.data
+        db.add(ficha)
+
+
 def criar(db: Session, dados: AtendimentoCreate) -> Atendimento:
     _checa_pessoa(db, dados.pessoa_id, "pessoa_id")
     _checa_pessoa(db, dados.atendido_por_id, "atendido_por_id")
@@ -109,6 +156,7 @@ def criar(db: Session, dados: AtendimentoCreate) -> Atendimento:
         atendimento.data = dados.data
 
     atendimento.tratamentos = _monta_tratamentos(db, dados.tratamentos)
+    _abre_fichas_de_acompanhamento(db, dados, dados.tratamentos)
 
     db.add(atendimento)
     db.commit()

@@ -313,13 +313,19 @@ def historico_pessoa(db: Session, pessoa_id: int) -> list[dict]:
             }
         )
 
+    # anotações do diário: as gerais do caso (sem pessoa) e as feitas
+    # especificamente sobre esta pessoa
     evolucoes = db.scalars(
         select(TratamentoEvolucao)
         .options(
             selectinload(TratamentoEvolucao.tratamento).selectinload(Tratamento.tipo),
             selectinload(TratamentoEvolucao.registrado_por),
         )
-        .where(TratamentoEvolucao.pessoa_id == pessoa_id)
+        .where(
+            TratamentoEvolucao.tratamento_id.in_([t.id for t in casos]),
+            (TratamentoEvolucao.pessoa_id.is_(None))
+            | (TratamentoEvolucao.pessoa_id == pessoa_id),
+        )
     ).all()
     for e in evolucoes:
         itens.append(

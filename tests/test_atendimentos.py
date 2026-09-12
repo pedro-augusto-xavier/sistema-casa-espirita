@@ -59,6 +59,60 @@ def test_criar_atendimento_com_tratamentos(client: TestClient):
     assert nomes == {"Reflexologia", "Energização"}
 
 
+def test_marcar_desobsessao_abre_ficha_de_acompanhamento(client: TestClient):
+    """Marcar um tipo 'caso' no atendimento abre o caso (a ficha de papel)
+    uma vez só; os atendimentos seguintes contam como sessões."""
+    pessoa = _cria_pessoa(client, "Bernardo Pinto")
+    vovo = _cria_pessoa(client, "Vovó Xica")
+    desob = _id_tipo(client, "Desobsessão Presencial")
+
+    r = client.post(
+        "/api/v1/atendimentos",
+        json={
+            "pessoa_id": pessoa,
+            "data": "2026-08-06",
+            "solicitante_id": vovo,
+            "tratamentos": [{"tipo_tratamento_id": desob, "sessoes_previstas": 3}],
+        },
+    )
+    assert r.status_code == 201, r.text
+
+    fichas = client.get("/api/v1/tratamentos", params={"pessoa_id": pessoa}).json()
+    assert fichas["total"] == 1
+    ficha = client.get(f"/api/v1/tratamentos/{fichas['items'][0]['id']}").json()
+    assert ficha["tipo_nome"] == "Desobsessão Presencial"
+    assert ficha["solicitante"]["nome_completo"] == "Vovó Xica"
+    assert ficha["sessoes_previstas"] == 3
+    assert ficha["sessoes_realizadas"] == 1
+    assert ficha["data_inicio"] == "2026-08-06"
+    assert [a["pessoa"]["id"] for a in ficha["assistidos"]] == [pessoa]
+
+    # segunda vez: não abre outra ficha, só conta mais uma sessão
+    r = client.post(
+        "/api/v1/atendimentos",
+        json={
+            "pessoa_id": pessoa,
+            "data": "2026-08-13",
+            "tratamentos": [{"tipo_tratamento_id": desob}],
+        },
+    )
+    assert r.status_code == 201, r.text
+    fichas = client.get("/api/v1/tratamentos", params={"pessoa_id": pessoa}).json()
+    assert fichas["total"] == 1
+    assert fichas["items"][0]["sessoes_realizadas"] == 2
+
+    # anotação geral no diário aparece no histórico da pessoa
+    client.post(
+        f"/api/v1/tratamentos/{ficha['id']}/evolucoes",
+        json={"texto": "Limpeza + doação + 3 choques", "data": "2026-08-20"},
+    )
+    historico = client.get(f"/api/v1/pessoas/{pessoa}/historico").json()
+    tipos = [h["tipo"] for h in historico]
+    assert tipos.count("atendimento") == 2
+    assert "tratamento_inicio" in tipos
+    assert "evolucao" in tipos
+
+
 def test_atendimento_com_pessoa_inexistente_da_404(client: TestClient):
     r = client.post("/api/v1/atendimentos", json={"pessoa_id": 999999})
     assert r.status_code == 404

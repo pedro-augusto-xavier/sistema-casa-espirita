@@ -97,8 +97,9 @@ export function TratamentoDetalheModal({ tratamentoId, onFechar }) {
                 {concluido ? 'Concluído' : 'Em andamento'}
               </Pill>
               <span className="text-xs text-stone-500">
-                desde {isoParaData(dados.data_inicio)}
-                {dados.sessoes_previstas ? ` · ${dados.sessoes_previstas} sessões previstas` : ''}
+                desde {isoParaData(dados.data_inicio)} · {dados.sessoes_realizadas ?? 0}
+                {dados.sessoes_previstas ? ` de ${dados.sessoes_previstas}` : ''}{' '}
+                {dados.sessoes_realizadas === 1 ? 'vez feita' : 'vezes feitas'}
               </span>
             </div>
           </div>

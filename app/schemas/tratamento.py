@@ -102,6 +102,8 @@ class TratamentoOut(BaseModel):
     solicitante: PessoaMini | None
     data_inicio: date
     sessoes_previstas: int | None
+    # contado a partir dos atendimentos (não é digitado)
+    sessoes_realizadas: int
     status: StatusTratamento
     situacao_final: str | None
     observacao: str | None
@@ -114,9 +116,12 @@ class TratamentoListItem(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: int
+    tipo_tratamento_id: int
     tipo_nome: str
     solicitante: PessoaMini | None
     data_inicio: date
+    sessoes_previstas: int | None
+    sessoes_realizadas: int
     status: StatusTratamento
     qtd_assistidos: int
     qtd_evolucoes: int

@@ -45,17 +45,26 @@ export function ResumoDoDia() {
   if (!resumo) return null
 
   return (
-    <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-      <Cartao numero={resumo.pessoas} rotulo="pessoas ativas" />
-      <Cartao numero={resumo.atendimentosHoje} rotulo="atendimentos hoje" />
-      <Cartao numero={resumo.tratamentosAbertos} rotulo="tratamentos em andamento" />
-      <div className="rounded-lg border-t-2 border-amber-500 bg-white p-4 shadow-sm ring-1 ring-stone-900/5">
-        <p className="text-xs font-medium uppercase tracking-wide text-stone-400">
-          Próximo evento
-        </p>
+    <div className="grid grid-cols-2 gap-3 animate-entrar sm:grid-cols-4">
+      <Numero valor={resumo.pessoas} rotulo="pessoas ativas" icone={IconePessoas} />
+      <Numero valor={resumo.atendimentosHoje} rotulo="atendimentos hoje" icone={IconeCoracao} />
+      <Numero
+        valor={resumo.tratamentosAbertos}
+        rotulo="tratamentos em andamento"
+        icone={IconeFolha}
+      />
+
+      <div className="relative overflow-hidden rounded-xl bg-white p-4 shadow-sm ring-1 ring-stone-900/5">
+        <span className="absolute inset-y-0 left-0 w-1 bg-linear-to-b from-amber-400 to-amber-600" />
+        <div className="flex items-start justify-between gap-2">
+          <p className="text-[11px] font-semibold tracking-wider text-stone-400 uppercase">
+            Próximo evento
+          </p>
+          <IconeCalendario className="h-5 w-5 text-amber-600" />
+        </div>
         {resumo.proximoEvento ? (
           <>
-            <p className="mt-1 truncate text-sm font-semibold text-emerald-900">
+            <p className="mt-2 truncate font-display text-base font-semibold text-emerald-950">
               {resumo.proximoEvento.titulo}
             </p>
             <p className="text-xs text-stone-500">
@@ -64,20 +73,66 @@ export function ResumoDoDia() {
             </p>
           </>
         ) : (
-          <p className="mt-1 text-sm text-stone-400">nada agendado</p>
+          <p className="mt-2 text-sm text-stone-400">nada agendado</p>
         )}
       </div>
     </div>
   )
 }
 
-function Cartao({ numero, rotulo }) {
+function Numero({ valor, rotulo, icone: Icone }) {
   return (
-    <div className="rounded-lg border-t-2 border-emerald-700 bg-white p-4 shadow-sm ring-1 ring-stone-900/5">
-      <p className="font-display text-2xl font-semibold text-emerald-900">{numero}</p>
-      <p className="text-xs font-medium uppercase tracking-wide text-stone-400">
-        {rotulo}
-      </p>
+    <div className="relative overflow-hidden rounded-xl bg-white p-4 shadow-sm ring-1 ring-stone-900/5">
+      <span className="absolute inset-y-0 left-0 w-1 bg-linear-to-b from-emerald-600 to-emerald-800" />
+      <div className="flex items-start justify-between gap-2">
+        <p className="text-[11px] font-semibold tracking-wider text-stone-400 uppercase">
+          {rotulo}
+        </p>
+        <Icone className="h-5 w-5 text-emerald-700" />
+      </div>
+      <p className="mt-1 font-display text-3xl font-semibold text-emerald-950">{valor}</p>
     </div>
+  )
+}
+
+// Ícones simples em SVG (traço fino), sem biblioteca externa.
+
+function IconePessoas({ className }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" className={className}>
+      <circle cx="9" cy="8" r="3.5" />
+      <path d="M2.5 20a6.5 6.5 0 0 1 13 0" strokeLinecap="round" />
+      <circle cx="17" cy="9" r="2.5" />
+      <path d="M15 14.5a5 5 0 0 1 6.5 4.5" strokeLinecap="round" />
+    </svg>
+  )
+}
+
+function IconeCoracao({ className }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" className={className}>
+      <path
+        d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10Z"
+        strokeLinejoin="round"
+      />
+    </svg>
+  )
+}
+
+function IconeFolha({ className }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" className={className}>
+      <path d="M5 19c0-8 5-13 14-14-1 9-6 14-14 14Z" strokeLinejoin="round" />
+      <path d="M5 19c3-4 6-7 10-10" strokeLinecap="round" />
+    </svg>
+  )
+}
+
+function IconeCalendario({ className }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" className={className}>
+      <rect x="3.5" y="5" width="17" height="15" rx="2" />
+      <path d="M3.5 9.5h17M8 3v4M16 3v4" strokeLinecap="round" />
+    </svg>
   )
 }

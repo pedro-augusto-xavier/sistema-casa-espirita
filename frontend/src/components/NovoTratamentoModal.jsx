@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { api } from '../api/client'
 import { Modal } from './Modal'
 import { SeletorPessoa } from './SeletorPessoa'
+import { Botao, Campo, MensagemErro } from './ui'
 
 export function NovoTratamentoModal({ pessoaId, onFechar, onCriado }) {
   const [tipos, setTipos] = useState([])
@@ -50,13 +51,12 @@ export function NovoTratamentoModal({ pessoaId, onFechar, onCriado }) {
 
   return (
     <Modal titulo="Abrir tratamento" onFechar={onFechar}>
+      <p className="-mt-2 mb-4 text-sm text-stone-500">
+        Um tratamento é um caso que acompanha a pessoa por várias sessões, com diário de evolução.
+      </p>
       <form onSubmit={aoEnviar} className="flex flex-col gap-4">
         <Campo label="Tipo de tratamento">
-          <select
-            value={tipoId}
-            onChange={(e) => setTipoId(e.target.value)}
-            className={estiloInput}
-          >
+          <select value={tipoId} onChange={(e) => setTipoId(e.target.value)} className="campo">
             {tipos.map((t) => (
               <option key={t.id} value={t.id}>
                 {t.nome}
@@ -65,7 +65,7 @@ export function NovoTratamentoModal({ pessoaId, onFechar, onCriado }) {
           </select>
         </Campo>
 
-        <Campo label="Solicitante / responsável (opcional)">
+        <Campo label="Solicitante / responsável" dica="opcional">
           <SeletorPessoa
             valor={solicitante}
             aoSelecionar={setSolicitante}
@@ -73,58 +73,36 @@ export function NovoTratamentoModal({ pessoaId, onFechar, onCriado }) {
           />
         </Campo>
 
-        <Campo label="Número de sessões previstas (opcional)">
+        <Campo label="Sessões previstas" dica="opcional">
           <input
             type="number"
             min="0"
             value={sessoesPrevistas}
             onChange={(e) => setSessoesPrevistas(e.target.value)}
-            className={estiloInput}
+            className="campo w-32"
           />
         </Campo>
 
         <Campo label="Observação">
           <textarea
-            rows={2}
+            rows={3}
             value={observacao}
             onChange={(e) => setObservacao(e.target.value)}
-            className={estiloInput}
+            className="campo"
           />
         </Campo>
 
-        {erro && (
-          <p className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">{erro}</p>
-        )}
+        <MensagemErro>{erro}</MensagemErro>
 
-        <div className="flex justify-end gap-2">
-          <button
-            type="button"
-            onClick={onFechar}
-            className="rounded-md border border-stone-300 px-4 py-2 text-sm hover:bg-stone-50"
-          >
+        <div className="flex justify-end gap-2 pt-1">
+          <Botao variante="secundario" onClick={onFechar}>
             Cancelar
-          </button>
-          <button
-            type="submit"
-            disabled={enviando}
-            className="rounded-md bg-emerald-800 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700 disabled:opacity-50"
-          >
+          </Botao>
+          <Botao type="submit" disabled={enviando}>
             {enviando ? 'Salvando...' : 'Abrir caso'}
-          </button>
+          </Botao>
         </div>
       </form>
     </Modal>
-  )
-}
-
-const estiloInput =
-  'w-full rounded-md border border-stone-300 px-3 py-2 text-sm outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-600/15'
-
-function Campo({ label, children }) {
-  return (
-    <label className="block text-sm font-medium text-stone-700">
-      {label}
-      <div className="mt-1">{children}</div>
-    </label>
   )
 }

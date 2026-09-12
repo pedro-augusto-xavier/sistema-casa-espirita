@@ -3,6 +3,7 @@ import { api } from '../api/client'
 import { dataParaIso, isoParaData, mascaraData } from '../utils/formatadores'
 import { Modal } from './Modal'
 import { SeletorPessoa } from './SeletorPessoa'
+import { Botao, Campo, MensagemErro } from './ui'
 
 function hoje() {
   const d = new Date()
@@ -47,7 +48,7 @@ export function AtendimentoModal({ pessoaId, existente, onFechar, onSalvo }) {
 
     const dataIso = dataParaIso(data)
     if (!dataIso) {
-      setErro('Data inválida -- use o formato dd/mm/aaaa.')
+      setErro('Data inválida — use o formato dd/mm/aaaa.')
       return
     }
 
@@ -87,14 +88,14 @@ export function AtendimentoModal({ pessoaId, existente, onFechar, onSalvo }) {
               maxLength={10}
               value={data}
               onChange={(e) => setData(mascaraData(e.target.value))}
-              className={estiloInput}
+              className="campo"
             />
           </Campo>
           <Campo label="Modalidade">
             <select
               value={modalidade}
               onChange={(e) => setModalidade(e.target.value)}
-              className={estiloInput}
+              className="campo"
             >
               <option value="presencial">Presencial</option>
               <option value="video">Vídeo</option>
@@ -103,7 +104,7 @@ export function AtendimentoModal({ pessoaId, existente, onFechar, onSalvo }) {
           </Campo>
         </div>
 
-        <Campo label="Atendido por (médium/trabalhador)">
+        <Campo label="Atendido por" dica="médium / trabalhador">
           <SeletorPessoa
             valor={atendidoPor}
             aoSelecionar={setAtendidoPor}
@@ -112,85 +113,74 @@ export function AtendimentoModal({ pessoaId, existente, onFechar, onSalvo }) {
           />
         </Campo>
 
-        <label className="flex items-center gap-2 text-sm font-medium text-stone-700">
+        <label className="flex cursor-pointer items-center gap-2 rounded-lg border border-stone-200 px-3 py-2 text-sm text-stone-700 select-none hover:bg-stone-50">
           <input
             type="checkbox"
             checked={presente}
             onChange={(e) => setPresente(e.target.checked)}
+            className="accent-emerald-700"
           />
           A pessoa esteve presente
         </label>
 
         {!presente && (
-          <Campo label="Quem trouxe a informação (solicitante)">
-            <SeletorPessoa
-              valor={solicitante}
-              aoSelecionar={setSolicitante}
-              placeholder="Buscar pessoa..."
-            />
-          </Campo>
+          <div className="animate-surgir">
+            <Campo label="Quem trouxe a informação" dica="solicitante">
+              <SeletorPessoa
+                valor={solicitante}
+                aoSelecionar={setSolicitante}
+                placeholder="Buscar pessoa..."
+              />
+            </Campo>
+          </div>
         )}
 
         <fieldset>
-          <legend className="mb-2 text-sm font-medium text-stone-700">
-            Tratamentos do dia
-          </legend>
-          <div className="grid grid-cols-2 gap-2">
-            {tipos.map((t) => (
-              <label key={t.id} className="flex items-center gap-2 text-sm text-stone-700">
-                <input
-                  type="checkbox"
-                  checked={tratamentosMarcados.includes(t.id)}
-                  onChange={() => alternarTratamento(t.id)}
-                />
-                {t.nome}
-              </label>
-            ))}
+          <legend className="mb-2 text-sm font-medium text-stone-700">Tratamentos do dia</legend>
+          <div className="flex flex-wrap gap-1.5">
+            {tipos.map((t) => {
+              const marcado = tratamentosMarcados.includes(t.id)
+              return (
+                <button
+                  key={t.id}
+                  type="button"
+                  onClick={() => alternarTratamento(t.id)}
+                  aria-pressed={marcado}
+                  className={`rounded-full px-3 py-1 text-sm transition ${
+                    marcado
+                      ? 'bg-emerald-800 font-medium text-white shadow-sm'
+                      : 'bg-white text-stone-600 ring-1 ring-stone-900/10 hover:bg-stone-50'
+                  }`}
+                >
+                  {marcado ? '✓ ' : ''}
+                  {t.nome}
+                </button>
+              )
+            })}
           </div>
         </fieldset>
 
         <Campo label="Observação">
           <textarea
-            rows={2}
+            rows={3}
             value={observacao}
             onChange={(e) => setObservacao(e.target.value)}
-            className={estiloInput}
+            className="campo"
+            placeholder="O que foi conversado, orientações, encaminhamentos..."
           />
         </Campo>
 
-        {erro && (
-          <p className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">{erro}</p>
-        )}
+        <MensagemErro>{erro}</MensagemErro>
 
-        <div className="flex justify-end gap-2">
-          <button
-            type="button"
-            onClick={onFechar}
-            className="rounded-md border border-stone-300 px-4 py-2 text-sm hover:bg-stone-50"
-          >
+        <div className="flex justify-end gap-2 pt-1">
+          <Botao variante="secundario" onClick={onFechar}>
             Cancelar
-          </button>
-          <button
-            type="submit"
-            disabled={enviando}
-            className="rounded-md bg-emerald-800 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700 disabled:opacity-50"
-          >
+          </Botao>
+          <Botao type="submit" disabled={enviando}>
             {enviando ? 'Salvando...' : editando ? 'Salvar alterações' : 'Registrar'}
-          </button>
+          </Botao>
         </div>
       </form>
     </Modal>
-  )
-}
-
-const estiloInput =
-  'w-full rounded-md border border-stone-300 px-3 py-2 text-sm outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-600/15'
-
-function Campo({ label, children }) {
-  return (
-    <label className="block text-sm font-medium text-stone-700">
-      {label}
-      <div className="mt-1">{children}</div>
-    </label>
   )
 }

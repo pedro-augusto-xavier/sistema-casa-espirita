@@ -2,4 +2,92 @@
 
 @theme {
   --font-display: "Playfair Display", "Georgia", serif;
+  --animate-entrar: entrar 180ms ease-out both;
+  --animate-surgir: surgir 220ms ease-out both;
+
+  @keyframes entrar {
+    from {
+      opacity: 0;
+      transform: translateY(8px) scale(0.98);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+
+  @keyframes surgir {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+}
+
+/* ---------- base ---------- */
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  color: var(--color-stone-800);
+  background-color: var(--color-stone-100);
+}
+
+::selection {
+  background-color: var(--color-emerald-200);
+  color: var(--color-emerald-950);
+}
+
+/* ---------- componentes reutilizáveis ----------
+   Um lugar só pra cara dos botões e campos: os componentes em
+   src/components/ui.jsx e os formulários usam estas classes. */
+
+@layer components {
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold whitespace-nowrap transition duration-150 select-none;
+    @apply focus-visible:ring-2 focus-visible:ring-emerald-500/40 focus-visible:outline-none;
+    @apply disabled:cursor-not-allowed disabled:opacity-50 disabled:active:translate-y-0;
+    @apply active:translate-y-px;
+  }
+
+  .btn-sm {
+    @apply px-3 py-1.5 text-xs;
+  }
+
+  .btn-primario {
+    @apply bg-linear-to-b from-emerald-700 to-emerald-800 text-white shadow-sm shadow-emerald-900/20 ring-1 ring-white/10 ring-inset;
+    @apply hover:from-emerald-600 hover:to-emerald-700 hover:shadow-md hover:shadow-emerald-900/20;
+  }
+
+  .btn-secundario {
+    @apply border border-stone-300 bg-white text-stone-700 shadow-xs;
+    @apply hover:border-emerald-300 hover:bg-emerald-50 hover:text-emerald-900;
+  }
+
+  .btn-perigo {
+    @apply border border-red-200 bg-white text-red-600 shadow-xs;
+    @apply hover:border-red-300 hover:bg-red-50;
+  }
+
+  .btn-fantasma {
+    @apply text-stone-500;
+    @apply hover:bg-stone-100 hover:text-emerald-900;
+  }
+
+  .campo {
+    @apply w-full rounded-lg border border-stone-300 bg-white px-3 py-2 text-sm text-stone-800 shadow-xs transition outline-none;
+    @apply placeholder:text-stone-400;
+    @apply focus:border-emerald-600 focus:ring-2 focus:ring-emerald-600/15;
+    @apply disabled:bg-stone-100 disabled:text-stone-500;
+  }
+
+  .cartao {
+    @apply rounded-xl bg-white p-6 shadow-sm ring-1 ring-stone-900/5;
+  }
 }

@@ -1,53 +1,72 @@
-import { Link } from 'react-router-dom'
+import { Link, NavLink } from 'react-router-dom'
 import { useAuth } from '../auth/AuthContext'
 import { Emblema } from './Emblema'
+import { Avatar, Botao } from './ui'
+
+function ItemNav({ to, children }) {
+  return (
+    <NavLink
+      to={to}
+      className={({ isActive }) =>
+        `relative px-1 py-1 text-sm transition ${
+          isActive
+            ? 'font-semibold text-emerald-900 after:absolute after:inset-x-0 after:-bottom-1 after:h-0.5 after:rounded-full after:bg-emerald-700'
+            : 'text-stone-500 hover:text-emerald-800'
+        }`
+      }
+    >
+      {children}
+    </NavLink>
+  )
+}
 
 export function Cabecalho() {
   const { usuario, sair } = useAuth()
 
   return (
-    <header className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3 bg-white px-4 py-3 shadow-sm ring-1 ring-stone-900/5 sm:px-6 sm:py-4">
-      <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
-        <Link to="/" className="flex items-center gap-2.5">
-          <Emblema className="h-9 w-9 shrink-0" />
-          <span className="flex flex-col leading-tight">
-            <span className="font-display text-base font-semibold text-emerald-900 sm:text-lg">
-              Casa Espírita Amor e Perdão
+    <header className="sticky top-0 z-10 bg-white/90 shadow-sm ring-1 ring-stone-900/5 backdrop-blur">
+      <div className="h-1 bg-linear-to-r from-emerald-800 via-emerald-600 to-amber-500" />
+      <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-x-6 gap-y-3 px-4 py-3 sm:px-6">
+        <div className="flex flex-wrap items-center gap-x-8 gap-y-2">
+          <Link to="/" className="flex items-center gap-3">
+            <Emblema className="h-10 w-10 shrink-0" />
+            <span className="flex flex-col leading-tight">
+              <span className="font-display text-base font-semibold text-emerald-950 sm:text-lg">
+                Casa Espírita Amor e Perdão
+              </span>
+              <span className="text-[10px] font-medium tracking-[0.2em] text-stone-400 uppercase">
+                Nova Friburgo · RJ
+              </span>
             </span>
-            <span className="text-[10px] font-medium uppercase tracking-widest text-stone-400">
-              Nova Friburgo - RJ
+          </Link>
+
+          <nav className="flex flex-wrap items-center gap-x-5 gap-y-1">
+            <ItemNav to="/">Pessoas</ItemNav>
+            <ItemNav to="/grupos">Grupos</ItemNav>
+            <ItemNav to="/agenda">Agenda</ItemNav>
+            {usuario.papel === 'admin' && (
+              <>
+                <ItemNav to="/usuarios">Usuários</ItemNav>
+                <ItemNav to="/auditoria">Auditoria</ItemNav>
+              </>
+            )}
+          </nav>
+        </div>
+
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
+            <Avatar nome={usuario.nome} className="h-8 w-8 text-xs" />
+            <span className="hidden flex-col leading-tight sm:flex">
+              <span className="text-sm font-medium text-stone-700">{usuario.nome}</span>
+              <span className="text-[10px] tracking-wider text-stone-400 uppercase">
+                {usuario.papel}
+              </span>
             </span>
-          </span>
-        </Link>
-        <nav className="flex flex-wrap items-center gap-x-4 gap-y-1">
-          <Link to="/grupos" className="text-sm text-stone-500 hover:text-emerald-800">
-            Grupos
-          </Link>
-          <Link to="/agenda" className="text-sm text-stone-500 hover:text-emerald-800">
-            Agenda
-          </Link>
-          {usuario.papel === 'admin' && (
-            <>
-              <Link to="/usuarios" className="text-sm text-stone-500 hover:text-emerald-800">
-                Usuários
-              </Link>
-              <Link to="/auditoria" className="text-sm text-stone-500 hover:text-emerald-800">
-                Auditoria
-              </Link>
-            </>
-          )}
-        </nav>
-      </div>
-      <div className="flex items-center gap-4 text-sm text-stone-600">
-        <span>
-          {usuario.nome} <span className="text-stone-400">({usuario.papel})</span>
-        </span>
-        <button
-          onClick={sair}
-          className="rounded-md border border-stone-300 px-3 py-1 hover:bg-stone-50"
-        >
-          Sair
-        </button>
+          </div>
+          <Botao variante="secundario" pequeno onClick={sair}>
+            Sair
+          </Botao>
+        </div>
       </div>
     </header>
   )

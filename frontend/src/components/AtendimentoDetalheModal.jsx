@@ -3,6 +3,7 @@ import { api } from '../api/client'
 import { isoParaData } from '../utils/formatadores'
 import { AtendimentoModal } from './AtendimentoModal'
 import { Modal } from './Modal'
+import { Botao, Carregando, MensagemErro, Pill, Rotulo } from './ui'
 
 const ROTULO_MODALIDADE = {
   presencial: 'Presencial',
@@ -51,68 +52,46 @@ export function AtendimentoDetalheModal({ atendimentoId, onFechar }) {
 
   return (
     <Modal titulo="" onFechar={onFechar}>
-      {erro && <p className="text-sm text-red-600">{erro}</p>}
-      {!erro && !dados && <p className="text-sm text-stone-500">Carregando...</p>}
+      <MensagemErro>{erro}</MensagemErro>
+      {!erro && !dados && <Carregando />}
 
       {dados && (
         <div className="flex flex-col gap-5 text-sm">
-          <div className="flex items-start justify-between">
-            <div>
-              <h2 className="font-display text-xl font-semibold uppercase tracking-wide text-emerald-900">
-                Atendimento
-              </h2>
-              <p className="text-stone-500">
-                {isoParaData(dados.data)} · {ROTULO_MODALIDADE[dados.modalidade]}
-              </p>
-            </div>
-            <div className="flex shrink-0 gap-2">
-              <button
-                onClick={async () => {
-                  const { gerarPdfAtendimento } = await import(
-                    '../utils/gerarPdfAtendimento'
-                  )
-                  gerarPdfAtendimento(dados)
-                }}
-                className="rounded-md border border-stone-300 px-3 py-1 text-xs hover:bg-stone-50"
-              >
-                Baixar PDF
-              </button>
-              <button
-                onClick={() => setEditando(true)}
-                className="rounded-md border border-stone-300 px-3 py-1 text-xs hover:bg-stone-50"
-              >
-                Editar
-              </button>
-              <button
-                onClick={excluir}
-                className="rounded-md border border-red-200 px-3 py-1 text-xs text-red-600 hover:bg-red-50"
-              >
-                Excluir
-              </button>
+          {/* cabeçalho no estilo da folha de papel */}
+          <div className="border-b-2 border-emerald-900/80 pb-4">
+            <Rotulo>Atendimento</Rotulo>
+            <p className="mt-1 font-display text-3xl font-semibold text-emerald-950">
+              {isoParaData(dados.data)}
+            </p>
+            <div className="mt-2 flex flex-wrap items-center gap-1.5">
+              <Pill tom="verde">{ROTULO_MODALIDADE[dados.modalidade]}</Pill>
+              <Pill tom={dados.presente ? 'cinza' : 'ambar'}>
+                {dados.presente ? 'Presente' : 'Não esteve presente'}
+              </Pill>
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4 border-y border-stone-200 py-3">
+          <div className="grid grid-cols-2 gap-4">
             <Campo label="Atendido por" valor={dados.atendido_por?.nome_completo} />
             <Campo label="Solicitante" valor={dados.solicitante?.nome_completo} />
-            <Campo label="Presente" valor={dados.presente ? 'Sim' : 'Não'} />
-            <Campo label="Retorno previsto" valor={isoParaData(dados.retorno_previsto)} />
+            {dados.retorno_previsto && (
+              <Campo label="Retorno previsto" valor={isoParaData(dados.retorno_previsto)} />
+            )}
           </div>
 
-          {dados.observacao && <Secao titulo="Observação">{dados.observacao}</Secao>}
-
-          <Secao titulo="Tratamentos">
+          <div>
+            <Rotulo className="mb-1.5">Tratamentos</Rotulo>
             {dados.tratamentos.length === 0 ? (
-              <p className="text-stone-500">Nenhum tratamento marcado.</p>
+              <p className="text-stone-400">Nenhum tratamento marcado.</p>
             ) : (
               <ul className="flex flex-col gap-2">
                 {dados.tratamentos.map((t) => (
-                  <li key={t.id}>
-                    <p className="font-medium text-stone-700">
+                  <li key={t.id} className="rounded-lg bg-stone-50 px-3 py-2 ring-1 ring-stone-900/5">
+                    <p className="font-medium text-stone-800">
                       {t.tipo_tratamento_nome}
                       {t.modalidade && (
                         <span className="ml-2 text-xs font-normal text-stone-500">
-                          ({ROTULO_MODALIDADE[t.modalidade]})
+                          {ROTULO_MODALIDADE[t.modalidade]}
                         </span>
                       )}
                     </p>
@@ -122,36 +101,53 @@ export function AtendimentoDetalheModal({ atendimentoId, onFechar }) {
                         {t.sessoes_previstas ? ` de ${t.sessoes_previstas}` : ''}
                       </p>
                     )}
-                    {t.observacao && (
-                      <p className="text-xs text-stone-600">{t.observacao}</p>
-                    )}
+                    {t.observacao && <p className="mt-1 text-xs text-stone-600">{t.observacao}</p>}
                   </li>
                 ))}
               </ul>
             )}
-          </Secao>
+          </div>
+
+          {dados.observacao && (
+            <div>
+              <Rotulo className="mb-1.5">Observação</Rotulo>
+              <p className="rounded-xl border-l-4 border-amber-400 bg-amber-50/60 p-3 leading-relaxed whitespace-pre-line text-stone-700">
+                {dados.observacao}
+              </p>
+            </div>
+          )}
+
+          <div className="flex flex-wrap items-center justify-between gap-2 border-t border-stone-100 pt-4">
+            <Botao
+              variante="fantasma"
+              pequeno
+              onClick={async () => {
+                const { gerarPdfAtendimento } = await import('../utils/gerarPdfAtendimento')
+                gerarPdfAtendimento(dados)
+              }}
+            >
+              ⬇ Baixar PDF
+            </Botao>
+            <div className="flex gap-2">
+              <Botao variante="perigo" pequeno onClick={excluir}>
+                Excluir
+              </Botao>
+              <Botao pequeno onClick={() => setEditando(true)}>
+                Editar
+              </Botao>
+            </div>
+          </div>
         </div>
       )}
     </Modal>
   )
 }
 
-function Secao({ titulo, children }) {
-  return (
-    <div>
-      <h3 className="mb-1 text-xs font-bold uppercase tracking-wide text-stone-400">
-        {titulo}
-      </h3>
-      {children}
-    </div>
-  )
-}
-
 function Campo({ label, valor }) {
   return (
     <div>
-      <p className="text-xs font-bold uppercase tracking-wide text-stone-400">{label}</p>
-      <p className="text-stone-700">{valor ?? '—'}</p>
+      <Rotulo>{label}</Rotulo>
+      <p className="mt-0.5 text-stone-800">{valor || <span className="text-stone-300">—</span>}</p>
     </div>
   )
 }

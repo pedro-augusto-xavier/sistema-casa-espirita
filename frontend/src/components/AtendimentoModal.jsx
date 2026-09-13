@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { api } from '../api/client'
-import { dataParaIso, isoParaData, mascaraData } from '../utils/formatadores'
+import { OPCOES_VINCULO, dataParaIso, isoParaData, mascaraData } from '../utils/formatadores'
 import { Modal } from './Modal'
 import { SeletorPessoa } from './SeletorPessoa'
 import { Avatar, Botao, Campo, MensagemErro } from './ui'
@@ -81,6 +81,13 @@ export function AtendimentoModal({ pessoa, existente, onFechar, onSalvo }) {
     })
   }
 
+  function definirVinculo(tipoId, pessoaId, vinculo) {
+    setAssistidosPorTipo((atual) => ({
+      ...atual,
+      [tipoId]: assistidosDe(tipoId).map((p) => (p.id === pessoaId ? { ...p, vinculo } : p)),
+    }))
+  }
+
   async function aoEnviar(evento) {
     evento.preventDefault()
     setErro('')
@@ -101,7 +108,10 @@ export function AtendimentoModal({ pessoa, existente, onFechar, onSalvo }) {
       tratamentos: tratamentosMarcados.map((id) => ({
         tipo_tratamento_id: id,
         sessoes_previstas: vezesPorTipo[id] ? Number(vezesPorTipo[id]) : null,
-        assistidos: assistidosDe(id).map((p) => p.id),
+        assistidos: assistidosDe(id).map((p) => ({
+          pessoa_id: p.id,
+          vinculo_com_responsavel: p.id === idPessoa ? null : p.vinculo || null,
+        })),
       })),
     }
 
@@ -279,6 +289,18 @@ export function AtendimentoModal({ pessoa, existente, onFechar, onSalvo }) {
                       >
                         <Avatar nome={p.nome_completo} className="h-5 w-5 text-[8px]" />
                         {p.nome_completo}
+                        <select
+                          value={p.vinculo || ''}
+                          onChange={(e) => definirVinculo(t.id, p.id, e.target.value || null)}
+                          className="rounded-full border-0 bg-stone-100 py-0.5 pr-5 pl-1.5 text-[10px] text-stone-600 outline-none focus:ring-1 focus:ring-emerald-600/40"
+                        >
+                          <option value="">qual a relação?</option>
+                          {OPCOES_VINCULO.map(([valor, rotulo]) => (
+                            <option key={valor} value={valor}>
+                              {rotulo}
+                            </option>
+                          ))}
+                        </select>
                         <button
                           type="button"
                           onClick={() => alternarAssistido(t.id, p)}

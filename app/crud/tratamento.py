@@ -151,9 +151,17 @@ def adicionar_assistido(
     ja_tem = any(a.pessoa_id == dados.pessoa_id for a in tratamento.assistidos)
     if ja_tem:
         raise ErroDominio("essa pessoa já é assistida neste tratamento")
+    # a responsável não tem vínculo consigo mesma
+    vinculo = (
+        None
+        if dados.pessoa_id == tratamento.solicitante_id
+        else dados.vinculo_com_responsavel
+    )
     db.add(
         TratamentoAssistido(
-            tratamento_id=tratamento.id, pessoa_id=dados.pessoa_id
+            tratamento_id=tratamento.id,
+            pessoa_id=dados.pessoa_id,
+            vinculo_com_responsavel=vinculo,
         )
     )
     db.commit()

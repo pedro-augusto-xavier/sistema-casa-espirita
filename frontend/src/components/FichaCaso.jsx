@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { api } from '../api/client'
-import { isoParaData } from '../utils/formatadores'
+import { OPCOES_VINCULO, ROTULO_VINCULO, isoParaData } from '../utils/formatadores'
 import { SeletorPessoa } from './SeletorPessoa'
 import { Avatar, Botao, MensagemErro, Pill, Rotulo } from './ui'
 
@@ -82,6 +82,14 @@ export function FichaCaso({ caso, pessoaId, aoMudar, aoAbrir }) {
     chamar(() => api.post(`/tratamentos/${caso.id}/assistidos`, { pessoa_id: p.id }))
   }
 
+  function definirVinculo(assistidoId, vinculo) {
+    chamar(() =>
+      api.patch(`/tratamentos/${caso.id}/assistidos/${assistidoId}`, {
+        vinculo_com_responsavel: vinculo || null,
+      }),
+    )
+  }
+
   return (
     <article
       className={`overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-stone-900/5 ${
@@ -149,6 +157,27 @@ export function FichaCaso({ caso, pessoaId, aoMudar, aoAbrir }) {
                         className={ativo ? '' : 'text-stone-400'}
                       />
                     </span>
+                    {a.pessoa.id !== caso.solicitante?.id &&
+                      (ativo && !concluido ? (
+                        <select
+                          value={a.vinculo_com_responsavel || ''}
+                          onChange={(e) => definirVinculo(a.id, e.target.value)}
+                          className="shrink-0 rounded-full border-0 bg-stone-100 py-0.5 pr-5 pl-1.5 text-[10px] text-stone-600 outline-none focus:ring-1 focus:ring-emerald-600/40"
+                        >
+                          <option value="">qual a relação?</option>
+                          {OPCOES_VINCULO.map(([valor, rotulo]) => (
+                            <option key={valor} value={valor}>
+                              {rotulo}
+                            </option>
+                          ))}
+                        </select>
+                      ) : (
+                        a.vinculo_com_responsavel && (
+                          <Pill tom="cinza" className="shrink-0 text-[10px]">
+                            {ROTULO_VINCULO[a.vinculo_com_responsavel]}
+                          </Pill>
+                        )
+                      ))}
                     {!ativo && a.data_conclusao && (
                       <span className="text-[10px] text-stone-400">{isoParaData(a.data_conclusao)}</span>
                     )}

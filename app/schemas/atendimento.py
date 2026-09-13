@@ -4,10 +4,18 @@ from datetime import date, datetime
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from app.models.enums import Modalidade
+from app.models.enums import Modalidade, TipoVinculo
 from app.schemas.pessoa import PessoaMini, PessoaOut
 
 # ---------- tratamentos dentro do atendimento ----------
+
+
+class AssistidoRefIn(BaseModel):
+    """Uma pessoa por quem o responsável pediu o tratamento, e o que ela é
+    dele (filho, amigo...). Usado só pros tipos de formato "caso"."""
+
+    pessoa_id: int
+    vinculo_com_responsavel: TipoVinculo | None = None
 
 
 class AtendimentoTratamentoIn(BaseModel):
@@ -18,7 +26,7 @@ class AtendimentoTratamentoIn(BaseModel):
     observacao: str | None = None
     # só pros tipos de formato "caso" (Desobsessão): por quem a pessoa
     # pediu o tratamento (filhos, amigos, ela mesma). Vazio = ela mesma.
-    assistidos: list[int] = Field(default_factory=list)
+    assistidos: list[AssistidoRefIn] = Field(default_factory=list)
 
 
 class AtendimentoTratamentoOut(BaseModel):

@@ -10,7 +10,7 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from app.models.enums import StatusAssistido, StatusTratamento
+from app.models.enums import StatusAssistido, StatusTratamento, TipoVinculo
 from app.schemas.pessoa import PessoaMini, PessoaOut
 
 # ---------- assistidos ----------
@@ -18,6 +18,9 @@ from app.schemas.pessoa import PessoaMini, PessoaOut
 
 class AssistidoIn(BaseModel):
     pessoa_id: int
+    # o quê essa pessoa é do responsável do caso (filho, amigo...). Ignorado
+    # quando pessoa_id é o próprio responsável.
+    vinculo_com_responsavel: TipoVinculo | None = None
 
 
 class AssistidoUpdate(BaseModel):
@@ -26,6 +29,7 @@ class AssistidoUpdate(BaseModel):
     status: StatusAssistido | None = None
     situacao_final: str | None = None
     data_conclusao: date | None = None
+    vinculo_com_responsavel: TipoVinculo | None = None
 
 
 class AssistidoOut(BaseModel):
@@ -38,6 +42,7 @@ class AssistidoOut(BaseModel):
     status: StatusAssistido
     situacao_final: str | None
     data_conclusao: date | None
+    vinculo_com_responsavel: TipoVinculo | None
 
 
 # ---------- evolução (diário) ----------

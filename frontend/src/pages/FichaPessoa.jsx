@@ -61,6 +61,8 @@ export function FichaPessoa() {
   const [modalAberto, setModalAberto] = useState(null) // 'atendimento' | null
   const [detalhe, setDetalhe] = useState(null) // { tipo: 'atendimento' | 'tratamento', id }
   const [versao, setVersao] = useState(0)
+  const [filtroTipo, setFiltroTipo] = useState('') // '' | 'atendimento' | 'tratamento_inicio'
+  const [buscaHistorico, setBuscaHistorico] = useState('')
 
   useEffect(() => {
     setCarregando(true)
@@ -175,6 +177,16 @@ export function FichaPessoa() {
   const atendimentos = historico.filter((h) => h.tipo === 'atendimento')
   const ultimoAtendimento = atendimentos[0]?.data // histórico já vem do mais recente
   const pastasAbertas = casos.filter((c) => c.status !== 'concluido').length
+
+  // as anotações do diário já aparecem na ficha de acompanhamento, então não
+  // duplicamos aqui -- o resto pode ser filtrado por tipo e por busca.
+  const itensHistorico = historico.filter((item) => item.tipo !== 'evolucao')
+  const termoBusca = buscaHistorico.trim().toLowerCase()
+  const itensFiltrados = itensHistorico.filter((item) => {
+    if (filtroTipo && item.tipo !== filtroTipo) return false
+    if (termoBusca && !textoBuscavel(item).includes(termoBusca)) return false
+    return true
+  })
 
   const endereco = [
     pessoa.logradouro,
@@ -371,7 +383,9 @@ export function FichaPessoa() {
               <h2 className="font-display text-2xl font-semibold text-emerald-950">Histórico</h2>
               {historico.length > 0 && (
                 <span className="text-sm text-stone-400">
-                  {historico.length} {historico.length === 1 ? 'registro' : 'registros'}
+                  {itensFiltrados.length === itensHistorico.length
+                    ? `${itensHistorico.length} ${itensHistorico.length === 1 ? 'registro' : 'registros'}`
+                    : `${itensFiltrados.length} de ${itensHistorico.length}`}
                 </span>
               )}
             </div>
@@ -388,21 +402,73 @@ export function FichaPessoa() {
             />
           ) : (
             <>
-              <p className="mt-1 text-xs text-stone-400">
-                Clique num registro para abrir, editar ou baixar o PDF.
-              </p>
-              <ol className="relative mt-5 ml-2.5 border-l-2 border-stone-200 pl-7">
-                {/* as anotações do diário já aparecem na ficha de acompanhamento */}
-                {historico.filter((item) => item.tipo !== 'evolucao').map((item, i) => (
-                  <LinhaHistorico
-                    key={i}
-                    item={item}
-                    aoAbrir={
-                      item.atendimento_id || item.tratamento_id ? () => abrirDetalhe(item) : null
-                    }
+              {/* ---------- filtro ---------- */}
+              <div className="mt-4 flex flex-wrap items-center gap-2">
+                <div className="flex flex-wrap gap-1.5">
+                  <ChipFiltro ativo={filtroTipo === ''} onClick={() => setFiltroTipo('')}>
+                    Todos
+                  </ChipFiltro>
+                  <ChipFiltro
+                    ativo={filtroTipo === 'atendimento'}
+                    onClick={() => setFiltroTipo('atendimento')}
+                  >
+                    Atendimento
+                  </ChipFiltro>
+                  <ChipFiltro
+                    ativo={filtroTipo === 'tratamento_inicio'}
+                    onClick={() => setFiltroTipo('tratamento_inicio')}
+                  >
+                    Início de tratamento
+                  </ChipFiltro>
+                </div>
+                <div className="relative min-w-48 flex-1 sm:ml-auto sm:max-w-64">
+                  <IconeBusca className="pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-stone-400" />
+                  <input
+                    type="search"
+                    placeholder="Buscar no histórico..."
+                    value={buscaHistorico}
+                    onChange={(e) => setBuscaHistorico(e.target.value)}
+                    className="campo border-transparent bg-stone-50 pl-9 shadow-none focus:bg-white"
                   />
-                ))}
-              </ol>
+                </div>
+              </div>
+
+              {itensFiltrados.length === 0 ? (
+                <EstadoVazio
+                  titulo="Nada encontrado"
+                  descricao="Tente outro termo de busca ou limpe o filtro de tipo."
+                  acao={
+                    <Botao
+                      variante="secundario"
+                      onClick={() => {
+                        setFiltroTipo('')
+                        setBuscaHistorico('')
+                      }}
+                    >
+                      Limpar filtro
+                    </Botao>
+                  }
+                />
+              ) : (
+                <>
+                  <p className="mt-3 text-xs text-stone-400">
+                    Clique num registro para abrir, editar ou baixar o PDF.
+                  </p>
+                  <ol className="relative mt-5 ml-2.5 border-l-2 border-stone-200 pl-7">
+                    {itensFiltrados.map((item, i) => (
+                      <LinhaHistorico
+                        key={i}
+                        item={item}
+                        aoAbrir={
+                          item.atendimento_id || item.tratamento_id
+                            ? () => abrirDetalhe(item)
+                            : null
+                        }
+                      />
+                    ))}
+                  </ol>
+                </>
+              )}
             </>
           )}
         </section>
@@ -438,6 +504,50 @@ function formatarAlteracao(campo, valor) {
     return `${campo}: ${formatarValor(valor.de)} → ${formatarValor(valor.para)}`
   }
   return `${campo}: ${formatarValor(valor)}`
+}
+
+/** Todo texto relevante de um item do histórico, junto e em minúsculas,
+ * pra buscar sem se importar com maiúscula ou em qual campo está. */
+function textoBuscavel(item) {
+  const d = item.detalhes ?? {}
+  return [
+    item.titulo,
+    item.descricao,
+    d.observacao,
+    d.atendido_por,
+    d.solicitante,
+    d.tipo_nome,
+    ...(d.tratamentos?.map((t) => t.nome) ?? []),
+  ]
+    .filter(Boolean)
+    .join(' ')
+    .toLowerCase()
+}
+
+function ChipFiltro({ ativo, onClick, children }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={ativo}
+      className={`rounded-full px-3 py-1 text-sm transition ${
+        ativo
+          ? 'bg-emerald-800 font-medium text-white shadow-sm'
+          : 'bg-white text-stone-600 ring-1 ring-stone-900/10 hover:bg-stone-50'
+      }`}
+    >
+      {children}
+    </button>
+  )
+}
+
+function IconeBusca({ className }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className={className}>
+      <circle cx="11" cy="11" r="6.5" />
+      <path d="m20 20-4-4" strokeLinecap="round" />
+    </svg>
+  )
 }
 
 /** Junta, de todas as pastas, quem esta pessoa acompanha e quem acompanha ela.

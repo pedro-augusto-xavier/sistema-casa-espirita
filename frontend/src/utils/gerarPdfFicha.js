@@ -11,7 +11,6 @@ const ROTULO_TIPO = {
   atendimento: 'Atendimento',
   tratamento_inicio: 'Início de tratamento',
   evolucao: 'Evolução',
-  grupo: 'Grupo',
 }
 
 /** Monta um PDF da ficha (dados + histórico) e dispara o download. */

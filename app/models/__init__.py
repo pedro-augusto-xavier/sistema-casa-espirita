@@ -6,7 +6,6 @@ Sempre que criar um modelo novo, adicione aqui.
 
 from app.models.agenda import Escala, EventoAgenda
 from app.models.atendimento import Atendimento, AtendimentoTratamento
-from app.models.grupo import Presenca, SessaoGrupo
 from app.models.pessoa import Pessoa, PessoaPapel, PessoaVinculo
 from app.models.trabalhador import FuncaoTrabalhador, TrabalhadorFuncao
 from app.models.tratamento import (
@@ -22,8 +21,6 @@ __all__ = [
     "EventoAgenda",
     "Atendimento",
     "AtendimentoTratamento",
-    "Presenca",
-    "SessaoGrupo",
     "Pessoa",
     "PessoaPapel",
     "PessoaVinculo",

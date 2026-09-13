@@ -5,7 +5,6 @@ import { Agenda } from './pages/Agenda'
 import { Auditoria } from './pages/Auditoria'
 import { EditarPessoa } from './pages/EditarPessoa'
 import { FichaPessoa } from './pages/FichaPessoa'
-import { Grupos } from './pages/Grupos'
 import { Login } from './pages/Login'
 import { NaoEncontrado } from './pages/NaoEncontrado'
 import { NovaPessoa } from './pages/NovaPessoa'
@@ -47,14 +46,6 @@ function App() {
             element={
               <RotaProtegida>
                 <EditarPessoa />
-              </RotaProtegida>
-            }
-          />
-          <Route
-            path="/grupos"
-            element={
-              <RotaProtegida>
-                <Grupos />
               </RotaProtegida>
             }
           />

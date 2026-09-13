@@ -231,13 +231,12 @@ def remover_evolucao(db: Session, evolucao: TratamentoEvolucao) -> None:
 
 
 def historico_pessoa(db: Session, pessoa_id: int) -> list[dict]:
-    """Linha do tempo: atendimentos + inícios de caso + evoluções + grupos.
+    """Linha do tempo: atendimentos + inícios de caso + evoluções.
 
     `detalhes` carrega os campos completos de cada tipo, pra tela mostrar
     tudo direto (sem precisar abrir um modal só pra ler).
     """
     from app.models.atendimento import Atendimento, AtendimentoTratamento
-    from app.models.grupo import Presenca, SessaoGrupo
 
     itens: list[dict] = []
 
@@ -263,7 +262,6 @@ def historico_pessoa(db: Session, pessoa_id: int) -> list[dict]:
                 "descricao": f"{nomes}. Atendido por: {quem or '—'}.",
                 "atendimento_id": a.id,
                 "tratamento_id": None,
-                "grupo_id": None,
                 "detalhes": {
                     "modalidade": a.modalidade.value,
                     "presente": a.presente,
@@ -302,7 +300,6 @@ def historico_pessoa(db: Session, pessoa_id: int) -> list[dict]:
                 "descricao": t.observacao,
                 "atendimento_id": None,
                 "tratamento_id": t.id,
-                "grupo_id": None,
                 "detalhes": {
                     "tipo_nome": t.tipo.nome,
                     "solicitante": (
@@ -338,41 +335,12 @@ def historico_pessoa(db: Session, pessoa_id: int) -> list[dict]:
                 "descricao": e.texto,
                 "atendimento_id": None,
                 "tratamento_id": e.tratamento_id,
-                "grupo_id": None,
                 "detalhes": {
                     "tipo_nome": e.tratamento.tipo.nome,
                     "texto": e.texto,
                     "registrado_por": (
                         e.registrado_por.nome_completo if e.registrado_por else None
                     ),
-                },
-            }
-        )
-
-    sessoes = db.scalars(
-        select(SessaoGrupo)
-        .options(
-            selectinload(SessaoGrupo.tipo_tratamento),
-            selectinload(SessaoGrupo.responsavel),
-        )
-        .where(SessaoGrupo.presencas.any(Presenca.pessoa_id == pessoa_id))
-    ).all()
-    for s in sessoes:
-        itens.append(
-            {
-                "tipo": "grupo",
-                "data": s.data,
-                "titulo": f"Grupo: {s.tipo_tratamento.nome}",
-                "descricao": s.observacao,
-                "atendimento_id": None,
-                "tratamento_id": None,
-                "grupo_id": s.id,
-                "detalhes": {
-                    "tipo_nome": s.tipo_tratamento.nome,
-                    "responsavel": (
-                        s.responsavel.nome_completo if s.responsavel else None
-                    ),
-                    "observacao": s.observacao,
                 },
             }
         )

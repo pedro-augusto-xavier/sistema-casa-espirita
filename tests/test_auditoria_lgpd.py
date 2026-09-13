@@ -124,7 +124,12 @@ def test_exportar_mostra_quem_editou_a_ficha(client: TestClient):
 
 
 def test_anonimizar_apaga_dados_mas_mantem_historico(client: TestClient):
-    p = _pessoa(client, nome_completo="Some Da Base")
+    p = _pessoa(
+        client,
+        nome_completo="Some Da Base",
+        estado_civil="casado",
+        quantidade_filhos=3,
+    )
     tipos = client.get("/api/v1/tipos-tratamento").json()
     reflexo = next(t["id"] for t in tipos if t["nome"] == "Reflexologia")
     at = client.post(
@@ -142,6 +147,9 @@ def test_anonimizar_apaga_dados_mas_mantem_historico(client: TestClient):
     assert anon["cpf"] is None
     assert anon["anonimizada"] is True
     assert anon["ativo"] is False
+    # estado civil e nº de filhos também são dados pessoais
+    assert anon["estado_civil"] == "nao_informado"
+    assert anon["quantidade_filhos"] is None
 
     # o atendimento continua existindo
     assert client.get(f"/api/v1/atendimentos/{at['id']}").status_code == 200

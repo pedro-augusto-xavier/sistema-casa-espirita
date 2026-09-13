@@ -15,10 +15,20 @@ class Sexo(str, enum.Enum):
 
 
 class Papel(str, enum.Enum):
-    """Papel de uma PESSOA dentro da casa (pode ter os dois)."""
+    """Papel de uma PESSOA dentro da casa (pode ter mais de um)."""
 
     trabalhador = "trabalhador"
     assistido = "assistido"
+    voluntario = "voluntario"
+
+
+class EstadoCivil(str, enum.Enum):
+    solteiro = "solteiro"
+    casado = "casado"
+    uniao_estavel = "uniao_estavel"
+    divorciado = "divorciado"
+    viuvo = "viuvo"
+    nao_informado = "nao_informado"
 
 
 class TipoVinculo(str, enum.Enum):

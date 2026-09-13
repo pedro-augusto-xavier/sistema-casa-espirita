@@ -65,6 +65,39 @@ def test_editar_pessoa(client: TestClient):
     assert set(corpo["papeis"]) == {"assistido", "trabalhador"}
 
 
+def test_papel_voluntario_estado_civil_e_quantidade_de_filhos(client: TestClient):
+    dados = _nova_pessoa(
+        papeis=["voluntario"],
+        estado_civil="casado",
+        quantidade_filhos=2,
+    )
+    r = client.post("/api/v1/pessoas", json=dados)
+    assert r.status_code == 201, r.text
+    criada = r.json()
+    assert criada["papeis"] == ["voluntario"]
+    assert criada["estado_civil"] == "casado"
+    assert criada["quantidade_filhos"] == 2
+
+    # não informado por padrão quando não vem no corpo
+    outra = client.post("/api/v1/pessoas", json=_nova_pessoa()).json()
+    assert outra["estado_civil"] == "nao_informado"
+    assert outra["quantidade_filhos"] is None
+
+    # editar depois
+    r2 = client.patch(
+        f"/api/v1/pessoas/{criada['id']}",
+        json={"estado_civil": "viuvo", "quantidade_filhos": 0},
+    )
+    assert r2.status_code == 200
+    assert r2.json()["estado_civil"] == "viuvo"
+    assert r2.json()["quantidade_filhos"] == 0
+
+
+def test_quantidade_de_filhos_negativa_e_rejeitada(client: TestClient):
+    r = client.post("/api/v1/pessoas", json=_nova_pessoa(quantidade_filhos=-1))
+    assert r.status_code == 422
+
+
 def test_desativar_some_da_listagem(client: TestClient):
     dados = _nova_pessoa(nome_completo="Some Some")
     criada = client.post("/api/v1/pessoas", json=dados).json()

@@ -11,6 +11,7 @@ export function EditarPessoa() {
   const navigate = useNavigate()
   const [valores, setValores] = useState(null)
   const [papeis, setPapeis] = useState(null)
+  const [quantidadeFilhos, setQuantidadeFilhos] = useState(null)
   const [erro, setErro] = useState('')
 
   useEffect(() => {
@@ -23,6 +24,7 @@ export function EditarPessoa() {
           sexo: p.sexo,
           cpf: p.cpf ? mascaraCpf(p.cpf) : '',
           telefone: p.telefone ? mascaraTelefone(p.telefone) : '',
+          estado_civil: p.estado_civil || 'nao_informado',
           logradouro: p.logradouro || '',
           numero: p.numero || '',
           complemento: p.complemento || '',
@@ -36,7 +38,9 @@ export function EditarPessoa() {
         setPapeis({
           trabalhador: p.papeis.includes('trabalhador'),
           assistido: p.papeis.includes('assistido'),
+          voluntario: p.papeis.includes('voluntario'),
         })
+        setQuantidadeFilhos(p.quantidade_filhos)
       })
       .catch((e) => setErro(e.message))
   }, [id])
@@ -73,6 +77,7 @@ export function EditarPessoa() {
               <PessoaForm
                 valoresIniciais={valores}
                 papeisIniciais={papeis}
+                quantidadeFilhosInicial={quantidadeFilhos}
                 aoSalvar={salvar}
                 linkCancelar={`/pessoas/${id}`}
                 textoBotao="Salvar alterações"

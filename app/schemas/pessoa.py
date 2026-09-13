@@ -5,7 +5,7 @@ from datetime import date, datetime
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from app.core.validators import cpf_valido, normaliza_cep, so_digitos
-from app.models.enums import Papel, Sexo
+from app.models.enums import EstadoCivil, Papel, Sexo
 
 # --- funções de validação reutilizadas nos schemas de entrada ---
 
@@ -65,6 +65,9 @@ class PessoaBase(BaseModel):
 
     cpf: str | None = Field(default=None, description="Somente números ou formatado")
     telefone: str | None = Field(default=None, max_length=20)
+    estado_civil: EstadoCivil = EstadoCivil.nao_informado
+    # None = não perguntado ainda; 0 = perguntado e não tem.
+    quantidade_filhos: int | None = Field(default=None, ge=0)
 
     logradouro: str | None = Field(default=None, max_length=200)
     numero: str | None = Field(default=None, max_length=20)
@@ -98,6 +101,8 @@ class PessoaUpdate(BaseModel):
     sexo: Sexo | None = None
     cpf: str | None = None
     telefone: str | None = None
+    estado_civil: EstadoCivil | None = None
+    quantidade_filhos: int | None = Field(default=None, ge=0)
     logradouro: str | None = None
     numero: str | None = None
     complemento: str | None = None

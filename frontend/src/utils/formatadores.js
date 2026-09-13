@@ -33,6 +33,34 @@ export function mascaraCpf(valor) {
   return d
 }
 
+export const ROTULO_PAPEL = {
+  assistido: 'Assistido(a)',
+  trabalhador: 'Trabalhador(a)',
+  voluntario: 'Voluntário(a)',
+}
+
+export const TOM_PAPEL = {
+  assistido: 'verde',
+  trabalhador: 'ambar',
+  voluntario: 'azul',
+}
+
+export const ROTULO_ESTADO_CIVIL = {
+  solteiro: 'Solteiro(a)',
+  casado: 'Casado(a)',
+  uniao_estavel: 'União estável',
+  divorciado: 'Divorciado(a)',
+  viuvo: 'Viúvo(a)',
+  nao_informado: null, // não mostra na ficha
+}
+
+/** "3 filhos" / "Não tem filhos" / null quando nunca foi perguntado. */
+export function rotuloFilhos(quantidade) {
+  if (quantidade === null || quantidade === undefined) return null
+  if (quantidade === 0) return 'Não tem filhos'
+  return quantidade === 1 ? '1 filho' : `${quantidade} filhos`
+}
+
 export function mascaraTelefone(valor) {
   const d = soDigitos(valor).slice(0, 11)
   if (d.length > 10) return `(${d.slice(0, 2)}) ${d.slice(2, 7)}-${d.slice(7)}` // celular

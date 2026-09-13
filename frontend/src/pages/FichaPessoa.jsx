@@ -16,7 +16,15 @@ import {
   Pill,
 } from '../components/ui'
 import { useAuth } from '../auth/AuthContext'
-import { isoParaData, mascaraCpf, mascaraTelefone } from '../utils/formatadores'
+import {
+  ROTULO_ESTADO_CIVIL,
+  ROTULO_PAPEL,
+  TOM_PAPEL,
+  isoParaData,
+  mascaraCpf,
+  mascaraTelefone,
+  rotuloFilhos,
+} from '../utils/formatadores'
 
 const ROTULO_TIPO = {
   atendimento: 'Atendimento',
@@ -29,11 +37,6 @@ const ROTULO_MODALIDADE = {
   presencial: 'Presencial',
   video: 'Vídeo',
   distancia: 'À distância',
-}
-
-const ROTULO_PAPEL = {
-  assistido: 'Assistido(a)',
-  trabalhador: 'Trabalhador(a)',
 }
 
 // cor do ponto na linha do tempo e da etiqueta, por tipo de registro
@@ -209,7 +212,7 @@ export function FichaPessoa() {
                   <div className="mt-2 flex flex-wrap gap-1.5">
                     {pessoa.papeis.length === 0 && <Pill tom="cinza">sem papel definido</Pill>}
                     {pessoa.papeis.map((p) => (
-                      <Pill key={p} tom={p === 'trabalhador' ? 'ambar' : 'verde'}>
+                      <Pill key={p} tom={TOM_PAPEL[p] ?? 'cinza'}>
                         {ROTULO_PAPEL[p] ?? p}
                       </Pill>
                     ))}
@@ -242,6 +245,8 @@ export function FichaPessoa() {
               <Item label="Nascimento" valor={isoParaData(pessoa.data_nascimento)} />
               <Item label="Telefone" valor={pessoa.telefone && mascaraTelefone(pessoa.telefone)} />
               <Item label="CPF" valor={pessoa.cpf && mascaraCpf(pessoa.cpf)} />
+              <Item label="Estado civil" valor={ROTULO_ESTADO_CIVIL[pessoa.estado_civil]} />
+              <Item label="Filhos" valor={rotuloFilhos(pessoa.quantidade_filhos)} />
               <Item label="Endereço" valor={endereco} className="col-span-2" />
               <Item label="CEP" valor={pessoa.cep} />
               <Item label="Como conheceu a casa" valor={pessoa.como_conheceu} className="col-span-2 sm:col-span-3" />

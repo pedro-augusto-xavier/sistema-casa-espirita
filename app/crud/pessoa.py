@@ -8,7 +8,7 @@ from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session, selectinload
 
 from app.core.validators import so_digitos
-from app.models.enums import Papel
+from app.models.enums import EstadoCivil, Papel
 from app.models.pessoa import Pessoa, PessoaPapel
 from app.schemas.pessoa import PessoaCreate, PessoaUpdate
 
@@ -154,6 +154,7 @@ _CAMPOS_PESSOAIS = (
     "cep",
     "como_conheceu",
     "observacoes_gerais",
+    "quantidade_filhos",
 )
 
 
@@ -166,6 +167,7 @@ def anonimizar(db: Session, pessoa: Pessoa) -> Pessoa:
     pessoa.nome_completo = "(dados removidos)"
     for campo in _CAMPOS_PESSOAIS:
         setattr(pessoa, campo, None)
+    pessoa.estado_civil = EstadoCivil.nao_informado  # coluna não aceita nulo
     pessoa.anonimizada = True
     pessoa.ativo = False
     pessoa.consentimento_lgpd = False
@@ -225,6 +227,8 @@ def exportar_dados(db: Session, pessoa_id: int) -> dict:
                 "sexo",
                 "cpf",
                 "telefone",
+                "estado_civil",
+                "quantidade_filhos",
                 "logradouro",
                 "numero",
                 "complemento",

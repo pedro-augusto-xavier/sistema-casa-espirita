@@ -13,12 +13,7 @@ import {
   Pill,
   TituloPagina,
 } from '../components/ui'
-import { mascaraTelefone } from '../utils/formatadores'
-
-const ROTULO_PAPEL = {
-  assistido: 'Assistido(a)',
-  trabalhador: 'Trabalhador(a)',
-}
+import { ROTULO_PAPEL, TOM_PAPEL, mascaraTelefone } from '../utils/formatadores'
 
 export function Pessoas() {
   const [busca, setBusca] = useState('')
@@ -99,6 +94,7 @@ export function Pessoas() {
             <option value="">Todos os papéis</option>
             <option value="assistido">Assistido(a)</option>
             <option value="trabalhador">Trabalhador(a)</option>
+            <option value="voluntario">Voluntário(a)</option>
           </select>
           <label className="flex cursor-pointer items-center gap-2 rounded-lg px-3 py-2 text-sm text-stone-600 select-none hover:bg-stone-50">
             <input
@@ -161,7 +157,7 @@ export function Pessoas() {
                     </div>
                     <div className="hidden shrink-0 flex-wrap justify-end gap-1.5 sm:flex">
                       {p.papeis.map((papelNome) => (
-                        <Pill key={papelNome} tom={papelNome === 'trabalhador' ? 'ambar' : 'verde'}>
+                        <Pill key={papelNome} tom={TOM_PAPEL[papelNome] ?? 'cinza'}>
                           {ROTULO_PAPEL[papelNome] ?? papelNome}
                         </Pill>
                       ))}

@@ -5,6 +5,7 @@ import {
   mascaraCpf,
   mascaraData,
   mascaraTelefone,
+  rotuloFilhos,
   soDigitos,
 } from './formatadores'
 
@@ -71,6 +72,23 @@ describe('mascaraCpf', () => {
 
   it('reformata um valor que já vem com pontuação (ex: vindo da API)', () => {
     expect(mascaraCpf('39053344705')).toBe(mascaraCpf('390.533.447-05'))
+  })
+})
+
+describe('rotuloFilhos', () => {
+  it('retorna null quando nunca foi perguntado', () => {
+    expect(rotuloFilhos(null)).toBeNull()
+    expect(rotuloFilhos(undefined)).toBeNull()
+  })
+
+  it('diferencia "não tem" (0) de "tem 1"', () => {
+    expect(rotuloFilhos(0)).toBe('Não tem filhos')
+    expect(rotuloFilhos(1)).toBe('1 filho')
+  })
+
+  it('usa plural a partir de 2', () => {
+    expect(rotuloFilhos(2)).toBe('2 filhos')
+    expect(rotuloFilhos(5)).toBe('5 filhos')
   })
 })
 

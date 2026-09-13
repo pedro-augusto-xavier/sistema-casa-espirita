@@ -1,5 +1,11 @@
 import { jsPDF } from 'jspdf'
-import { isoParaData, mascaraCpf, mascaraTelefone } from './formatadores'
+import {
+  ROTULO_ESTADO_CIVIL,
+  isoParaData,
+  mascaraCpf,
+  mascaraTelefone,
+  rotuloFilhos,
+} from './formatadores'
 
 const ROTULO_TIPO = {
   atendimento: 'Atendimento',
@@ -47,6 +53,8 @@ export function gerarPdfFicha(pessoa, historico) {
   linhaDado('Nascimento', isoParaData(pessoa.data_nascimento))
   linhaDado('CPF', pessoa.cpf && mascaraCpf(pessoa.cpf))
   linhaDado('Telefone', pessoa.telefone && mascaraTelefone(pessoa.telefone))
+  linhaDado('Estado civil', ROTULO_ESTADO_CIVIL[pessoa.estado_civil])
+  linhaDado('Filhos', rotuloFilhos(pessoa.quantidade_filhos))
   linhaDado('Como conheceu', pessoa.como_conheceu)
   linhaDado(
     'Endereço',

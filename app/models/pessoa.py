@@ -12,6 +12,7 @@ from sqlalchemy import (
     Enum,
     ForeignKey,
     Index,
+    Integer,
     String,
     Text,
     UniqueConstraint,
@@ -20,7 +21,7 @@ from sqlalchemy import (
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
-from app.models.enums import Papel, Sexo, TipoVinculo
+from app.models.enums import EstadoCivil, Papel, Sexo, TipoVinculo
 from app.models.mixins import TimestampMixin
 
 
@@ -33,6 +34,10 @@ class Pessoa(TimestampMixin, Base):
             "cpf",
             unique=True,
             postgresql_where=text("cpf IS NOT NULL"),
+        ),
+        CheckConstraint(
+            "quantidade_filhos IS NULL OR quantidade_filhos >= 0",
+            name="ck_pessoa_quantidade_filhos_positiva",
         ),
     )
 
@@ -47,6 +52,14 @@ class Pessoa(TimestampMixin, Base):
     )
     cpf: Mapped[str | None] = mapped_column(String(11))
     telefone: Mapped[str | None] = mapped_column(String(20))
+    estado_civil: Mapped[EstadoCivil] = mapped_column(
+        Enum(EstadoCivil, native_enum=False, length=20),
+        default=EstadoCivil.nao_informado,
+        server_default=EstadoCivil.nao_informado.value,
+        nullable=False,
+    )
+    # None = não perguntado ainda; 0 = perguntado e não tem.
+    quantidade_filhos: Mapped[int | None] = mapped_column(Integer)
 
     # Endereço
     logradouro: Mapped[str | None] = mapped_column(String(200))

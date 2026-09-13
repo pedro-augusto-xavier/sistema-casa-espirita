@@ -8,6 +8,7 @@ export const CAMPOS_VAZIOS = {
   sexo: '',
   cpf: '',
   telefone: '',
+  estado_civil: 'nao_informado',
   logradouro: '',
   numero: '',
   complemento: '',
@@ -19,16 +20,25 @@ export const CAMPOS_VAZIOS = {
   observacoes_gerais: '',
 }
 
+/** Deriva o estado do bloco "Filhos" a partir do valor salvo (null/0/N). */
+function estadoFilhosInicial(quantidade) {
+  if (quantidade === null || quantidade === undefined) return { opcao: 'nao_perguntado', qtd: '' }
+  if (quantidade === 0) return { opcao: 'nao_tem', qtd: '' }
+  return { opcao: 'tem', qtd: String(quantidade) }
+}
+
 /** Formulário de Pessoa, usado tanto no cadastro quanto na edição. */
 export function PessoaForm({
   valoresIniciais = CAMPOS_VAZIOS,
-  papeisIniciais = { trabalhador: false, assistido: true },
+  papeisIniciais = { trabalhador: false, assistido: true, voluntario: false },
+  quantidadeFilhosInicial = null,
   aoSalvar,
   linkCancelar,
   textoBotao = 'Salvar',
 }) {
   const [form, setForm] = useState(valoresIniciais)
   const [papeis, setPapeis] = useState(papeisIniciais)
+  const [filhos, setFilhos] = useState(() => estadoFilhosInicial(quantidadeFilhosInicial))
   const [erro, setErro] = useState('')
   const [enviando, setEnviando] = useState(false)
 
@@ -49,12 +59,24 @@ export function PessoaForm({
       return
     }
 
+    let quantidadeFilhos = null
+    if (filhos.opcao === 'nao_tem') quantidadeFilhos = 0
+    if (filhos.opcao === 'tem') {
+      const n = Number(filhos.qtd)
+      if (!filhos.qtd || Number.isNaN(n) || n < 1) {
+        setErro('Informe quantos filhos, ou marque "Não tem".')
+        return
+      }
+      quantidadeFilhos = n
+    }
+
     setEnviando(true)
     try {
       const corpo = {
         ...form,
         data_nascimento: nascimentoIso,
         cpf: form.cpf || null,
+        quantidade_filhos: quantidadeFilhos,
         papeis: Object.entries(papeis)
           .filter(([, marcado]) => marcado)
           .map(([nome]) => nome),
@@ -133,6 +155,53 @@ export function PessoaForm({
               />
             </Campo>
           </div>
+
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <Campo label="Estado civil">
+              <select className="campo" {...campo('estado_civil')}>
+                <option value="nao_informado">Prefere não informar</option>
+                <option value="solteiro">Solteiro(a)</option>
+                <option value="casado">Casado(a)</option>
+                <option value="uniao_estavel">União estável</option>
+                <option value="divorciado">Divorciado(a)</option>
+                <option value="viuvo">Viúvo(a)</option>
+              </select>
+            </Campo>
+
+            <Campo label="Filhos">
+              <div className="flex flex-wrap items-center gap-1.5">
+                {[
+                  ['nao_perguntado', 'Não perguntado'],
+                  ['nao_tem', 'Não tem'],
+                  ['tem', 'Tem'],
+                ].map(([valor, rotulo]) => (
+                  <button
+                    key={valor}
+                    type="button"
+                    onClick={() => setFilhos((f) => ({ ...f, opcao: valor }))}
+                    aria-pressed={filhos.opcao === valor}
+                    className={`rounded-full px-3 py-1 text-sm transition ${
+                      filhos.opcao === valor
+                        ? 'bg-emerald-800 font-medium text-white shadow-sm'
+                        : 'bg-white text-stone-600 ring-1 ring-stone-900/10 hover:bg-stone-50'
+                    }`}
+                  >
+                    {rotulo}
+                  </button>
+                ))}
+                {filhos.opcao === 'tem' && (
+                  <input
+                    type="number"
+                    min="1"
+                    placeholder="quantos?"
+                    value={filhos.qtd}
+                    onChange={(e) => setFilhos((f) => ({ ...f, qtd: e.target.value }))}
+                    className="campo w-24 animate-surgir"
+                  />
+                )}
+              </div>
+            </Campo>
+          </div>
         </Secao>
 
         {/* ---------- endereço ---------- */}
@@ -165,7 +234,7 @@ export function PessoaForm({
 
           <fieldset>
             <legend className="text-sm font-medium text-stone-700">Papel</legend>
-            <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-2">
+            <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-3">
               <Opcao
                 marcado={papeis.assistido}
                 onChange={(v) => setPapeis((p) => ({ ...p, assistido: v }))}
@@ -177,6 +246,12 @@ export function PessoaForm({
                 onChange={(v) => setPapeis((p) => ({ ...p, trabalhador: v }))}
                 titulo="Trabalhador(a)"
                 descricao="Atende, dirige grupos ou participa da escala"
+              />
+              <Opcao
+                marcado={papeis.voluntario}
+                onChange={(v) => setPapeis((p) => ({ ...p, voluntario: v }))}
+                titulo="Voluntário(a)"
+                descricao="Ajuda em tarefas da casa (eventos, limpeza, apoio)"
               />
             </div>
           </fieldset>

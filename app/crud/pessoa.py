@@ -164,6 +164,8 @@ def anonimizar(db: Session, pessoa: Pessoa) -> Pessoa:
     Apaga os dados pessoais mas mantém a linha (e os vínculos com atendimentos)
     para o histórico não ficar órfão.
     """
+    from app.crud.anexo import remover_todos_da_pessoa
+
     pessoa.nome_completo = "(dados removidos)"
     for campo in _CAMPOS_PESSOAIS:
         setattr(pessoa, campo, None)
@@ -174,6 +176,11 @@ def anonimizar(db: Session, pessoa: Pessoa) -> Pessoa:
     pessoa.consentimento_em = None
     pessoa.papeis.clear()
     db.commit()
+
+    # fotos e documentos são dado pessoal também -- e mais sensível que a
+    # maioria dos campos de texto que acabamos de apagar.
+    remover_todos_da_pessoa(db, pessoa.id)
+
     return get(db, pessoa.id)  # type: ignore[return-value]
 
 
@@ -181,6 +188,7 @@ def exportar_dados(db: Session, pessoa_id: int) -> dict:
     """Reúne tudo que o sistema guarda sobre a pessoa (direito de acesso),
     incluindo quem alterou a ficha dela e quando.
     """
+    from app.models.anexo import Anexo
     from app.models.atendimento import Atendimento
     from app.models.tratamento import TratamentoAssistido, TratamentoEvolucao
     from app.models.usuario import AuditLog
@@ -213,6 +221,8 @@ def exportar_dados(db: Session, pessoa_id: int) -> dict:
             TratamentoEvolucao.pessoa_id == pessoa_id
         )
     ).all()
+
+    anexos = db.scalars(select(Anexo).where(Anexo.pessoa_id == pessoa_id)).all()
 
     def _dict(obj, campos):
         return {c: getattr(obj, c) for c in campos}
@@ -280,6 +290,21 @@ def exportar_dados(db: Session, pessoa_id: int) -> dict:
         ],
         "evolucoes": [
             _dict(e, ["id", "tratamento_id", "data", "texto"]) for e in evolucoes
+        ],
+        # metadados só -- não embute o conteúdo do arquivo no export.
+        "anexos": [
+            _dict(
+                a,
+                [
+                    "id",
+                    "nome_arquivo",
+                    "tipo_conteudo",
+                    "tamanho_bytes",
+                    "descricao",
+                    "criado_em",
+                ],
+            )
+            for a in anexos
         ],
         "historico_edicoes": [
             {

@@ -101,11 +101,17 @@ def test_exportar_traz_tudo_da_pessoa(client: TestClient):
             "tratamentos": [{"tipo_tratamento_id": reflexo}],
         },
     )
+    client.post(
+        f"/api/v1/pessoas/{p['id']}/anexos",
+        files={"arquivo": ("doc.pdf", b"%PDF-1.4 conteudo", "application/pdf")},
+    )
 
     dump = client.get(f"/api/v1/pessoas/{p['id']}/exportar").json()
     assert dump["pessoa"]["nome_completo"] == "Exportavel Silva"
     assert len(dump["atendimentos"]) == 1
     assert dump["atendimentos"][0]["tratamentos"] == ["Reflexologia"]
+    assert len(dump["anexos"]) == 1
+    assert dump["anexos"][0]["nome_arquivo"] == "doc.pdf"
 
 
 def test_exportar_mostra_quem_editou_a_ficha(client: TestClient):

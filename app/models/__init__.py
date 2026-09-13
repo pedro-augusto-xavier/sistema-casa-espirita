@@ -5,6 +5,7 @@ Sempre que criar um modelo novo, adicione aqui.
 """
 
 from app.models.agenda import Escala, EventoAgenda
+from app.models.anexo import Anexo
 from app.models.atendimento import Atendimento, AtendimentoTratamento
 from app.models.pessoa import Pessoa, PessoaPapel, PessoaVinculo
 from app.models.trabalhador import FuncaoTrabalhador, TrabalhadorFuncao
@@ -19,6 +20,7 @@ from app.models.usuario import AuditLog, Usuario
 __all__ = [
     "Escala",
     "EventoAgenda",
+    "Anexo",
     "Atendimento",
     "AtendimentoTratamento",
     "Pessoa",

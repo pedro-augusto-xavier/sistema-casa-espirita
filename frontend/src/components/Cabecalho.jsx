@@ -42,7 +42,6 @@ export function Cabecalho() {
 
           <nav className="flex flex-wrap items-center gap-x-5 gap-y-1">
             <ItemNav to="/">Pessoas</ItemNav>
-            <ItemNav to="/grupos">Grupos</ItemNav>
             <ItemNav to="/agenda">Agenda</ItemNav>
             {usuario.papel === 'admin' && (
               <>

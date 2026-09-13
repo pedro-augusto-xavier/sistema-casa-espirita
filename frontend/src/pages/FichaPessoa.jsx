@@ -30,7 +30,6 @@ const ROTULO_TIPO = {
   atendimento: 'Atendimento',
   tratamento_inicio: 'Início de tratamento',
   evolucao: 'Evolução',
-  grupo: 'Grupo',
 }
 
 const ROTULO_MODALIDADE = {
@@ -44,7 +43,6 @@ const ESTILO_TIPO = {
   atendimento: { ponto: 'bg-emerald-600', tom: 'verde' },
   tratamento_inicio: { ponto: 'bg-amber-500', tom: 'ambar' },
   evolucao: { ponto: 'bg-sky-500', tom: 'azul' },
-  grupo: { ponto: 'bg-stone-400', tom: 'cinza' },
 }
 
 export function FichaPessoa() {
@@ -524,7 +522,7 @@ function Item({ label, valor, className = '' }) {
  * destaque, a observação em evidência e o card inteiro clicável. */
 function LinhaHistorico({ item, aoAbrir }) {
   const d = item.detalhes ?? {}
-  const estilo = ESTILO_TIPO[item.tipo] ?? ESTILO_TIPO.grupo
+  const estilo = ESTILO_TIPO[item.tipo] ?? { ponto: 'bg-stone-400', tom: 'cinza' }
   const Envoltorio = aoAbrir ? 'button' : 'div'
 
   return (
@@ -618,17 +616,6 @@ function LinhaHistorico({ item, aoAbrir }) {
             </>
           )}
 
-          {item.tipo === 'grupo' && (
-            <>
-              <p className="font-medium text-stone-800">{d.tipo_nome}</p>
-              {d.responsavel && (
-                <p>
-                  <Rotulo>Responsável</Rotulo> {d.responsavel}
-                </p>
-              )}
-              {d.observacao && <Citacao>{d.observacao}</Citacao>}
-            </>
-          )}
         </div>
       </Envoltorio>
     </li>

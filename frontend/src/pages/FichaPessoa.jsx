@@ -20,6 +20,7 @@ import { useAuth } from '../auth/AuthContext'
 import {
   ROTULO_ESTADO_CIVIL,
   ROTULO_PAPEL,
+  ROTULO_VINCULO,
   TOM_PAPEL,
   isoParaData,
   mascaraCpf,
@@ -556,19 +557,23 @@ function pessoasLigadas(casos, meuId) {
   const responsavelDe = new Map()
   const assistidoDe = new Map()
 
-  function junta(mapa, p, caso) {
+  function junta(mapa, p, caso, vinculo) {
     if (!p || p.id === meuId) return
-    const atual = mapa.get(p.id) ?? { pessoa: p, pastas: [], concluida: true }
+    const atual = mapa.get(p.id) ?? { pessoa: p, pastas: [], concluida: true, vinculo: null }
     atual.pastas.push(caso.tipo_nome)
     if (caso.status !== 'concluido') atual.concluida = false
+    if (vinculo && !atual.vinculo) atual.vinculo = vinculo
     mapa.set(p.id, atual)
   }
 
   for (const caso of casos) {
     if (caso.solicitante?.id === meuId) {
-      for (const a of caso.assistidos) junta(responsavelDe, a.pessoa, caso)
+      for (const a of caso.assistidos) {
+        junta(responsavelDe, a.pessoa, caso, a.vinculo_com_responsavel)
+      }
     } else if (caso.assistidos.some((a) => a.pessoa.id === meuId)) {
-      junta(assistidoDe, caso.solicitante, caso)
+      const meuVinculo = caso.assistidos.find((a) => a.pessoa.id === meuId)?.vinculo_com_responsavel
+      junta(assistidoDe, caso.solicitante, caso, meuVinculo)
     }
   }
   return {
@@ -582,7 +587,7 @@ function GrupoLigadas({ titulo, pessoas }) {
     <div>
       <p className="text-[11px] font-semibold tracking-wider text-stone-400 uppercase">{titulo}</p>
       <ul className="mt-2 flex flex-wrap gap-2">
-        {pessoas.map(({ pessoa: p, pastas, concluida }) => (
+        {pessoas.map(({ pessoa: p, pastas, concluida, vinculo }) => (
           <li key={p.id}>
             <Link
               to={`/pessoas/${p.id}`}
@@ -596,6 +601,11 @@ function GrupoLigadas({ titulo, pessoas }) {
                   {p.nome_completo}
                 </span>
                 <span className="block text-[11px] text-stone-400">
+                  {vinculo && (
+                    <span className="font-medium text-emerald-700">
+                      {ROTULO_VINCULO[vinculo]} ·{' '}
+                    </span>
+                  )}
                   {[...new Set(pastas)].join(' · ')}
                   {concluida ? ' · concluída' : ''}
                 </span>

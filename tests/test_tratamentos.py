@@ -101,6 +101,40 @@ def test_assistido_duplicado_da_422(client: TestClient):
     assert r.status_code == 422
 
 
+def test_vinculo_do_assistido_com_o_responsavel(client: TestClient):
+    tipo = _tipo_caso(client)
+    mae = _pessoa(client, "Mae Responsavel")
+    filho = _pessoa(client, "Filho Assistido")
+    caso = client.post(
+        "/api/v1/tratamentos",
+        json={"tipo_tratamento_id": tipo, "solicitante_id": mae},
+    ).json()
+
+    r = client.post(
+        f"/api/v1/tratamentos/{caso['id']}/assistidos",
+        json={"pessoa_id": filho, "vinculo_com_responsavel": "filho"},
+    )
+    assert r.status_code == 201, r.text
+    assistido = next(a for a in r.json()["assistidos"] if a["pessoa"]["id"] == filho)
+    assert assistido["vinculo_com_responsavel"] == "filho"
+
+    # a própria responsável, mesmo se um vínculo for enviado, fica sem vínculo
+    r2 = client.post(
+        f"/api/v1/tratamentos/{caso['id']}/assistidos",
+        json={"pessoa_id": mae, "vinculo_com_responsavel": "outro"},
+    )
+    dela = next(a for a in r2.json()["assistidos"] if a["pessoa"]["id"] == mae)
+    assert dela["vinculo_com_responsavel"] is None
+
+    # dá pra corrigir depois
+    r3 = client.patch(
+        f"/api/v1/tratamentos/{caso['id']}/assistidos/{assistido['id']}",
+        json={"vinculo_com_responsavel": "neto"},
+    )
+    corrigido = next(a for a in r3.json()["assistidos"] if a["id"] == assistido["id"])
+    assert corrigido["vinculo_com_responsavel"] == "neto"
+
+
 def test_fechar_caso(client: TestClient):
     tipo = _tipo_caso(client)
     caso = client.post("/api/v1/tratamentos", json={"tipo_tratamento_id": tipo}).json()

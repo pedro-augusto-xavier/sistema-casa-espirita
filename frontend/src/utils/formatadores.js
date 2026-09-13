@@ -45,6 +45,26 @@ export const TOM_PAPEL = {
   voluntario: 'azul',
 }
 
+export const ROTULO_VINCULO = {
+  pai: 'Pai',
+  mae: 'Mãe',
+  filho: 'Filho',
+  filha: 'Filha',
+  conjuge: 'Cônjuge',
+  irmao: 'Irmão(ã)',
+  avo: 'Avô/Avó',
+  neto: 'Neto(a)',
+  amigo: 'Amigo(a)',
+  responsavel: 'Responsável',
+  outro: 'Outro vínculo',
+}
+
+// pro seletor de "qual a relação com o responsável" -- sem "responsavel",
+// que descreveria a relação inversa (não faz sentido aqui).
+export const OPCOES_VINCULO = Object.entries(ROTULO_VINCULO).filter(
+  ([valor]) => valor !== 'responsavel',
+)
+
 export const ROTULO_ESTADO_CIVIL = {
   solteiro: 'Solteiro(a)',
   casado: 'Casado(a)',

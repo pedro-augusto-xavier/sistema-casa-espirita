@@ -130,7 +130,10 @@ def test_responsavel_pede_desobsessao_para_outras_pessoas(client: TestClient):
                 {
                     "tipo_tratamento_id": desob,
                     "sessoes_previstas": 3,
-                    "assistidos": [benicio, jorge],
+                    "assistidos": [
+                        {"pessoa_id": benicio, "vinculo_com_responsavel": "filho"},
+                        {"pessoa_id": jorge, "vinculo_com_responsavel": "conjuge"},
+                    ],
                 }
             ],
         },
@@ -142,6 +145,11 @@ def test_responsavel_pede_desobsessao_para_outras_pessoas(client: TestClient):
     ficha = client.get(f"/api/v1/tratamentos/{pasta['items'][0]['id']}").json()
     assert ficha["solicitante"]["id"] == marcela
     assert {a["pessoa"]["id"] for a in ficha["assistidos"]} == {benicio, jorge}
+    vinculos = {
+        a["pessoa"]["id"]: a["vinculo_com_responsavel"] for a in ficha["assistidos"]
+    }
+    assert vinculos[benicio] == "filho"
+    assert vinculos[jorge] == "conjuge"
     # quem veio foi a Marcela: conta como 1 vez
     assert ficha["sessoes_realizadas"] == 1
 
@@ -149,18 +157,30 @@ def test_responsavel_pede_desobsessao_para_outras_pessoas(client: TestClient):
     do_jorge = client.get("/api/v1/tratamentos", params={"pessoa_id": jorge}).json()
     assert [t["id"] for t in do_jorge["items"]] == [ficha["id"]]
 
-    # na próxima vez ela inclui ela mesma: entra na mesma pasta, sem abrir outra
+    # na próxima vez ela inclui ela mesma: entra na mesma pasta, sem abrir
+    # outra, e sem vínculo (ela não é "filha de si mesma")
     r = client.post(
         "/api/v1/atendimentos",
         json={
             "pessoa_id": marcela,
             "data": "2026-08-13",
-            "tratamentos": [{"tipo_tratamento_id": desob, "assistidos": [marcela]}],
+            "tratamentos": [
+                {
+                    "tipo_tratamento_id": desob,
+                    "assistidos": [
+                        {"pessoa_id": marcela, "vinculo_com_responsavel": "outro"}
+                    ],
+                }
+            ],
         },
     )
     assert r.status_code == 201, r.text
     ficha = client.get(f"/api/v1/tratamentos/{ficha['id']}").json()
     assert {a["pessoa"]["id"] for a in ficha["assistidos"]} == {benicio, jorge, marcela}
+    vinculos = {
+        a["pessoa"]["id"]: a["vinculo_com_responsavel"] for a in ficha["assistidos"]
+    }
+    assert vinculos[marcela] is None
     assert ficha["sessoes_realizadas"] == 2
     pasta = client.get("/api/v1/tratamentos", params={"pessoa_id": marcela}).json()
     assert pasta["total"] == 1

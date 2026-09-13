@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session, selectinload
 
 from app.core.errors import NaoEncontrado
 from app.models.atendimento import Atendimento, AtendimentoTratamento
-from app.models.enums import FormatoTratamento, StatusTratamento
+from app.models.enums import FormatoTratamento, StatusTratamento, TipoVinculo
 from app.models.pessoa import Pessoa
 from app.models.tratamento import TipoTratamento, Tratamento, TratamentoAssistido
 from app.schemas.atendimento import (
@@ -124,8 +124,15 @@ def _abre_fichas_de_acompanhamento(
         if item.tipo_tratamento_id not in tipos_caso:
             continue
 
-        assistidos = list(dict.fromkeys(item.assistidos)) or [dados.pessoa_id]
-        for pessoa_id in assistidos:
+        # dedup por pessoa, mantendo o primeiro vínculo informado pra ela
+        vinculos: dict[int, TipoVinculo | None] = {}
+        for ref in item.assistidos:
+            vinculos.setdefault(ref.pessoa_id, ref.vinculo_com_responsavel)
+        if not vinculos:
+            vinculos[dados.pessoa_id] = None
+        elif dados.pessoa_id in vinculos:
+            vinculos[dados.pessoa_id] = None  # não tem vínculo consigo mesma
+        for pessoa_id in vinculos:
             _checa_pessoa(db, pessoa_id, "assistidos")
 
         aberto = db.scalar(
@@ -142,9 +149,14 @@ def _abre_fichas_de_acompanhamento(
             if aberto.sessoes_previstas is None and item.sessoes_previstas:
                 aberto.sessoes_previstas = item.sessoes_previstas
             ja_tem = {a.pessoa_id for a in aberto.assistidos}
-            for pessoa_id in assistidos:
+            for pessoa_id in vinculos:
                 if pessoa_id not in ja_tem:
-                    aberto.assistidos.append(TratamentoAssistido(pessoa_id=pessoa_id))
+                    aberto.assistidos.append(
+                        TratamentoAssistido(
+                            pessoa_id=pessoa_id,
+                            vinculo_com_responsavel=vinculos[pessoa_id],
+                        )
+                    )
             continue
 
         ficha = Tratamento(
@@ -152,7 +164,12 @@ def _abre_fichas_de_acompanhamento(
             solicitante_id=dados.pessoa_id,  # o responsável é quem foi atendido
             sessoes_previstas=item.sessoes_previstas,
             observacao=item.observacao,
-            assistidos=[TratamentoAssistido(pessoa_id=p) for p in assistidos],
+            assistidos=[
+                TratamentoAssistido(
+                    pessoa_id=pessoa_id, vinculo_com_responsavel=vinculo
+                )
+                for pessoa_id, vinculo in vinculos.items()
+            ],
         )
         if dados.data is not None:
             ficha.data_inicio = dados.data

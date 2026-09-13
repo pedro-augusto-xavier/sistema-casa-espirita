@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { api } from '../api/client'
-import { isoParaData } from '../utils/formatadores'
+import { ROTULO_VINCULO, isoParaData } from '../utils/formatadores'
 import { Modal } from './Modal'
 import { Avatar, Botao, Carregando, MensagemErro, Pill, Rotulo } from './ui'
 
@@ -126,6 +126,11 @@ export function TratamentoDetalheModal({ tratamentoId, onFechar }) {
                     >
                       {a.pessoa.nome_completo}
                     </span>
+                    {a.vinculo_com_responsavel && a.pessoa.id !== dados.solicitante?.id && (
+                      <Pill tom="cinza" className="shrink-0 text-[10px]">
+                        {ROTULO_VINCULO[a.vinculo_com_responsavel]}
+                      </Pill>
+                    )}
                     {a.status === 'ativo' && !concluido && (
                       <button
                         type="button"

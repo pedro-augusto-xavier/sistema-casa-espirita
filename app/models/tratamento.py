@@ -28,6 +28,7 @@ from app.models.enums import (
     FormatoTratamento,
     StatusAssistido,
     StatusTratamento,
+    TipoVinculo,
 )
 from app.models.mixins import TimestampMixin
 
@@ -147,6 +148,11 @@ class TratamentoAssistido(Base):
     )
     situacao_final: Mapped[str | None] = mapped_column(Text)
     data_conclusao: Mapped[date | None] = mapped_column(Date)
+    # o quê essa pessoa é do responsável (filho, amigo...). Nulo quando o
+    # assistido é o próprio responsável -- não faz sentido ter vínculo consigo.
+    vinculo_com_responsavel: Mapped[TipoVinculo | None] = mapped_column(
+        Enum(TipoVinculo, native_enum=False, length=20)
+    )
 
     tratamento: Mapped[Tratamento] = relationship(back_populates="assistidos")
     pessoa: Mapped["object"] = relationship("Pessoa")

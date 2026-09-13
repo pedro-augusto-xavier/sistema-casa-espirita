@@ -36,6 +36,18 @@ async function request(path, { method = 'GET', body, isForm = false } = {}) {
   return res.json()
 }
 
+/** Baixa um arquivo (anexo) autenticado, como Blob -- pra exibir com
+ * <img>/abrir num link, já que a rota exige o token do localStorage. */
+async function requestBlob(path) {
+  const headers = {}
+  const token = pegarToken()
+  if (token) headers.Authorization = `Bearer ${token}`
+
+  const res = await fetch(`${BASE_URL}${path}`, { headers })
+  if (!res.ok) throw new Error('Não foi possível baixar o arquivo.')
+  return res.blob()
+}
+
 function extrairMensagemDeErro(corpo) {
   if (!corpo?.detail) return 'Erro inesperado na API.'
   if (typeof corpo.detail === 'string') return corpo.detail
@@ -49,8 +61,10 @@ function extrairMensagemDeErro(corpo) {
 export const api = {
   get: (path) => request(path),
   post: (path, body) => request(path, { method: 'POST', body }),
+  postForm: (path, formData) => request(path, { method: 'POST', body: formData, isForm: true }),
   patch: (path, body) => request(path, { method: 'PATCH', body }),
   del: (path) => request(path, { method: 'DELETE' }),
+  getBlob: (path) => requestBlob(path),
 
   login: (email, senha) => {
     const form = new URLSearchParams({ username: email, password: senha })

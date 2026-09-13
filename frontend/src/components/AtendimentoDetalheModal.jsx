@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { api } from '../api/client'
 import { isoParaData } from '../utils/formatadores'
+import { Anexos } from './Anexos'
 import { AtendimentoModal } from './AtendimentoModal'
 import { Modal } from './Modal'
 import { Botao, Carregando, MensagemErro, Pill, Rotulo } from './ui'
@@ -118,6 +119,14 @@ export function AtendimentoDetalheModal({ atendimentoId, onFechar }) {
             {dados.retorno_previsto && (
               <Campo label="Retorno previsto" valor={isoParaData(dados.retorno_previsto)} />
             )}
+          </div>
+
+          <div className="border-t border-stone-100 pt-4">
+            <Anexos
+              pessoaId={dados.pessoa.id}
+              atendimentoId={dados.id}
+              titulo="Arquivos deste atendimento"
+            />
           </div>
 
           <div className="flex flex-wrap items-center justify-between gap-2 border-t border-stone-100 pt-4">

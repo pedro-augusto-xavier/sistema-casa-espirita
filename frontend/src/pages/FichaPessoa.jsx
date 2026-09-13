@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { api } from '../api/client'
+import { Anexos } from '../components/Anexos'
 import { AtendimentoDetalheModal } from '../components/AtendimentoDetalheModal'
 import { AtendimentoModal } from '../components/AtendimentoModal'
 import { Cabecalho } from '../components/Cabecalho'
@@ -260,6 +261,10 @@ export function FichaPessoa() {
                 </p>
               </div>
             )}
+
+            <div className="mt-6 border-t border-stone-100 pt-5">
+              <Anexos pessoaId={pessoa.id} titulo="Arquivos" />
+            </div>
 
             <MensagemErro className="mt-4">{erro}</MensagemErro>
 

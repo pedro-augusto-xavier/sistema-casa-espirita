@@ -5,7 +5,9 @@ import {
   mascaraCpf,
   mascaraData,
   mascaraTelefone,
+  nomeDeLogin,
   rotuloFilhos,
+  senhaDeCpf,
   soDigitos,
 } from './formatadores'
 
@@ -89,6 +91,41 @@ describe('rotuloFilhos', () => {
   it('usa plural a partir de 2', () => {
     expect(rotuloFilhos(2)).toBe('2 filhos')
     expect(rotuloFilhos(5)).toBe('5 filhos')
+  })
+})
+
+describe('nomeDeLogin', () => {
+  it('usa primeiro e último nome quando tem mais de uma palavra', () => {
+    expect(nomeDeLogin('João da Silva Pereira')).toBe('João Pereira')
+    expect(nomeDeLogin('Maria Clara')).toBe('Maria Clara')
+  })
+
+  it('mantém o nome único quando só tem uma palavra', () => {
+    expect(nomeDeLogin('Madonna')).toBe('Madonna')
+  })
+
+  it('ignora espaços nas pontas e duplos no meio', () => {
+    expect(nomeDeLogin('  Ana   Paula  ')).toBe('Ana Paula')
+  })
+
+  it('lida com vazio', () => {
+    expect(nomeDeLogin('')).toBe('')
+    expect(nomeDeLogin('   ')).toBe('')
+  })
+})
+
+describe('senhaDeCpf', () => {
+  it('pega os 8 primeiros dígitos do CPF', () => {
+    expect(senhaDeCpf('390.533.447-05')).toBe('39053344')
+  })
+
+  it('funciona com CPF ainda sem pontuação', () => {
+    expect(senhaDeCpf('39053344705')).toBe('39053344')
+  })
+
+  it('retorna vazio quando o CPF tem menos de 8 dígitos', () => {
+    expect(senhaDeCpf('123.456')).toBe('')
+    expect(senhaDeCpf('')).toBe('')
   })
 })
 

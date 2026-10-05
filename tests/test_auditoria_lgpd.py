@@ -64,7 +64,7 @@ def test_operador_nao_ve_auditoria(client: TestClient, client_anon: TestClient):
     )
     token = client_anon.post(
         "/api/v1/auth/login",
-        data={"username": "opaudit@example.com", "password": "senha12345"},
+        data={"username": "Op Audit", "password": "senha12345"},
     ).json()["access_token"]
     r = client_anon.get(
         "/api/v1/auditoria", headers={"Authorization": f"Bearer {token}"}
@@ -84,7 +84,7 @@ def test_login_fica_na_auditoria(client: TestClient, client_anon: TestClient):
     )
     client_anon.post(
         "/api/v1/auth/login",
-        data={"username": "loga@example.com", "password": "senha12345"},
+        data={"username": "Quem Loga", "password": "senha12345"},
     )
     logs = client.get("/api/v1/auditoria", params={"entidade": "usuario"}).json()
     assert any(x["acao"] == "login" for x in logs["items"])
@@ -177,7 +177,7 @@ def test_operador_nao_anonimiza(client: TestClient, client_anon: TestClient):
     )
     token = client_anon.post(
         "/api/v1/auth/login",
-        data={"username": "opanon@example.com", "password": "senha12345"},
+        data={"username": "Op Anon", "password": "senha12345"},
     ).json()["access_token"]
     r = client_anon.post(
         f"/api/v1/pessoas/{p['id']}/anonimizar",

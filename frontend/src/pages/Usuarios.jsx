@@ -33,7 +33,7 @@ export function Usuarios() {
     setErro('')
     setEnviando(true)
     try {
-      await api.post('/usuarios', novo)
+      await api.post('/usuarios', { ...novo, email: novo.email || null })
       setNovo(VAZIO)
       setVersao((v) => v + 1)
     } catch (e) {
@@ -59,7 +59,7 @@ export function Usuarios() {
       <main className="mx-auto max-w-4xl px-4 py-6 sm:px-6 sm:py-8">
         <TituloPagina
           titulo="Usuários do sistema"
-          subtitulo="Quem pode entrar no sistema e fazer os cadastros."
+          subtitulo="Quem pode entrar no sistema e fazer os cadastros. Login é pelo nome."
         />
 
         <form
@@ -70,7 +70,7 @@ export function Usuarios() {
             Novo usuário
           </p>
           <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            <Campo label="Nome">
+            <Campo label="Nome" dica="é o login">
               <input
                 required
                 value={novo.nome}
@@ -78,9 +78,8 @@ export function Usuarios() {
                 className="campo"
               />
             </Campo>
-            <Campo label="E-mail">
+            <Campo label="E-mail" dica="opcional">
               <input
-                required
                 type="email"
                 value={novo.email}
                 onChange={(e) => setNovo((n) => ({ ...n, email: e.target.value }))}
@@ -136,7 +135,9 @@ export function Usuarios() {
                         <span className="text-xs font-normal text-stone-400">(você)</span>
                       )}
                     </p>
-                    <p className="truncate text-xs text-stone-500">{u.email}</p>
+                    <p className="truncate text-xs text-stone-500">
+                      {u.email || <span className="text-stone-300">sem e-mail</span>}
+                    </p>
                   </div>
                   <div className="hidden shrink-0 items-center gap-1.5 sm:flex">
                     <Pill tom={u.papel === 'admin' ? 'ambar' : 'cinza'}>
@@ -159,10 +160,11 @@ export function Usuarios() {
   )
 }
 
-function Campo({ label, children }) {
+function Campo({ label, dica, children }) {
   return (
     <label className="block text-xs font-medium text-stone-600">
       {label}
+      {dica && <span className="ml-1 font-normal text-stone-400">({dica})</span>}
       <div className="mt-1">{children}</div>
     </label>
   )

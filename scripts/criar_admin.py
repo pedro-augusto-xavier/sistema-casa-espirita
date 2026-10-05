@@ -1,10 +1,12 @@
 """Cria (ou promove) um usuário administrador.
 
 Uso:
-    python -m scripts.criar_admin --nome "Tia Fulana" --email tia@casa.org \
-        --senha "trocar123"
+    python -m scripts.criar_admin --nome "Tia Fulana" --senha "trocar123" \
+        [--email tia@casa.org]
 
-Se o e-mail já existir, apenas vira admin e (opcionalmente) troca a senha.
+Login no sistema é feito pelo nome -- se já existir um usuário ativo com
+esse nome, só atualiza (vira admin, troca a senha se informada, garante
+que está ativo). E-mail é opcional, só um contato.
 """
 
 import argparse
@@ -18,13 +20,13 @@ from app.schemas.usuario import UsuarioCreate
 def main() -> None:
     parser = argparse.ArgumentParser(description="Cria um usuário administrador")
     parser.add_argument("--nome", required=True)
-    parser.add_argument("--email", required=True)
     parser.add_argument("--senha", required=True)
+    parser.add_argument("--email", default=None)
     args = parser.parse_args()
 
     db = SessionLocal()
     try:
-        existente = crud.get_by_email(db, args.email)
+        existente = crud.get_by_nome(db, args.nome)
         if existente:
             from app.schemas.usuario import UsuarioUpdate
 
@@ -35,7 +37,7 @@ def main() -> None:
                     papel=PapelUsuario.admin, senha=args.senha, ativo=True
                 ),
             )
-            print(f"Usuário {args.email} atualizado para admin.")
+            print(f"Usuario {args.nome} atualizado para admin.")
             return
 
         crud.criar(
@@ -47,7 +49,7 @@ def main() -> None:
                 papel=PapelUsuario.admin,
             ),
         )
-        print(f"Admin {args.email} criado.")
+        print(f"Admin {args.nome} criado.")
     finally:
         db.close()
 

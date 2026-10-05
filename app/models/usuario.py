@@ -7,9 +7,11 @@ from sqlalchemy import (
     DateTime,
     Enum,
     ForeignKey,
+    Index,
     Integer,
     String,
     func,
+    text,
 )
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -20,10 +22,29 @@ from app.models.enums import AcaoAuditoria, PapelUsuario
 
 class Usuario(Base):
     __tablename__ = "usuario"
+    __table_args__ = (
+        # login é pelo nome -- só precisa ser único entre quem está ativo
+        # (um ex-funcionário desligado não trava o nome pra quem entrar
+        # depois). Comparação ignora maiúscula/minúscula.
+        Index(
+            "uq_usuario_nome_ativo",
+            text("lower(nome)"),
+            unique=True,
+            postgresql_where=text("ativo = true"),
+        ),
+        # e-mail é só um contato opcional agora -- quando preenchido, não
+        # pode repetir.
+        Index(
+            "uq_usuario_email",
+            "email",
+            unique=True,
+            postgresql_where=text("email IS NOT NULL"),
+        ),
+    )
 
     id: Mapped[int] = mapped_column(primary_key=True)
     nome: Mapped[str] = mapped_column(String(120), nullable=False)
-    email: Mapped[str] = mapped_column(String(255), unique=True, nullable=False)
+    email: Mapped[str | None] = mapped_column(String(255))
     senha_hash: Mapped[str] = mapped_column(String(255), nullable=False)
     papel: Mapped[PapelUsuario] = mapped_column(
         Enum(PapelUsuario, native_enum=False, length=20),

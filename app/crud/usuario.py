@@ -17,6 +17,18 @@ def get_by_email(db: Session, email: str) -> Usuario | None:
     return db.scalar(select(Usuario).where(Usuario.email == email.lower()))
 
 
+def get_by_nome(
+    db: Session, nome: str, *, apenas_ativos: bool = True
+) -> Usuario | None:
+    """Login é pelo nome -- comparação ignora maiúscula/minúscula e espaços
+    nas pontas. Só olha usuários ativos por padrão (é o que importa pro
+    login, e evita que um nome de alguém desligado trave pra sempre)."""
+    stmt = select(Usuario).where(func.lower(Usuario.nome) == nome.strip().lower())
+    if apenas_ativos:
+        stmt = stmt.where(Usuario.ativo.is_(True))
+    return db.scalar(stmt)
+
+
 def listar(
     db: Session, *, page: int = 1, size: int = 50
 ) -> tuple[list[Usuario], int]:
@@ -27,11 +39,13 @@ def listar(
 
 
 def criar(db: Session, dados: UsuarioCreate) -> Usuario:
-    if get_by_email(db, dados.email):
+    if dados.email and get_by_email(db, dados.email):
         raise ErroDominio("já existe um usuário com esse e-mail")
+    if get_by_nome(db, dados.nome):
+        raise ErroDominio("já existe um usuário ativo com esse nome")
     usuario = Usuario(
         nome=dados.nome,
-        email=dados.email.lower(),
+        email=dados.email.lower() if dados.email else None,
         senha_hash=hash_senha(dados.senha),
         papel=dados.papel,
     )
@@ -43,8 +57,21 @@ def criar(db: Session, dados: UsuarioCreate) -> Usuario:
 
 def atualizar(db: Session, usuario: Usuario, dados: UsuarioUpdate) -> Usuario:
     mudancas = dados.model_dump(exclude_unset=True)
+
+    if "nome" in mudancas:
+        existente = get_by_nome(db, mudancas["nome"])
+        if existente and existente.id != usuario.id:
+            raise ErroDominio("já existe um usuário ativo com esse nome")
+
+    if "email" in mudancas and mudancas["email"]:
+        existente = get_by_email(db, mudancas["email"])
+        if existente and existente.id != usuario.id:
+            raise ErroDominio("já existe um usuário com esse e-mail")
+        mudancas["email"] = mudancas["email"].lower()
+
     if "senha" in mudancas:
         usuario.senha_hash = hash_senha(mudancas.pop("senha"))
+
     for campo, valor in mudancas.items():
         setattr(usuario, campo, valor)
     db.commit()
@@ -52,9 +79,9 @@ def atualizar(db: Session, usuario: Usuario, dados: UsuarioUpdate) -> Usuario:
     return usuario
 
 
-def autenticar(db: Session, email: str, senha: str) -> Usuario | None:
-    usuario = get_by_email(db, email)
-    if usuario is None or not usuario.ativo:
+def autenticar(db: Session, nome: str, senha: str) -> Usuario | None:
+    usuario = get_by_nome(db, nome)
+    if usuario is None:
         return None
     if not verificar_senha(senha, usuario.senha_hash):
         return None

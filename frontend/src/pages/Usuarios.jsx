@@ -10,6 +10,7 @@ import {
   Pill,
   TituloPagina,
 } from '../components/ui'
+import { mascaraCpf, nomeDeLogin, senhaDeCpf } from '../utils/formatadores'
 
 const VAZIO = { nome: '', email: '', senha: '', papel: 'operador' }
 
@@ -20,6 +21,10 @@ export function Usuarios() {
   const [novo, setNovo] = useState(VAZIO)
   const [enviando, setEnviando] = useState(false)
   const [versao, setVersao] = useState(0)
+  // só ajudam a preencher nome/senha -- não vão pro servidor
+  const [ajudaNome, setAjudaNome] = useState('')
+  const [ajudaCpf, setAjudaCpf] = useState('')
+  const [mostrarSenha, setMostrarSenha] = useState(false)
 
   useEffect(() => {
     api
@@ -35,12 +40,22 @@ export function Usuarios() {
     try {
       await api.post('/usuarios', { ...novo, email: novo.email || null })
       setNovo(VAZIO)
+      setAjudaNome('')
+      setAjudaCpf('')
       setVersao((v) => v + 1)
     } catch (e) {
       setErro(e.message)
     } finally {
       setEnviando(false)
     }
+  }
+
+  function preencherComNomeECpf() {
+    setNovo((n) => ({
+      ...n,
+      nome: nomeDeLogin(ajudaNome) || n.nome,
+      senha: senhaDeCpf(ajudaCpf) || n.senha,
+    }))
   }
 
   async function alternarAtivo(usuario) {
@@ -69,6 +84,41 @@ export function Usuarios() {
           <p className="text-[11px] font-semibold tracking-wider text-stone-400 uppercase">
             Novo usuário
           </p>
+
+          {/* ---------- preenchimento automático (opcional) ---------- */}
+          <div className="mt-3 rounded-lg bg-stone-50 p-3 ring-1 ring-stone-900/5">
+            <p className="text-xs font-medium text-stone-600">
+              Preencher automático
+              <span className="ml-1.5 font-normal text-stone-400">
+                — login = primeiro + último nome · senha = 8 primeiros números do CPF
+              </span>
+            </p>
+            <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-[2fr_1fr_auto]">
+              <input
+                placeholder="Nome completo"
+                value={ajudaNome}
+                onChange={(e) => setAjudaNome(e.target.value)}
+                className="campo border-transparent bg-white shadow-none"
+              />
+              <input
+                placeholder="CPF"
+                inputMode="numeric"
+                maxLength={14}
+                value={ajudaCpf}
+                onChange={(e) => setAjudaCpf(mascaraCpf(e.target.value))}
+                className="campo border-transparent bg-white shadow-none"
+              />
+              <Botao
+                type="button"
+                variante="secundario"
+                onClick={preencherComNomeECpf}
+                disabled={!ajudaNome.trim() && !ajudaCpf.trim()}
+              >
+                Preencher
+              </Botao>
+            </div>
+          </div>
+
           <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
             <Campo label="Nome" dica="é o login">
               <input
@@ -87,15 +137,24 @@ export function Usuarios() {
               />
             </Campo>
             <Campo label="Senha">
-              <input
-                required
-                type="password"
-                minLength={8}
-                placeholder="8+ caracteres"
-                value={novo.senha}
-                onChange={(e) => setNovo((n) => ({ ...n, senha: e.target.value }))}
-                className="campo"
-              />
+              <div className="flex items-center gap-2">
+                <input
+                  required
+                  type={mostrarSenha ? 'text' : 'password'}
+                  minLength={8}
+                  placeholder="8+ caracteres"
+                  value={novo.senha}
+                  onChange={(e) => setNovo((n) => ({ ...n, senha: e.target.value }))}
+                  className="campo"
+                />
+                <button
+                  type="button"
+                  onClick={() => setMostrarSenha((v) => !v)}
+                  className="shrink-0 text-xs text-stone-400 hover:text-emerald-800 hover:underline"
+                >
+                  {mostrarSenha ? 'ocultar' : 'ver'}
+                </button>
+              </div>
             </Campo>
             <Campo label="Papel">
               <select

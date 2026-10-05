@@ -81,6 +81,20 @@ export function rotuloFilhos(quantidade) {
   return quantidade === 1 ? '1 filho' : `${quantidade} filhos`
 }
 
+/** "João da Silva Pereira" -> "João Pereira" -- login curto, primeiro + último nome. */
+export function nomeDeLogin(nomeCompleto) {
+  const partes = (nomeCompleto || '').trim().split(/\s+/).filter(Boolean)
+  if (partes.length <= 1) return partes[0] ?? ''
+  return `${partes[0]} ${partes[partes.length - 1]}`
+}
+
+/** Os 8 primeiros dígitos do CPF -- já bate com o mínimo de 8 caracteres
+ * que o sistema exige pra senha. Vazio se o CPF digitado tiver menos. */
+export function senhaDeCpf(cpfDigitado) {
+  const digitos = soDigitos(cpfDigitado)
+  return digitos.length >= 8 ? digitos.slice(0, 8) : ''
+}
+
 export function mascaraTelefone(valor) {
   const d = soDigitos(valor).slice(0, 11)
   if (d.length > 10) return `(${d.slice(0, 2)}) ${d.slice(2, 7)}-${d.slice(7)}` // celular

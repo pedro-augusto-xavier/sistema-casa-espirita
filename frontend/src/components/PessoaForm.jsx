@@ -131,9 +131,8 @@ export function PessoaForm({
           </div>
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <Campo label="CPF" obrigatorio>
+            <Campo label="CPF">
               <input
-                required
                 inputMode="numeric"
                 placeholder="000.000.000-00"
                 maxLength={14}

@@ -31,6 +31,19 @@ def test_criar_e_obter_pessoa(client: TestClient):
     assert r2.json()["nome_completo"] == "Fulano de Tal"
 
 
+def test_cpf_e_opcional(client: TestClient):
+    """Maioria das pessoas atendidas não tem CPF em mãos -- não pode travar
+    o cadastro por causa disso."""
+    r = client.post("/api/v1/pessoas", json=_nova_pessoa())
+    assert r.status_code == 201, r.text
+    assert r.json()["cpf"] is None
+
+    # várias pessoas sem CPF ao mesmo tempo não pode dar conflito de duplicado
+    r2 = client.post("/api/v1/pessoas", json=_nova_pessoa(nome_completo="Outra Pessoa"))
+    assert r2.status_code == 201, r2.text
+    assert r2.json()["cpf"] is None
+
+
 def test_cpf_invalido_e_rejeitado(client: TestClient):
     r = client.post("/api/v1/pessoas", json=_nova_pessoa(cpf="111.111.111-11"))
     assert r.status_code == 422

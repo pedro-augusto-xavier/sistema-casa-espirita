@@ -20,12 +20,12 @@ def login(
     db: SessaoDB,
     form: Annotated[OAuth2PasswordRequestForm, Depends()],
 ):
-    """Envie `username` (e-mail) e `password`. Devolve o token Bearer."""
+    """Envie `username` (o nome do usuário) e `password`. Devolve o token Bearer."""
     usuario = crud.autenticar(db, form.username, form.password)
     if usuario is None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="E-mail ou senha inválidos",
+            detail="Nome ou senha inválidos",
             headers={"WWW-Authenticate": "Bearer"},
         )
     registrar(

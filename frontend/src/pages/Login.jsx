@@ -8,7 +8,7 @@ export function Login() {
   const { entrar } = useAuth()
   const navigate = useNavigate()
 
-  const [email, setEmail] = useState('')
+  const [nome, setNome] = useState('')
   const [senha, setSenha] = useState('')
   const [erro, setErro] = useState('')
   const [enviando, setEnviando] = useState(false)
@@ -18,7 +18,7 @@ export function Login() {
     setErro('')
     setEnviando(true)
     try {
-      await entrar(email, senha)
+      await entrar(nome, senha)
       navigate('/')
     } catch (e) {
       setErro(e.message)
@@ -50,17 +50,17 @@ export function Login() {
           onSubmit={aoEnviar}
           className="mt-8 w-full rounded-2xl border border-white/70 bg-white/85 p-8 shadow-xl shadow-emerald-900/10 ring-1 ring-stone-900/5 backdrop-blur-sm"
         >
-          <p className="text-sm text-stone-500">Entre com seu e-mail e senha.</p>
+          <p className="text-sm text-stone-500">Entre com seu nome e senha.</p>
 
           <label className="mt-6 block text-sm font-medium text-stone-700">
-            E-mail
+            Nome
             <input
-              type="email"
+              type="text"
               required
               autoFocus
               autoComplete="username"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              value={nome}
+              onChange={(e) => setNome(e.target.value)}
               className="campo mt-1"
             />
           </label>

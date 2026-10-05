@@ -47,13 +47,17 @@ front no **Vercel**. Os três aceitam login com GitHub.
 
 ### Criar o primeiro usuário admin na base de produção
 
-No seu PC, **uma vez só**, aponta o script pro banco do Neon:
+O login no sistema é feito pelo **nome** (não e-mail) -- escolha um nome
+fácil de lembrar e digitar. No seu PC, **uma vez só**, aponta o script pro
+banco do Neon:
 
 ```powershell
 $env:DATABASE_URL = "postgresql+psycopg://usuario:senha@ep-xxxx.aws.neon.tech/neondb?sslmode=require"
-.\.venv\Scripts\python.exe -m scripts.criar_admin --nome "Seu Nome" --email voce@exemplo.com --senha "escolha-uma-boa"
+.\.venv\Scripts\python.exe -m scripts.criar_admin --nome "Seu Nome" --senha "escolha-uma-boa"
 Remove-Item Env:\DATABASE_URL
 ```
+
+(`--email` é opcional, só um contato -- pode incluir com `--email voce@exemplo.com` se quiser.)
 
 (o `Remove-Item` no final garante que o terminal volta a usar o `.env` local
 depois -- senão os próximos comandos mexeriam sem querer no banco de produção)

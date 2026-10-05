@@ -66,8 +66,8 @@ export const api = {
   del: (path) => request(path, { method: 'DELETE' }),
   getBlob: (path) => requestBlob(path),
 
-  login: (email, senha) => {
-    const form = new URLSearchParams({ username: email, password: senha })
+  login: (nome, senha) => {
+    const form = new URLSearchParams({ username: nome, password: senha })
     return request('/auth/login', { method: 'POST', body: form, isForm: true })
   },
 }

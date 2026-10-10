@@ -4,17 +4,21 @@ from datetime import date, datetime
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
-from app.core.validators import cpf_valido, normaliza_cep, so_digitos
+from app.core.validators import normaliza_cep, so_digitos
 from app.models.enums import EstadoCivil, Papel, Sexo
 
 # --- funções de validação reutilizadas nos schemas de entrada ---
 
 def _checa_cpf(v: str | None) -> str | None:
-    if v is None or v.strip() == "":
+    # Não confere dígito verificador: muito CPF vem copiado da ficha de papel
+    # e o cadastro não pode travar por isso. Só guarda os números.
+    if v is None:
         return None
     digitos = so_digitos(v)
-    if not cpf_valido(digitos):
-        raise ValueError("CPF inválido")
+    if not digitos:
+        return None
+    if len(digitos) > 11:
+        raise ValueError("CPF deve ter no máximo 11 números")
     return digitos
 
 

@@ -44,8 +44,16 @@ def test_cpf_e_opcional(client: TestClient):
     assert r2.json()["cpf"] is None
 
 
-def test_cpf_invalido_e_rejeitado(client: TestClient):
-    r = client.post("/api/v1/pessoas", json=_nova_pessoa(cpf="111.111.111-11"))
+def test_cpf_com_digito_errado_e_aceito(client: TestClient):
+    """Não confere dígito verificador -- CPF copiado errado da ficha não
+    pode travar o cadastro."""
+    r = client.post("/api/v1/pessoas", json=_nova_pessoa(cpf="123.456.789-00"))
+    assert r.status_code == 201, r.text
+    assert r.json()["cpf"] == "12345678900"
+
+
+def test_cpf_com_mais_de_11_numeros_e_rejeitado(client: TestClient):
+    r = client.post("/api/v1/pessoas", json=_nova_pessoa(cpf="123456789012"))
     assert r.status_code == 422
 
 

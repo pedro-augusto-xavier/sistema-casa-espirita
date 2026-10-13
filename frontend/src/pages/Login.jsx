@@ -8,8 +8,10 @@ export function Login() {
   const { entrar } = useAuth()
   const navigate = useNavigate()
 
-  const [nome, setNome] = useState('')
+  const nomeSalvo = localStorage.getItem('ultimoNome') ?? ''
+  const [nome, setNome] = useState(nomeSalvo)
   const [senha, setSenha] = useState('')
+  const [lembrar, setLembrar] = useState(true)
   const [erro, setErro] = useState('')
   const [enviando, setEnviando] = useState(false)
 
@@ -18,7 +20,7 @@ export function Login() {
     setErro('')
     setEnviando(true)
     try {
-      await entrar(nome, senha)
+      await entrar(nome, senha, lembrar)
       navigate('/')
     } catch (e) {
       setErro(e.message)
@@ -47,6 +49,7 @@ export function Login() {
         </div>
 
         <form
+          method="post"
           onSubmit={aoEnviar}
           className="mt-8 w-full rounded-2xl border border-white/70 bg-white/85 p-8 shadow-xl shadow-emerald-900/10 ring-1 ring-stone-900/5 backdrop-blur-sm"
         >
@@ -56,8 +59,9 @@ export function Login() {
             Nome
             <input
               type="text"
+              name="username"
               required
-              autoFocus
+              autoFocus={!nomeSalvo}
               autoComplete="username"
               value={nome}
               onChange={(e) => setNome(e.target.value)}
@@ -69,12 +73,24 @@ export function Login() {
             Senha
             <input
               type="password"
+              name="password"
               required
+              autoFocus={!!nomeSalvo}
               autoComplete="current-password"
               value={senha}
               onChange={(e) => setSenha(e.target.value)}
               className="campo mt-1"
             />
+          </label>
+
+          <label className="mt-4 flex items-center gap-2 text-sm text-stone-600">
+            <input
+              type="checkbox"
+              checked={lembrar}
+              onChange={(e) => setLembrar(e.target.checked)}
+              className="h-4 w-4 rounded border-stone-300 accent-emerald-700"
+            />
+            Manter conectado neste aparelho
           </label>
 
           <MensagemErro className="mt-4">{erro}</MensagemErro>

@@ -23,6 +23,8 @@ class Settings(BaseSettings):
     # Segurança / JWT
     SECRET_KEY: str = "dev-inseguro-troque-no-.env"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 480
+    # validade do token quando a pessoa marca "Manter conectado" no login
+    LEMBRAR_TOKEN_EXPIRE_DAYS: int = 30
     ALGORITHM: str = "HS256"
 
     # App

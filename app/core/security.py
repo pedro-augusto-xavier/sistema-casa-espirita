@@ -26,13 +26,17 @@ def verificar_senha(senha: str, hash_armazenado: str) -> bool:
         return False
 
 
-def criar_token_acesso(usuario_id: int, papel: str) -> str:
+def criar_token_acesso(
+    usuario_id: int, papel: str, validade: timedelta | None = None
+) -> str:
     agora = datetime.now(UTC)
+    if validade is None:
+        validade = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
     payload = {
         "sub": str(usuario_id),
         "papel": papel,
         "iat": agora,
-        "exp": agora + timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES),
+        "exp": agora + validade,
     }
     return jwt.encode(payload, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
 

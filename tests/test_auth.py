@@ -132,3 +132,26 @@ def test_token_invalido_da_401(client_anon: TestClient):
         "/api/v1/pessoas", headers={"Authorization": "Bearer isso.nao.e.um.token"}
     )
     assert r.status_code == 401
+
+
+def test_manter_conectado_gera_token_mais_longo(
+    client: TestClient, client_anon: TestClient
+):
+    from app.core.security import ler_token_acesso
+
+    client.post(
+        "/api/v1/usuarios",
+        json={"nome": "Lembrada", "senha": "senha12345", "papel": "operador"},
+    )
+
+    def duracao(dados: dict) -> int:
+        r = client_anon.post("/api/v1/auth/login", data=dados)
+        assert r.status_code == 200, r.text
+        payload = ler_token_acesso(r.json()["access_token"])
+        return payload["exp"] - payload["iat"]
+
+    base = {"username": "Lembrada", "password": "senha12345"}
+    curto = duracao(base)
+    longo = duracao({**base, "lembrar": "true"})
+    assert longo > curto
+    assert longo >= 29 * 24 * 3600

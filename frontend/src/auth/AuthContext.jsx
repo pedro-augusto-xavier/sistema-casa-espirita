@@ -20,9 +20,13 @@ export function AuthProvider({ children }) {
       .finally(() => setCarregando(false))
   }, [])
 
-  async function entrar(nome, senha) {
-    const { access_token } = await api.login(nome, senha)
+  async function entrar(nome, senha, lembrar = false) {
+    const { access_token } = await api.login(nome, senha, lembrar)
     localStorage.setItem('token', access_token)
+    // guarda o nome pra já vir preenchido na próxima vez (nunca a senha --
+    // essa fica a cargo do gerenciador de senhas do navegador)
+    if (lembrar) localStorage.setItem('ultimoNome', nome.trim())
+    else localStorage.removeItem('ultimoNome')
     const eu = await api.get('/auth/me')
     setUsuario(eu)
   }

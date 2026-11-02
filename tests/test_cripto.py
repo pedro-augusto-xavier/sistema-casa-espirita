@@ -181,3 +181,25 @@ def test_nome_e_descricao_do_anexo_ficam_cifrados(client: TestClient, db: Sessio
     assert anexo["descricao"] == "laudo do psiquiatra"
     lista = client.get(f"/api/v1/pessoas/{p['id']}/anexos").json()
     assert lista[0]["nome_arquivo"] == "exame_fulana.pdf"
+
+
+def test_health_confirma_que_a_chave_abre_os_dados(client: TestClient):
+    client.post(
+        "/api/v1/pessoas", json={"nome_completo": "Saude Ok", "cpf": "39053344705"}
+    )
+    r = client.get("/health")
+    assert r.status_code == 200
+    assert r.json() == {"api": "ok", "banco": "ok", "cripto": "ok"}
+
+
+def test_health_falha_com_a_chave_errada(client: TestClient, chaves_temporarias):
+    """Simula alguém colar outra chave no Render: o /health responde 503 e o
+    Render não põe essa versão no ar."""
+    client.post(
+        "/api/v1/pessoas", json={"nome_completo": "Chave Trocada", "cpf": "39053344705"}
+    )
+    chaves_temporarias(f"1:{_chave_nova()}")  # mesmo id, chave diferente
+
+    r = client.get("/health")
+    assert r.status_code == 503
+    assert r.json() == {"api": "ok", "banco": "ok", "cripto": "erro"}

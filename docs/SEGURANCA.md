@@ -53,6 +53,7 @@ Documentos relacionados: [LGPD.md](LGPD.md), [PLANO_DE_INCIDENTE.md](PLANO_DE_IN
 | Chave fora do banco e do repositório | ✅ Variáveis `CHAVES_CRIPTOGRAFIA` e `CHAVE_HMAC` no Render. 👤 Guarde uma cópia num gerenciador de senhas: **sem ela, os dados cifrados — inclusive dos backups — não abrem nunca mais.** |
 | Busca e duplicidade de CPF por HMAC | ✅ Coluna `cpf_hash` (HMAC-SHA256, chave separada) com índice único. A busca por CPF funciona com o número completo. |
 | Versão da chave junto do dado | ✅ Cada valor guarda o id da chave que o cifrou. |
+| Chave errada no painel | ✅ O `/health` abre uma amostra dos dados com a chave configurada e responde 503 se não conseguir — o Render então não põe a versão nova no ar (Health Check Path = `/health`). |
 | Plano de rotação | ✅ Ver "Se a chave vazar", abaixo. Script: `scripts/rotacionar_chaves.py` (testado). |
 | Backups criptografados | ✅ O backup diário é cifrado inteiro com `age` (ver [BACKUP.md](BACKUP.md)), e os campos sensíveis já estão cifrados dentro dele. |
 | Disco criptografado | ☁️ Neon, Render e Vercel criptografam o armazenamento. |

@@ -17,10 +17,11 @@ from fastapi.responses import JSONResponse
 from sqlalchemy import text
 from sqlalchemy.exc import IntegrityError
 
+from app.api.deps import SessaoDB
 from app.api.v1.api import api_router
 from app.core.config import settings
 from app.core.contexto import ContextoDaRequisicao
-from app.core.database import engine
+from app.core.cripto import chaves_abrem_os_dados
 from app.core.errors import ErroDominio, NaoEncontrado
 from app.core.security_headers import CabecalhosSeguranca
 
@@ -126,13 +127,28 @@ def raiz() -> dict:
 
 
 @app.get("/health", tags=["status"])
-def health() -> dict:
-    """Confere se a API está de pé e se o banco responde."""
+def health(db: SessaoDB) -> JSONResponse:
+    """Confere se a API está de pé, se o banco responde e se as chaves de
+    criptografia configuradas abrem os dados que estão no banco.
+
+    Responde 503 se algo falhar. O Render chama esta rota antes de pôr uma
+    versão nova no ar: com uma chave errada no painel, o deploy é barrado e
+    a versão que funciona continua atendendo.
+    """
     try:
-        with engine.connect() as conn:
-            conn.execute(text("SELECT 1"))
+        db.execute(text("SELECT 1"))
         banco_ok = True
     except Exception:
         banco_ok = False
 
-    return {"api": "ok", "banco": "ok" if banco_ok else "sem conexão"}
+    cripto_ok = banco_ok and chaves_abrem_os_dados(db)
+    tudo_ok = banco_ok and cripto_ok
+    codigo = status.HTTP_200_OK if tudo_ok else status.HTTP_503_SERVICE_UNAVAILABLE
+    return JSONResponse(
+        status_code=codigo,
+        content={
+            "api": "ok",
+            "banco": "ok" if banco_ok else "sem conexão",
+            "cripto": "ok" if cripto_ok else "erro",
+        },
+    )

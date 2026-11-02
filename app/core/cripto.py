@@ -28,7 +28,8 @@ from functools import lru_cache
 
 from cryptography.exceptions import InvalidTag
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
-from sqlalchemy import LargeBinary
+from sqlalchemy import LargeBinary, column, select, table
+from sqlalchemy.orm import Session
 from sqlalchemy.types import TypeDecorator
 
 from app.core.chaves import ler_chave_hmac, ler_chaves
@@ -98,6 +99,37 @@ def hmac_busca(valor: str) -> str:
     mas sem a chave não dá pra testar CPFs um por um (como daria com um
     SHA-256 puro, já que só existem 10^11 CPFs possíveis)."""
     return hmac.new(_chave_hmac(), valor.encode(), hashlib.sha256).hexdigest()
+
+
+# Onde o /health pega uma amostra pra conferir se a chave abre os dados:
+# o valor mais recente de cada uma (consulta barata, pela chave primária).
+_AMOSTRAS = [
+    ("pessoa", "cpf_cifrado", "pessoa.cpf"),
+    ("atendimento", "observacao", "atendimento.observacao"),
+    ("anexo", "nome_arquivo", "anexo.nome_arquivo"),
+]
+
+
+def chaves_abrem_os_dados(db: Session) -> bool:
+    """True se as chaves carregam, cifram/decifram e abrem uma amostra do
+    que já está no banco. Pega o caso "colaram a chave errada no Render"
+    antes que todas as fichas comecem a dar erro."""
+    try:
+        if decifrar(cifrar(b"teste", "saude"), "saude") != b"teste":
+            return False
+        for nome_tabela, coluna, contexto in _AMOSTRAS:
+            t = table(nome_tabela, column("id"), column(coluna))
+            valor = db.execute(
+                select(t.c[coluna])
+                .where(t.c[coluna].is_not(None))
+                .order_by(t.c.id.desc())
+                .limit(1)
+            ).scalar()
+            if valor is not None:
+                decifrar(bytes(valor), contexto)
+    except Exception:
+        return False
+    return True
 
 
 class TextoCifrado(TypeDecorator):

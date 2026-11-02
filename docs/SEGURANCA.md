@@ -48,7 +48,7 @@ Documentos relacionados: [LGPD.md](LGPD.md), [PLANO_DE_INCIDENTE.md](PLANO_DE_IN
 
 | Item | Situação |
 |---|---|
-| Lista de campos sensíveis | ✅ Cifrados: **CPF**, **observações** (ficha, atendimento e tratamento do dia), **situação final**, **diário do tratamento**, **arquivos anexados** e o segredo da verificação em duas etapas. Não cifrados, de propósito: nome, telefone e endereço (precisam de busca e aparecem em toda tela) — ficam protegidos pelo controle de acesso e pela criptografia de disco do Neon. |
+| Lista de campos sensíveis | ✅ Cifrados: **CPF**, **observações** (ficha, atendimento e tratamento do dia), **situação final**, **diário do tratamento**, **arquivos anexados** (com o nome e a descrição de cada um) e o segredo da verificação em duas etapas. Não cifrados, de propósito: nome, telefone e endereço (precisam de busca e aparecem em toda tela) — ficam protegidos pelo controle de acesso e pela criptografia de disco do Neon. |
 | AES-256-GCM com biblioteca pronta | ✅ `cryptography` (AESGCM), nonce aleatório por valor, e o nome da coluna amarrado ao dado (um valor copiado de uma coluna pra outra não abre). `app/core/cripto.py`. |
 | Chave fora do banco e do repositório | ✅ Variáveis `CHAVES_CRIPTOGRAFIA` e `CHAVE_HMAC` no Render. 👤 Guarde uma cópia num gerenciador de senhas: **sem ela, os dados cifrados — inclusive dos backups — não abrem nunca mais.** |
 | Busca e duplicidade de CPF por HMAC | ✅ Coluna `cpf_hash` (HMAC-SHA256, chave separada) com índice único. A busca por CPF funciona com o número completo. |

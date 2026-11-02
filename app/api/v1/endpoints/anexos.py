@@ -41,7 +41,7 @@ async def enviar_anexo(
     pessoa_id: int,
     usuario: UsuarioAtual,
     arquivo: Annotated[UploadFile, File()],
-    descricao: Annotated[str | None, Form()] = None,
+    descricao: Annotated[str | None, Form(max_length=500)] = None,
     atendimento_id: Annotated[int | None, Form()] = None,
     tratamento_id: Annotated[int | None, Form()] = None,
 ):

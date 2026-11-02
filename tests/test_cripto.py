@@ -159,3 +159,25 @@ def test_script_de_rotacao_recifra_tudo_com_a_chave_nova(
     ).scalar_one()
     assert cripto.id_da_chave(bytes(cru)) == 2
     assert cripto.decifrar(bytes(cru), "pessoa.cpf") == b"39053344705"
+
+
+def test_nome_e_descricao_do_anexo_ficam_cifrados(client: TestClient, db: Session):
+    p = client.post("/api/v1/pessoas", json={"nome_completo": "Anexo Com Nome"}).json()
+    anexo = client.post(
+        f"/api/v1/pessoas/{p['id']}/anexos",
+        files={"arquivo": ("exame_fulana.pdf", b"%PDF-1.4 x", "application/pdf")},
+        data={"descricao": "laudo do psiquiatra"},
+    ).json()
+
+    cru = db.execute(
+        text("SELECT nome_arquivo, descricao FROM anexo WHERE id = :i"),
+        {"i": anexo["id"]},
+    ).one()
+    assert b"exame" not in bytes(cru.nome_arquivo)
+    assert b"psiquiatra" not in bytes(cru.descricao)
+
+    # pela API continua tudo legível
+    assert anexo["nome_arquivo"] == "exame_fulana.pdf"
+    assert anexo["descricao"] == "laudo do psiquiatra"
+    lista = client.get(f"/api/v1/pessoas/{p['id']}/anexos").json()
+    assert lista[0]["nome_arquivo"] == "exame_fulana.pdf"

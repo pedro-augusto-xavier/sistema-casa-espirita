@@ -13,12 +13,11 @@ from sqlalchemy import (
     ForeignKey,
     Integer,
     String,
-    Text,
     func,
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from app.core.cripto import BytesCifrados
+from app.core.cripto import BytesCifrados, TextoCifrado
 from app.core.database import Base
 
 
@@ -43,7 +42,11 @@ class Anexo(Base):
         ForeignKey("tratamento.id", ondelete="CASCADE")
     )
 
-    nome_arquivo: Mapped[str] = mapped_column(String(255), nullable=False)
+    # o nome e a descrição também dizem muito ("exame_fulana.pdf", "laudo
+    # psiquiátrico") -- cifrados como o arquivo
+    nome_arquivo: Mapped[str] = mapped_column(
+        TextoCifrado("anexo.nome_arquivo"), nullable=False
+    )
     tipo_conteudo: Mapped[str] = mapped_column(String(100), nullable=False)
     tamanho_bytes: Mapped[int] = mapped_column(Integer, nullable=False)
     # carregado só quando pedido explicitamente (ver crud.anexo.get) -- listar
@@ -52,7 +55,7 @@ class Anexo(Base):
     conteudo: Mapped[bytes] = mapped_column(
         BytesCifrados("anexo.conteudo"), nullable=False, deferred=True
     )
-    descricao: Mapped[str | None] = mapped_column(Text)
+    descricao: Mapped[str | None] = mapped_column(TextoCifrado("anexo.descricao"))
 
     enviado_por_id: Mapped[int | None] = mapped_column(
         ForeignKey("usuario.id", ondelete="SET NULL")

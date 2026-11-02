@@ -55,6 +55,7 @@ Documentos relacionados: [LGPD.md](LGPD.md), [PLANO_DE_INCIDENTE.md](PLANO_DE_IN
 | Versão da chave junto do dado | ✅ Cada valor guarda o id da chave que o cifrou. |
 | Chave errada no painel | ✅ O `/health` abre uma amostra dos dados com a chave configurada e responde 503 se não conseguir — o Render então não põe a versão nova no ar (Health Check Path = `/health`). |
 | Plano de rotação | ✅ Ver "Se a chave vazar", abaixo. Script: `scripts/rotacionar_chaves.py` (testado). |
+| Migração reversível | ✅ O CI grava dados no formato antigo num banco descartável, cifra, decifra de volta e cifra de novo, conferindo valor por valor (`tests/verificar_migracoes.py`). O script se recusa a rodar em banco que já tem tabelas. |
 | Backups criptografados | ✅ O backup diário é cifrado inteiro com `age` (ver [BACKUP.md](BACKUP.md)), e os campos sensíveis já estão cifrados dentro dele. |
 | Disco criptografado | ☁️ Neon, Render e Vercel criptografam o armazenamento. |
 

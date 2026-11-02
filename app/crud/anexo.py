@@ -21,6 +21,33 @@ TIPOS_PERMITIDOS = {
     "application/pdf",
 }
 
+# "números mágicos": os primeiros bytes de cada formato
+_INICIO_JPEG = bytes.fromhex("ffd8ff")
+_INICIO_PNG = bytes.fromhex("89504e470d0a1a0a")
+_MARCAS_HEIC = {b"heic", b"heix", b"hevc", b"hevx", b"heim", b"heis"}
+_MARCAS_HEIF = {b"mif1", b"msf1", b"heif"}
+
+
+def tipo_pelo_conteudo(conteudo: bytes) -> str | None:
+    """Descobre o tipo pelos primeiros bytes do arquivo, não pelo nome nem
+    pelo que o navegador declarou -- um .exe renomeado pra .jpg é recusado."""
+    if conteudo.startswith(_INICIO_JPEG):
+        return "image/jpeg"
+    if conteudo.startswith(_INICIO_PNG):
+        return "image/png"
+    if conteudo[:4] == b"RIFF" and conteudo[8:12] == b"WEBP":
+        return "image/webp"
+    if b"%PDF-" in conteudo[:1024]:
+        return "application/pdf"
+    if conteudo[4:8] == b"ftyp":
+        marca = conteudo[8:12]
+        if marca in _MARCAS_HEIC:
+            return "image/heic"
+        if marca in _MARCAS_HEIF:
+            return "image/heif"
+    return None
+
+
 _CARREGAR_LISTA = (selectinload(Anexo.enviado_por),)
 
 
@@ -50,7 +77,6 @@ def criar(
     *,
     pessoa_id: int,
     nome_arquivo: str,
-    tipo_conteudo: str,
     conteudo: bytes,
     descricao: str | None,
     atendimento_id: int | None,
@@ -68,14 +94,15 @@ def criar(
     if tratamento_id is not None and db.get(Tratamento, tratamento_id) is None:
         raise NaoEncontrado(f"tratamento {tratamento_id} não existe")
 
-    if tipo_conteudo not in TIPOS_PERMITIDOS:
-        raise ErroDominio(
-            "tipo de arquivo não aceito -- envie foto (jpg, png, webp, heic) ou PDF"
-        )
     if not conteudo:
         raise ErroDominio("o arquivo está vazio")
     if len(conteudo) > TAMANHO_MAXIMO_BYTES:
         raise ErroDominio("arquivo maior que 8 MB -- tente uma foto mais leve")
+    tipo_conteudo = tipo_pelo_conteudo(conteudo)
+    if tipo_conteudo not in TIPOS_PERMITIDOS:
+        raise ErroDominio(
+            "tipo de arquivo não aceito -- envie foto (jpg, png, webp, heic) ou PDF"
+        )
 
     anexo = Anexo(
         pessoa_id=pessoa_id,

@@ -5,7 +5,9 @@ sempre no contexto de uma ficha) e `/anexos/{id}` (baixar e excluir um
 arquivo específico, sem precisar saber de quem é).
 """
 
+import re
 from typing import Annotated
+from urllib.parse import quote
 
 from fastapi import APIRouter, File, Form, HTTPException, Response, UploadFile, status
 
@@ -17,6 +19,15 @@ from app.models.enums import AcaoAuditoria
 from app.schemas.anexo import AnexoOut
 
 router = APIRouter(tags=["anexos"])
+
+_FORA_DO_NOME_SEGURO = re.compile(r"[^A-Za-z0-9._ -]")
+
+
+def _content_disposition(nome: str) -> str:
+    """Nome do arquivo no cabeçalho sem dar brecha pra quebrar o cabeçalho
+    (aspas, quebra de linha...). Versão ASCII + versão UTF-8 (RFC 6266)."""
+    ascii_seguro = _FORA_DO_NOME_SEGURO.sub("_", nome)[:100] or "arquivo"
+    return f"inline; filename=\"{ascii_seguro}\"; filename*=UTF-8''{quote(nome[:150])}"
 
 
 @router.post(
@@ -37,12 +48,12 @@ async def enviar_anexo(
     if crud_pessoa.get(db, pessoa_id) is None:
         raise HTTPException(status_code=404, detail="Pessoa não encontrada")
 
-    conteudo = await arquivo.read()
+    # lê no máximo 1 byte além do limite: arquivo gigante não enche a memória
+    conteudo = await arquivo.read(crud.TAMANHO_MAXIMO_BYTES + 1)
     anexo = crud.criar(
         db,
         pessoa_id=pessoa_id,
         nome_arquivo=arquivo.filename or "arquivo",
-        tipo_conteudo=arquivo.content_type or "application/octet-stream",
         conteudo=conteudo,
         descricao=descricao,
         atendimento_id=atendimento_id,
@@ -55,7 +66,8 @@ async def enviar_anexo(
         acao=AcaoAuditoria.criar,
         entidade="anexo",
         entidade_id=anexo.id,
-        dados={"nome_arquivo": anexo.nome_arquivo, "pessoa_id": pessoa_id},
+        # sem o nome do arquivo: às vezes ele é "rg_fulana.jpg"
+        dados={"pessoa_id": pessoa_id, "tipo": anexo.tipo_conteudo},
     )
     return AnexoOut.model_validate(anexo)
 
@@ -79,7 +91,11 @@ def baixar_anexo(db: SessaoDB, anexo_id: int):
     return Response(
         content=anexo.conteudo,
         media_type=anexo.tipo_conteudo,
-        headers={"Content-Disposition": f'inline; filename="{anexo.nome_arquivo}"'},
+        headers={
+            "Content-Disposition": _content_disposition(anexo.nome_arquivo),
+            # um PDF/imagem aberto direto da API não roda script nenhum
+            "Content-Security-Policy": "default-src 'none'; sandbox",
+        },
     )
 
 
@@ -92,7 +108,7 @@ def excluir_anexo(db: SessaoDB, anexo_id: int, usuario: UsuarioAtual):
     anexo = crud.get_meta(db, anexo_id)
     if anexo is None:
         raise HTTPException(status_code=404, detail="Anexo não encontrado")
-    pessoa_id, nome = anexo.pessoa_id, anexo.nome_arquivo
+    pessoa_id = anexo.pessoa_id
     crud.remover(db, anexo)
     registrar(
         db,
@@ -100,6 +116,6 @@ def excluir_anexo(db: SessaoDB, anexo_id: int, usuario: UsuarioAtual):
         acao=AcaoAuditoria.excluir,
         entidade="anexo",
         entidade_id=anexo_id,
-        dados={"nome_arquivo": nome, "pessoa_id": pessoa_id},
+        dados={"pessoa_id": pessoa_id},
     )
     return Response(status_code=status.HTTP_204_NO_CONTENT)

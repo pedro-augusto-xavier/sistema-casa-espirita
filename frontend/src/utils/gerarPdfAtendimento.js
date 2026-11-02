@@ -1,4 +1,5 @@
 import { jsPDF } from 'jspdf'
+import { carimbarAvisoLgpd } from './avisoLgpd'
 import { isoParaData, mascaraTelefone, quemAtendeu } from './formatadores'
 
 const ROTULO_MODALIDADE = {
@@ -97,6 +98,7 @@ export function gerarPdfAtendimento(atendimento) {
   linha('Observação', { negrito: true })
   linha(atendimento.observacao || '—')
 
+  carimbarAvisoLgpd(doc)
   const dataArquivo = atendimento.data
   doc.save(
     `atendimento-${atendimento.pessoa.nome_completo.replace(/\s+/g, '_')}-${dataArquivo}.pdf`,

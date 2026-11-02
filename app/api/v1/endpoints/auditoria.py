@@ -6,7 +6,8 @@ from fastapi import APIRouter, Depends, Query
 
 from app.api.deps import SessaoDB, exigir_admin
 from app.crud import auditoria as crud
-from app.schemas.auditoria import AuditLogOut
+from app.models.enums import AcaoAuditoria
+from app.schemas.auditoria import AlertasSeguranca, AuditLogOut
 from app.schemas.common import Page
 
 router = APIRouter(
@@ -24,6 +25,7 @@ def listar_auditoria(
     ] = None,
     entidade_id: int | None = None,
     usuario_id: int | None = None,
+    acao: AcaoAuditoria | None = None,
     page: Annotated[int, Query(ge=1)] = 1,
     size: Annotated[int, Query(ge=1, le=200)] = 50,
 ):
@@ -32,6 +34,7 @@ def listar_auditoria(
         entidade=entidade,
         entidade_id=entidade_id,
         usuario_id=usuario_id,
+        acao=acao,
         page=page,
         size=size,
     )
@@ -41,3 +44,12 @@ def listar_auditoria(
         page=page,
         size=size,
     )
+
+
+@router.get(
+    "/alertas",
+    response_model=AlertasSeguranca,
+    summary="Resumo de segurança (falhas de login, exportações, horários)",
+)
+def alertas_de_seguranca(db: SessaoDB):
+    return AlertasSeguranca(**crud.alertas(db))

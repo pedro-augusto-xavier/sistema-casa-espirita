@@ -14,12 +14,12 @@ from sqlalchemy import (
     Index,
     Integer,
     String,
-    Text,
     UniqueConstraint,
     text,
 )
-from sqlalchemy.orm import Mapped, mapped_column, relationship
+from sqlalchemy.orm import Mapped, mapped_column, relationship, validates
 
+from app.core.cripto import TextoCifrado, hmac_busca
 from app.core.database import Base
 from app.models.enums import EstadoCivil, Papel, Sexo, TipoVinculo
 from app.models.mixins import TimestampMixin
@@ -28,12 +28,13 @@ from app.models.mixins import TimestampMixin
 class Pessoa(TimestampMixin, Base):
     __tablename__ = "pessoa"
     __table_args__ = (
-        # CPF é opcional, mas quando preenchido não pode repetir.
+        # CPF é opcional, mas quando preenchido não pode repetir. Como o CPF
+        # fica cifrado, a unicidade é conferida pelo HMAC dele.
         Index(
-            "uq_pessoa_cpf",
-            "cpf",
+            "uq_pessoa_cpf_hash",
+            "cpf_hash",
             unique=True,
-            postgresql_where=text("cpf IS NOT NULL"),
+            postgresql_where=text("cpf_hash IS NOT NULL"),
         ),
         CheckConstraint(
             "quantidade_filhos IS NULL OR quantidade_filhos >= 0",
@@ -50,7 +51,13 @@ class Pessoa(TimestampMixin, Base):
         default=Sexo.nao_informado,
         nullable=False,
     )
-    cpf: Mapped[str | None] = mapped_column(String(11))
+    # CPF cifrado (AES-256-GCM) -- no banco é só bytes. Pra achar duplicado
+    # ou buscar pelo CPF completo usa-se `cpf_hash`, que é atualizado sozinho
+    # quando `cpf` muda (ver _sincroniza_hash_do_cpf).
+    cpf: Mapped[str | None] = mapped_column(
+        "cpf_cifrado", TextoCifrado("pessoa.cpf")
+    )
+    cpf_hash: Mapped[str | None] = mapped_column(String(64))
     telefone: Mapped[str | None] = mapped_column(String(20))
     estado_civil: Mapped[EstadoCivil] = mapped_column(
         Enum(EstadoCivil, native_enum=False, length=20),
@@ -71,7 +78,10 @@ class Pessoa(TimestampMixin, Base):
     cep: Mapped[str | None] = mapped_column(String(9))
 
     como_conheceu: Mapped[str | None] = mapped_column(String(255))
-    observacoes_gerais: Mapped[str | None] = mapped_column(Text)
+    # pode ter saúde, religião, família -- cifrado
+    observacoes_gerais: Mapped[str | None] = mapped_column(
+        TextoCifrado("pessoa.observacoes_gerais")
+    )
 
     # LGPD -- dado de religião é sensível
     consentimento_lgpd: Mapped[bool] = mapped_column(
@@ -98,6 +108,11 @@ class Pessoa(TimestampMixin, Base):
         foreign_keys="PessoaVinculo.pessoa_id",
         cascade="all, delete-orphan",
     )
+
+    @validates("cpf")
+    def _sincroniza_hash_do_cpf(self, _chave: str, valor: str | None) -> str | None:
+        self.cpf_hash = hmac_busca(valor) if valor else None
+        return valor
 
     def __repr__(self) -> str:  # ajuda no console
         return f"<Pessoa {self.id} {self.nome_completo!r}>"

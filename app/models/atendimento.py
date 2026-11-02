@@ -11,11 +11,11 @@ from sqlalchemy import (
     ForeignKey,
     Integer,
     String,
-    Text,
     func,
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
+from app.core.cripto import TextoCifrado
 from app.core.database import Base
 from app.models.enums import Modalidade
 from app.models.mixins import TimestampMixin
@@ -51,7 +51,10 @@ class Atendimento(TimestampMixin, Base):
         nullable=False,
     )
     ordem_chegada: Mapped[int | None] = mapped_column(Integer)
-    observacao: Mapped[str | None] = mapped_column(Text)
+    # o principal da ficha -- e o mais sensível: cifrado
+    observacao: Mapped[str | None] = mapped_column(
+        TextoCifrado("atendimento.observacao")
+    )
     retorno_previsto: Mapped[date | None] = mapped_column(Date)
 
     criado_por_id: Mapped[int | None] = mapped_column(
@@ -97,7 +100,9 @@ class AtendimentoTratamento(Base):
     sessoes_realizadas: Mapped[int] = mapped_column(
         Integer, default=0, nullable=False
     )
-    observacao: Mapped[str | None] = mapped_column(Text)
+    observacao: Mapped[str | None] = mapped_column(
+        TextoCifrado("atendimento_tratamento.observacao")
+    )
 
     atendimento: Mapped[Atendimento] = relationship(back_populates="tratamentos")
     tipo_tratamento: Mapped["object"] = relationship("TipoTratamento")

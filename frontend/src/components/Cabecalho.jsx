@@ -1,8 +1,9 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link, NavLink } from 'react-router-dom'
+import { api } from '../api/client'
 import { useAuth } from '../auth/AuthContext'
 import { Emblema } from './Emblema'
-import { TrocarSenhaModal } from './TrocarSenhaModal'
+import { ContaModal } from './ContaModal'
 import { Avatar, Botao } from './ui'
 
 function ItemNav({ to, children }) {
@@ -24,7 +25,19 @@ function ItemNav({ to, children }) {
 
 export function Cabecalho() {
   const { usuario, sair } = useAuth()
-  const [trocandoSenha, setTrocandoSenha] = useState(false)
+  const [contaAberta, setContaAberta] = useState(false)
+  const [alerta, setAlerta] = useState(false)
+  const ehAdmin = usuario.papel === 'admin'
+
+  // admin vê um aviso na Auditoria quando tem algo estranho (muitas senhas
+  // erradas, acesso de madrugada...)
+  useEffect(() => {
+    if (!ehAdmin) return
+    api
+      .get('/auditoria/alertas')
+      .then((a) => setAlerta(a.alerta))
+      .catch(() => {})
+  }, [ehAdmin])
 
   return (
     <header className="sticky top-0 z-10 bg-white/90 shadow-sm ring-1 ring-stone-900/5 backdrop-blur">
@@ -46,10 +59,18 @@ export function Cabecalho() {
           <nav className="flex flex-wrap items-center gap-x-5 gap-y-1">
             <ItemNav to="/">Pessoas</ItemNav>
             <ItemNav to="/agenda">Agenda</ItemNav>
-            {usuario.papel === 'admin' && (
+            {ehAdmin && (
               <>
                 <ItemNav to="/usuarios">Usuários</ItemNav>
-                <ItemNav to="/auditoria">Auditoria</ItemNav>
+                <ItemNav to="/auditoria">
+                  Auditoria
+                  {alerta && (
+                    <span
+                      title="Tem algo pra conferir na auditoria"
+                      className="ml-1 inline-block h-2 w-2 rounded-full bg-red-500 align-top"
+                    />
+                  )}
+                </ItemNav>
               </>
             )}
           </nav>
@@ -65,8 +86,8 @@ export function Cabecalho() {
               </span>
             </span>
           </div>
-          <Botao variante="secundario" pequeno onClick={() => setTrocandoSenha(true)}>
-            Trocar senha
+          <Botao variante="secundario" pequeno onClick={() => setContaAberta(true)}>
+            Minha conta
           </Botao>
           <Botao variante="secundario" pequeno onClick={sair}>
             Sair
@@ -74,7 +95,7 @@ export function Cabecalho() {
         </div>
       </div>
 
-      {trocandoSenha && <TrocarSenhaModal onFechar={() => setTrocandoSenha(false)} />}
+      {contaAberta && <ContaModal onFechar={() => setContaAberta(false)} />}
     </header>
   )
 }

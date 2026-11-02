@@ -1,6 +1,22 @@
 // Cliente simples de API: monta a URL, manda o token e trata erro padrão.
+//
+// O token fica no localStorage. Ele sozinho não basta: o servidor confere a
+// sessão a cada chamada, então "Sair" (ou o admin desativar alguém) corta o
+// acesso na hora. E o site roda com uma CSP rígida (vercel.json), que barra
+// script de fora -- a forma comum de roubar token guardado no navegador.
 
 const BASE_URL = import.meta.env.VITE_API_URL
+
+/** Erro da API com o status e, quando houver, um código que a tela entende
+ * (ex: "mfa_necessario" no login, "pendencia" quando falta trocar a senha). */
+export class ErroApi extends Error {
+  constructor(mensagem, { status, codigo = null, detalhe = null } = {}) {
+    super(mensagem)
+    this.status = status
+    this.codigo = codigo
+    this.detalhe = detalhe
+  }
+}
 
 function pegarToken() {
   return localStorage.getItem('token')
@@ -23,13 +39,16 @@ async function request(path, { method = 'GET', body, isForm = false } = {}) {
   if (res.status === 401 && path !== '/auth/login') {
     localStorage.removeItem('token')
     if (location.pathname !== '/login') location.href = '/login'
-    throw new Error('Sessão expirada, faça login de novo.')
+    throw new ErroApi('Sessão encerrada, entre de novo.', { status: 401 })
   }
 
   if (!res.ok) {
     const corpo = await res.json().catch(() => null)
-    const mensagem = extrairMensagemDeErro(corpo)
-    throw new Error(mensagem)
+    const erro = criarErro(res.status, corpo)
+    // ainda falta trocar a senha / configurar o código: a tela de acesso
+    // cuida disso (ver AuthContext)
+    if (erro.codigo === 'pendencia') window.dispatchEvent(new Event('acesso-pendente'))
+    throw erro
   }
 
   if (res.status === 204) return null
@@ -44,18 +63,24 @@ async function requestBlob(path) {
   if (token) headers.Authorization = `Bearer ${token}`
 
   const res = await fetch(`${BASE_URL}${path}`, { headers })
-  if (!res.ok) throw new Error('Não foi possível baixar o arquivo.')
+  if (!res.ok) throw new ErroApi('Não foi possível baixar o arquivo.', { status: res.status })
   return res.blob()
 }
 
-function extrairMensagemDeErro(corpo) {
-  if (!corpo?.detail) return 'Erro inesperado na API.'
-  if (typeof corpo.detail === 'string') return corpo.detail
+function criarErro(status, corpo) {
+  const detalhe = corpo?.detail
+  if (!detalhe) return new ErroApi('Erro inesperado na API.', { status })
+  if (typeof detalhe === 'string') return new ErroApi(detalhe, { status })
   // erro de validação do Pydantic: lista de {loc, msg}
-  if (Array.isArray(corpo.detail)) {
-    return corpo.detail.map((e) => `${e.loc?.at(-1)}: ${e.msg}`).join(' | ')
+  if (Array.isArray(detalhe)) {
+    const mensagem = detalhe.map((e) => `${e.loc?.at(-1)}: ${e.msg}`).join(' | ')
+    return new ErroApi(mensagem, { status })
   }
-  return JSON.stringify(corpo.detail)
+  // erro com código: {codigo, mensagem}
+  if (detalhe.mensagem) {
+    return new ErroApi(detalhe.mensagem, { status, codigo: detalhe.codigo, detalhe })
+  }
+  return new ErroApi(JSON.stringify(detalhe), { status })
 }
 
 export const api = {
@@ -66,12 +91,21 @@ export const api = {
   del: (path) => request(path, { method: 'DELETE' }),
   getBlob: (path) => requestBlob(path),
 
-  login: (nome, senha, lembrar = false) => {
+  login: (nome, senha, lembrar = false, codigo = '') => {
     const form = new URLSearchParams({
       username: nome,
       password: senha,
       lembrar: String(lembrar),
     })
+    if (codigo) form.set('codigo', codigo)
     return request('/auth/login', { method: 'POST', body: form, isForm: true })
   },
+
+  /** Avisa a API que um PDF com dados da pessoa foi gerado (fica na
+   * auditoria). Não trava o download se falhar. */
+  registrarExportacao: (pessoaId, documento) =>
+    request(`/pessoas/${pessoaId}/exportacoes`, {
+      method: 'POST',
+      body: { documento },
+    }).catch(() => null),
 }

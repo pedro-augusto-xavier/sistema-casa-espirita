@@ -2,3 +2,6 @@
 -r requirements.txt
 
 ruff==0.8.4
+# segurança no CI: dependência com falha conhecida e análise estática
+pip-audit==2.10.1
+bandit==1.9.4

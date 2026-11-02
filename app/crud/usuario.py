@@ -1,10 +1,17 @@
 """Acesso ao banco para Usuário do sistema."""
 
+from datetime import UTC, datetime
+
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.core.errors import ErroDominio
-from app.core.security import hash_senha, verificar_senha
+from app.core.security import (
+    gastar_tempo_como_se_verificasse,
+    hash_senha,
+    verificar_senha,
+)
+from app.crud import sessao as crud_sessao
 from app.models.usuario import Usuario
 from app.schemas.usuario import UsuarioCreate, UsuarioUpdate
 
@@ -47,6 +54,8 @@ def criar(db: Session, dados: UsuarioCreate) -> Usuario:
         nome=dados.nome,
         email=dados.email.lower() if dados.email else None,
         senha_hash=hash_senha(dados.senha),
+        # quem define essa senha é o admin -- a pessoa troca no 1º acesso
+        senha_provisoria=True,
         papel=dados.papel,
     )
     db.add(usuario)
@@ -69,19 +78,51 @@ def atualizar(db: Session, usuario: Usuario, dados: UsuarioUpdate) -> Usuario:
             raise ErroDominio("já existe um usuário com esse e-mail")
         mudancas["email"] = mudancas["email"].lower()
 
+    corta_acesso = False
     if "senha" in mudancas:
         usuario.senha_hash = hash_senha(mudancas.pop("senha"))
+        usuario.senha_provisoria = True
+        usuario.senha_alterada_em = datetime.now(UTC)
+        corta_acesso = True
+    if mudancas.get("ativo") is False:
+        corta_acesso = True
 
     for campo, valor in mudancas.items():
         setattr(usuario, campo, valor)
     db.commit()
+
+    # senha redefinida ou usuário desligado: quem estava logado cai na hora
+    if corta_acesso:
+        crud_sessao.revogar_todas(db, usuario.id)
+
     db.refresh(usuario)
     return usuario
+
+
+def trocar_senha_propria(
+    db: Session, usuario: Usuario, senha_nova: str, *, sessao_atual: str
+) -> None:
+    usuario.senha_hash = hash_senha(senha_nova)
+    usuario.senha_provisoria = False
+    usuario.senha_alterada_em = datetime.now(UTC)
+    db.commit()
+    # se alguém mais estava usando a senha antiga, perde o acesso
+    crud_sessao.revogar_todas(db, usuario.id, exceto=sessao_atual)
+
+
+def zerar_mfa(db: Session, usuario: Usuario) -> None:
+    usuario.mfa_ativo = False
+    usuario.mfa_segredo = None
+    usuario.mfa_ultimo_passo = None
+    db.commit()
 
 
 def autenticar(db: Session, nome: str, senha: str) -> Usuario | None:
     usuario = get_by_nome(db, nome)
     if usuario is None:
+        # mesmo tempo de resposta de "senha errada" -- não entrega quais
+        # nomes existem
+        gastar_tempo_como_se_verificasse(senha)
         return None
     if not verificar_senha(senha, usuario.senha_hash):
         return None

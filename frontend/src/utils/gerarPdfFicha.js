@@ -1,4 +1,5 @@
 import { jsPDF } from 'jspdf'
+import { carimbarAvisoLgpd } from './avisoLgpd'
 import {
   ROTULO_ESTADO_CIVIL,
   isoParaData,
@@ -93,5 +94,6 @@ export function gerarPdfFicha(pessoa, historico) {
     y += 3
   })
 
+  carimbarAvisoLgpd(doc)
   doc.save(`ficha-${pessoa.nome_completo.replace(/\s+/g, '_')}.pdf`)
 }

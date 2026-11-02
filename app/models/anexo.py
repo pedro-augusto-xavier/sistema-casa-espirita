@@ -12,13 +12,13 @@ from sqlalchemy import (
     DateTime,
     ForeignKey,
     Integer,
-    LargeBinary,
     String,
     Text,
     func,
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
+from app.core.cripto import BytesCifrados
 from app.core.database import Base
 
 
@@ -47,8 +47,11 @@ class Anexo(Base):
     tipo_conteudo: Mapped[str] = mapped_column(String(100), nullable=False)
     tamanho_bytes: Mapped[int] = mapped_column(Integer, nullable=False)
     # carregado só quando pedido explicitamente (ver crud.anexo.get) -- listar
-    # não precisa trazer o arquivo inteiro pra memória.
-    conteudo: Mapped[bytes] = mapped_column(LargeBinary, nullable=False, deferred=True)
+    # não precisa trazer o arquivo inteiro pra memória. Cifrado: foto de
+    # documento, exame, carta... é o dado mais sensível do sistema.
+    conteudo: Mapped[bytes] = mapped_column(
+        BytesCifrados("anexo.conteudo"), nullable=False, deferred=True
+    )
     descricao: Mapped[str | None] = mapped_column(Text)
 
     enviado_por_id: Mapped[int | None] = mapped_column(

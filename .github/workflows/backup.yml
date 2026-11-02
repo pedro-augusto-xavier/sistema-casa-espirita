@@ -1,0 +1,68 @@
+name: Backup do banco
+
+# Todo dia de madrugada: dump do banco de produção, compactado e CRIPTOGRAFADO
+# com a chave pública `age` (só quem tem a chave privada, guardada fora do
+# GitHub, consegue abrir). Fica guardado 30 dias como artefato do GitHub --
+# outro provedor, fora do Neon -- e some sozinho depois disso.
+#
+# Configuração e restauração: docs/BACKUP.md
+# Sem o secret BACKUP_DATABASE_URL e a variável BACKUP_AGE_RECIPIENT, o
+# workflow só avisa e termina (não falha).
+
+on:
+  schedule:
+    - cron: "17 6 * * *" # 03:17 em Brasília
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      BACKUP_DATABASE_URL: ${{ secrets.BACKUP_DATABASE_URL }}
+      AGE_RECIPIENT: ${{ vars.BACKUP_AGE_RECIPIENT }}
+
+    steps:
+      - name: Conferir configuração
+        id: config
+        run: |
+          if [ -z "$BACKUP_DATABASE_URL" ] || [ -z "$AGE_RECIPIENT" ]; then
+            echo "::warning::Backup não configurado: falta o secret BACKUP_DATABASE_URL ou a variável BACKUP_AGE_RECIPIENT (ver docs/BACKUP.md)."
+            echo "pronto=nao" >> "$GITHUB_OUTPUT"
+          else
+            echo "pronto=sim" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Instalar age
+        if: steps.config.outputs.pronto == 'sim'
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq age
+
+      - name: Dump compactado e criptografado
+        if: steps.config.outputs.pronto == 'sim'
+        run: |
+          set -euo pipefail
+          arquivo="casa-espirita-$(date -u +%Y%m%d-%H%M).sql.gz.age"
+          # pg_dump 18 consegue copiar bancos 16, 17 e 18
+          docker run --rm -e URL="$BACKUP_DATABASE_URL" postgres:18 \
+            sh -c 'pg_dump --no-owner --no-privileges "$URL"' \
+            | gzip -9 \
+            | age -r "$AGE_RECIPIENT" -o "$arquivo"
+          tamanho=$(stat -c %s "$arquivo")
+          if [ "$tamanho" -lt 1000 ]; then
+            echo "::error::Backup pequeno demais ($tamanho bytes) -- algo deu errado."
+            exit 1
+          fi
+          echo "Backup: $arquivo ($tamanho bytes)"
+          echo "ARQUIVO=$arquivo" >> "$GITHUB_ENV"
+
+      - name: Guardar por 30 dias
+        if: steps.config.outputs.pronto == 'sim'
+        uses: actions/upload-artifact@v4
+        with:
+          name: backup-${{ github.run_id }}
+          path: ${{ env.ARQUIVO }}
+          retention-days: 30
+          if-no-files-found: error

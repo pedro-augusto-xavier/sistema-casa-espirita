@@ -6,7 +6,7 @@ from typing import Annotated
 from fastapi import APIRouter, HTTPException, Query, Response, status
 
 from app.api.deps import SessaoDB, UsuarioAtual
-from app.core.auditoria import registrar
+from app.core.auditoria import campos_alterados, registrar
 from app.crud import agenda as crud
 from app.models.enums import AcaoAuditoria, TipoEvento
 from app.schemas.agenda import (
@@ -89,7 +89,7 @@ def editar_evento(
         acao=AcaoAuditoria.atualizar,
         entidade="evento_agenda",
         entidade_id=evento_id,
-        dados=dados.model_dump(exclude_unset=True, mode="json"),
+        dados=campos_alterados(dados.model_dump(exclude_unset=True)),
     )
     return EventoAgendaOut.model_validate(evento)
 

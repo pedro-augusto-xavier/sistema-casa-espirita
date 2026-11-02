@@ -9,7 +9,7 @@ from typing import Annotated
 from fastapi import APIRouter, HTTPException, Query, Response, status
 
 from app.api.deps import SessaoDB, UsuarioAtual
-from app.core.auditoria import registrar
+from app.core.auditoria import campos_alterados, registrar
 from app.crud import tratamento as crud
 from app.models.enums import AcaoAuditoria, StatusTratamento
 from app.schemas.common import Page
@@ -105,7 +105,7 @@ def editar_tratamento(
         usuario,
         AcaoAuditoria.atualizar,
         tratamento_id,
-        dados.model_dump(exclude_unset=True, mode="json"),
+        campos_alterados(dados.model_dump(exclude_unset=True)),
     )
     return TratamentoOut.model_validate(tratamento)
 
@@ -168,7 +168,7 @@ def atualizar_assistido(
         tratamento_id,
         {
             "assistido_id": assistido_id,
-            **dados.model_dump(exclude_unset=True, mode="json"),
+            **campos_alterados(dados.model_dump(exclude_unset=True)),
         },
     )
     return TratamentoOut.model_validate(resultado)

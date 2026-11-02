@@ -6,7 +6,7 @@ from typing import Annotated
 from fastapi import APIRouter, HTTPException, Query, Response, status
 
 from app.api.deps import SessaoDB, UsuarioAtual
-from app.core.auditoria import registrar
+from app.core.auditoria import campos_alterados, registrar
 from app.crud import atendimento as crud
 from app.models.enums import AcaoAuditoria
 from app.schemas.atendimento import (
@@ -94,7 +94,8 @@ def editar_atendimento(
         acao=AcaoAuditoria.atualizar,
         entidade="atendimento",
         entidade_id=atendimento.id,
-        dados=dados.model_dump(exclude_unset=True, mode="json"),
+        # só os nomes dos campos: a observação é sensível e fica cifrada
+        dados=campos_alterados(dados.model_dump(exclude_unset=True)),
     )
     return AtendimentoOut.model_validate(atendimento)
 

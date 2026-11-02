@@ -64,10 +64,13 @@ export function FichaPessoa() {
   const [versao, setVersao] = useState(0)
   const [filtroTipo, setFiltroTipo] = useState('') // '' | 'atendimento' | 'tratamento_inicio'
   const [buscaHistorico, setBuscaHistorico] = useState('')
+  // CPF vem mascarado; o completo só quando alguém pede (fica na auditoria)
+  const [cpfCompleto, setCpfCompleto] = useState(null)
 
   useEffect(() => {
     setCarregando(true)
     setErro('')
+    setCpfCompleto(null)
     Promise.all([
       api.get(`/pessoas/${id}`),
       api.get(`/pessoas/${id}/historico`),
@@ -114,6 +117,29 @@ export function FichaPessoa() {
     try {
       await api.del(`/pessoas/${id}`)
       navigate('/')
+    } catch (e) {
+      setErro(e.message)
+    }
+  }
+
+  async function verCpf() {
+    try {
+      const { cpf } = await api.get(`/pessoas/${id}/cpf?motivo=ver`)
+      setCpfCompleto(cpf)
+    } catch (e) {
+      setErro(e.message)
+    }
+  }
+
+  async function baixarPdfFicha() {
+    try {
+      // o PDF leva o CPF completo -- e fica registrado que foi gerado
+      const { cpf } = pessoa.cpf
+        ? await api.get(`/pessoas/${id}/cpf?motivo=pdf`)
+        : { cpf: null }
+      api.registrarExportacao(id, 'ficha_pdf')
+      const { gerarPdfFicha } = await import('../utils/gerarPdfFicha')
+      gerarPdfFicha({ ...pessoa, cpf }, historico)
     } catch (e) {
       setErro(e.message)
     }
@@ -256,7 +282,28 @@ export function FichaPessoa() {
             <dl className="mt-6 grid grid-cols-2 gap-x-6 gap-y-4 sm:grid-cols-3">
               <Item label="Nascimento" valor={isoParaData(pessoa.data_nascimento)} />
               <Item label="Telefone" valor={pessoa.telefone && mascaraTelefone(pessoa.telefone)} />
-              <Item label="CPF" valor={pessoa.cpf && mascaraCpf(pessoa.cpf)} />
+              <Item
+                label="CPF"
+                valor={
+                  pessoa.cpf && (
+                    <span className="inline-flex items-center gap-2">
+                      <span className="tabular-nums">
+                        {cpfCompleto ? mascaraCpf(cpfCompleto) : pessoa.cpf}
+                      </span>
+                      {!cpfCompleto && (
+                        <button
+                          type="button"
+                          onClick={verCpf}
+                          title="Mostrar o CPF completo (fica registrado na auditoria)"
+                          className="text-xs text-stone-400 underline hover:text-emerald-800"
+                        >
+                          ver
+                        </button>
+                      )}
+                    </span>
+                  )
+                }
+              />
               <Item label="Estado civil" valor={ROTULO_ESTADO_CIVIL[pessoa.estado_civil]} />
               <Item label="Filhos" valor={rotuloFilhos(pessoa.quantidade_filhos)} />
               <Item label="Endereço" valor={endereco} className="col-span-2" />
@@ -286,20 +333,21 @@ export function FichaPessoa() {
               <Botao
                 variante="fantasma"
                 pequeno
-                onClick={async () => {
-                  const { gerarPdfFicha } = await import('../utils/gerarPdfFicha')
-                  gerarPdfFicha(pessoa, historico)
-                }}
+                onClick={baixarPdfFicha}
               >
                 ⬇ Baixar PDF da ficha
               </Botao>
-              <span className="mx-2 hidden h-4 w-px bg-stone-200 sm:block" />
-              <span className="px-1 text-[11px] font-semibold tracking-wider text-stone-400 uppercase">
-                LGPD
-              </span>
-              <Botao variante="fantasma" pequeno onClick={exportarDados}>
-                Exportar dados (JSON)
-              </Botao>
+              {usuario.papel === 'admin' && (
+                <>
+                  <span className="mx-2 hidden h-4 w-px bg-stone-200 sm:block" />
+                  <span className="px-1 text-[11px] font-semibold tracking-wider text-stone-400 uppercase">
+                    LGPD
+                  </span>
+                  <Botao variante="fantasma" pequeno onClick={exportarDados}>
+                    Exportar dados (JSON)
+                  </Botao>
+                </>
+              )}
               {usuario.papel === 'admin' && !pessoa.anonimizada && (
                 <Botao
                   variante="fantasma"
@@ -501,6 +549,8 @@ function formatarValor(v) {
 
 /** "campo: de → para" quando dá pra comparar; senão só mostra o valor. */
 function formatarAlteracao(campo, valor) {
+  // dado pessoal: o log guarda só QUE mudou, não o valor (LGPD)
+  if (valor && typeof valor === 'object' && valor.alterado) return `${campo}: alterado`
   if (valor && typeof valor === 'object' && 'de' in valor && 'para' in valor) {
     return `${campo}: ${formatarValor(valor.de)} → ${formatarValor(valor.para)}`
   }

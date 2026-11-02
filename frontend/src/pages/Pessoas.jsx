@@ -74,7 +74,7 @@ export function Pessoas() {
             <IconeBusca className="pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-stone-400" />
             <input
               type="search"
-              placeholder="Buscar por nome, telefone ou CPF..."
+              placeholder="Buscar por nome, telefone ou CPF completo..."
               value={busca}
               onChange={(e) => {
                 setPagina(1)

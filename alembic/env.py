@@ -16,7 +16,13 @@ from app.core.database import Base
 config = context.config
 
 # Injeta a URL do banco vinda do .env (não deixamos senha no alembic.ini).
-config.set_main_option("sqlalchemy.url", settings.DATABASE_URL)
+# Se existir MIGRATIONS_DATABASE_URL (usuário de banco com permissão de
+# criar/alterar tabelas), as migrations usam ela -- e o app roda com um
+# usuário mais restrito (ver docs/SEGURANCA.md).
+config.set_main_option(
+    "sqlalchemy.url",
+    (settings.MIGRATIONS_DATABASE_URL or settings.DATABASE_URL).replace("%", "%%"),
+)
 
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)

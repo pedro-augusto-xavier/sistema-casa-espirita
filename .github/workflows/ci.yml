@@ -5,6 +5,9 @@ on:
     branches: [main]
   pull_request:
 
+permissions:
+  contents: read
+
 jobs:
   testes:
     runs-on: ubuntu-latest
@@ -26,8 +29,11 @@ jobs:
 
     env:
       DATABASE_URL: postgresql+psycopg://postgres:postgres@localhost:5432/casa_espirita
-      # só pra passar da trava de "chave fraca em produção" -- não protege nada de verdade, é CI
+      # Valores de mentira, só pra passar das travas de "chave fraca em
+      # produção" -- o banco do CI é descartável e não tem dado real.
       SECRET_KEY: ci-secret-sem-valor-real-mas-com-32-chars-ou-mais
+      CHAVES_CRIPTOGRAFIA: "1:Y2ktY2hhdmUtZGUtdGVzdGUtc2VtLXZhbG9yLXJlYWw="
+      CHAVE_HMAC: Y2ktaG1hYy1kZS10ZXN0ZS1zZW0tdmFsb3ItcmVhbC0x
       APP_ENV: ci
 
     steps:
@@ -44,8 +50,17 @@ jobs:
       - name: Lint (ruff)
         run: ruff check .
 
+      - name: Dependências com falha conhecida (pip-audit)
+        run: pip-audit -r requirements.txt --progress-spinner off
+
+      - name: Análise estática de segurança (bandit)
+        run: bandit -r app scripts -ll -q
+
       - name: Migrations
         run: alembic upgrade head
+
+      - name: Migrations sem diferença pros modelos
+        run: alembic check
 
       - name: Seed (listas de referência)
         run: python -m scripts.seed
@@ -70,6 +85,9 @@ jobs:
 
       - name: Instalar dependências
         run: npm ci
+
+      - name: Dependências com falha conhecida (npm audit)
+        run: npm audit --audit-level=high
 
       - name: Lint (oxlint)
         run: npm run lint

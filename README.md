@@ -69,12 +69,17 @@ Acesse a documentação interativa em `http://127.0.0.1:8000/docs`.
 
 Todas as rotas de `/api/v1` (menos `/auth/login`) exigem um token.
 
-1. `POST /api/v1/auth/login` com `username` (o **nome** do usuário, não e-mail) e `password` → devolve `access_token`.
+1. `POST /api/v1/auth/login` com `username` (o **nome** do usuário, não e-mail) e `password` (e `codigo`, pra quem tem verificação em duas etapas) → devolve `access_token`.
 2. Envie o token no cabeçalho `Authorization: Bearer <token>` nas demais chamadas.
-3. No `/docs`, clique em **Authorize** e informe nome/senha.
+3. No `/docs` (só em desenvolvimento), clique em **Authorize** e informe nome/senha.
 
-Papéis: **operador** faz os cadastros; **admin** faz isso e gerencia usuários
-(`/api/v1/usuarios`).
+Cada login abre uma **sessão no servidor**: `POST /auth/logout`, trocar a
+senha ou desativar o usuário cortam o acesso na hora. A senha criada por um
+admin é **provisória** -- no primeiro acesso a pessoa cria a dela (e o admin
+configura o código do celular) antes de ver qualquer dado.
+
+Papéis: **operador** faz os cadastros; **admin** faz isso e gerencia usuários,
+auditoria, exportação LGPD e anonimização.
 
 ### Frontend
 
@@ -128,21 +133,28 @@ frontend/
 
 ## Segurança e LGPD
 
-Dado de religião é dado sensível pela LGPD. O projeto trata isso com:
+Dado de religião é dado sensível pela LGPD. Resumo do que o projeto faz
+(detalhes, item por item, em [docs/SEGURANCA.md](docs/SEGURANCA.md)):
 
-- **Autenticação** por token JWT; **autorização** por papel (admin / operador).
-- **Senha** com hash bcrypt (nunca em texto puro).
-- **Auditoria**: cada criação/edição/exclusão e cada login vira uma linha em
-  `audit_log` (quem, o quê, quando, o que mudou). Consulta em
-  `GET /api/v1/auditoria` (só admin).
-- **Consentimento** registrado no cadastro, com data.
-- **Direito de acesso**: `GET /api/v1/pessoas/{id}/exportar` devolve tudo que o
-  sistema guarda sobre a pessoa.
-- **Direito ao esquecimento**: `POST /api/v1/pessoas/{id}/anonimizar` apaga os
-  dados pessoais e mantém só a linha, para o histórico de atendimentos não
-  ficar órfão.
-- **Exclusão lógica** (soft delete) em vez de apagar na hora.
-- **Backup**: `python -m scripts.backup` gera um dump restaurável em `backups/`.
+- **Criptografia AES-256-GCM** de CPF, observações, diário e anexos, com a
+  chave fora do banco e do Git, versão de chave e script de rotação. CPF
+  achado por **HMAC**; na tela aparece mascarado (`***.456.789-**`).
+- **Login** com senha forte (bcrypt), **verificação em duas etapas** (TOTP,
+  obrigatória pra admin), **limite de tentativas** por IP e por conta,
+  **sessões revogáveis** no servidor.
+- **Autorização** por papel, com teste automático garantindo que toda rota
+  exige login e que rota de admin recusa operador.
+- **Auditoria** imutável (o banco recusa UPDATE/DELETE): logins, falhas,
+  edições, CPF visto, exportações -- com IP e sem copiar dado pessoal.
+- **Cabeçalhos de segurança** (CSP, HSTS, nosniff, frame-ancestors) na API e
+  no site; CORS restrito; erros sem detalhe interno.
+- **LGPD**: consentimento com data, exportação dos dados do titular,
+  anonimização, política de privacidade em `/privacidade`, registro das
+  operações em [docs/LGPD.md](docs/LGPD.md) e
+  [plano de incidente](docs/PLANO_DE_INCIDENTE.md).
+- **Backup diário** criptografado, guardado 30 dias ([docs/BACKUP.md](docs/BACKUP.md)).
+- **CI**: ruff, pip-audit, bandit, npm audit, migrations conferidas com os
+  modelos, e Dependabot.
 
 ## Deploy
 

@@ -9,6 +9,7 @@ import { Login } from './pages/Login'
 import { NaoEncontrado } from './pages/NaoEncontrado'
 import { NovaPessoa } from './pages/NovaPessoa'
 import { Pessoas } from './pages/Pessoas'
+import { Privacidade } from './pages/Privacidade'
 import { Usuarios } from './pages/Usuarios'
 
 function App() {
@@ -17,6 +18,8 @@ function App() {
       <AuthProvider>
         <Routes>
           <Route path="/login" element={<Login />} />
+          {/* pública: qualquer pessoa atendida pode ler */}
+          <Route path="/privacidade" element={<Privacidade />} />
           <Route
             path="/"
             element={

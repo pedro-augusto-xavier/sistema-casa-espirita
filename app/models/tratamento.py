@@ -17,12 +17,12 @@ from sqlalchemy import (
     ForeignKey,
     Integer,
     String,
-    Text,
     UniqueConstraint,
     func,
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
+from app.core.cripto import TextoCifrado
 from app.core.database import Base
 from app.models.enums import (
     FormatoTratamento,
@@ -65,8 +65,12 @@ class Tratamento(TimestampMixin, Base):
         default=StatusTratamento.em_andamento,
         nullable=False,
     )
-    situacao_final: Mapped[str | None] = mapped_column(Text)
-    observacao: Mapped[str | None] = mapped_column(Text)
+    situacao_final: Mapped[str | None] = mapped_column(
+        TextoCifrado("tratamento.situacao_final")
+    )
+    observacao: Mapped[str | None] = mapped_column(
+        TextoCifrado("tratamento.observacao")
+    )
     criado_por_id: Mapped[int | None] = mapped_column(
         ForeignKey("usuario.id", ondelete="SET NULL")
     )
@@ -146,7 +150,9 @@ class TratamentoAssistido(Base):
         default=StatusAssistido.ativo,
         nullable=False,
     )
-    situacao_final: Mapped[str | None] = mapped_column(Text)
+    situacao_final: Mapped[str | None] = mapped_column(
+        TextoCifrado("tratamento_assistido.situacao_final")
+    )
     data_conclusao: Mapped[date | None] = mapped_column(Date)
     # o quê essa pessoa é do responsável (filho, amigo...). Nulo quando o
     # assistido é o próprio responsável -- não faz sentido ter vínculo consigo.
@@ -170,7 +176,9 @@ class TratamentoEvolucao(Base):
     data: Mapped[date] = mapped_column(
         Date, server_default=func.current_date(), nullable=False
     )
-    texto: Mapped[str] = mapped_column(Text, nullable=False)
+    texto: Mapped[str] = mapped_column(
+        TextoCifrado("tratamento_evolucao.texto"), nullable=False
+    )
     # quem anotou (trabalhador)
     registrado_por_id: Mapped[int | None] = mapped_column(
         ForeignKey("pessoa.id", ondelete="SET NULL")

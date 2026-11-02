@@ -18,4 +18,16 @@ class AuditLogOut(BaseModel):
     entidade: str
     entidade_id: int | None
     dados: dict[str, Any] | None
+    ip: str | None
     criado_em: datetime
+
+
+class AlertasSeguranca(BaseModel):
+    """Resumo pra quem administra bater o olho: tem algo estranho?"""
+
+    falhas_login_24h: int
+    contas_com_falhas_24h: int
+    exportacoes_7d: int
+    cpfs_vistos_7d: int
+    acessos_fora_de_hora_7d: int
+    alerta: bool

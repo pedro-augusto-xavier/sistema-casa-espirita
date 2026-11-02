@@ -85,3 +85,10 @@ class AcaoAuditoria(str, enum.Enum):
     atualizar = "atualizar"
     excluir = "excluir"
     login = "login"
+    # tentativa de login que não passou (senha, código ou usuário errado)
+    login_falha = "login_falha"
+    logout = "logout"
+    # viu um dado completo que normalmente fica mascarado (ex: o CPF)
+    visualizar = "visualizar"
+    # tirou dados do sistema (JSON da LGPD, PDF da ficha...)
+    exportar = "exportar"

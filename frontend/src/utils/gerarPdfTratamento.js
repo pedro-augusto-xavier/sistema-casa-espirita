@@ -1,4 +1,5 @@
 import { jsPDF } from 'jspdf'
+import { carimbarAvisoLgpd } from './avisoLgpd'
 import { isoParaData, mascaraTelefone } from './formatadores'
 
 function enderecoDe(pessoa) {
@@ -125,5 +126,6 @@ export function gerarPdfTratamento(tratamento) {
   const nomeArquivo = primeiroNome
     ? `tratamento-${primeiroNome.replace(/\s+/g, '_')}`
     : `tratamento-${tratamento.id}`
+  carimbarAvisoLgpd(doc)
   doc.save(`${nomeArquivo}.pdf`)
 }

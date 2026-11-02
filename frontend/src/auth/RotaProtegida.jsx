@@ -1,9 +1,11 @@
 import { Navigate } from 'react-router-dom'
 import { Emblema } from '../components/Emblema'
 import { BotaoLink } from '../components/ui'
+import { PrimeiroAcesso } from '../pages/PrimeiroAcesso'
 import { useAuth } from './AuthContext'
 
-/** Só deixa passar se tiver usuário logado; senão manda pro /login. */
+/** Só deixa passar se tiver usuário logado e sem pendência; senão manda pro
+ * /login (ou mostra a tela de primeiro acesso). */
 export function RotaProtegida({ children, somenteAdmin = false }) {
   const { usuario, carregando } = useAuth()
 
@@ -17,6 +19,9 @@ export function RotaProtegida({ children, somenteAdmin = false }) {
   }
 
   if (!usuario) return <Navigate to="/login" replace />
+
+  // senha provisória pra trocar / código do celular pra configurar
+  if (usuario.pendencias?.length) return <PrimeiroAcesso />
 
   if (somenteAdmin && usuario.papel !== 'admin') {
     return (

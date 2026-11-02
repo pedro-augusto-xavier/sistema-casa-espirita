@@ -74,6 +74,7 @@ export function AtendimentoDetalheModal({ atendimentoId, onFechar }) {
             </div>
             <Botao
               onClick={async () => {
+                api.registrarExportacao(dados.pessoa.id, 'atendimento_pdf')
                 const { gerarPdfAtendimento } = await import('../utils/gerarPdfAtendimento')
                 gerarPdfAtendimento(dados)
               }}

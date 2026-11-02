@@ -1,0 +1,29 @@
+# Dependabot: abre um pull request quando sai versão nova (ou correção de
+# segurança) de alguma biblioteca. O CI roda os testes no PR antes de
+# qualquer coisa ir pro ar -- e PR não faz deploy de produção.
+version: 2
+updates:
+  - package-ecosystem: pip
+    directory: "/"
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    groups:
+      python:
+        patterns: ["*"]
+
+  - package-ecosystem: npm
+    directory: "/frontend"
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    groups:
+      frontend:
+        patterns: ["*"]
+
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: monthly

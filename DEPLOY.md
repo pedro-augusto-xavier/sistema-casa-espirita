@@ -28,18 +28,27 @@ front no **Vercel**. Os três aceitam login com GitHub.
      ```
      uvicorn app.main:app --host 0.0.0.0 --port $PORT --proxy-headers --forwarded-allow-ips='*'
      ```
-     (`--proxy-headers` é importante: sem isso, o Render esconde o IP de
-     quem está acessando atrás do proxy dele, e o limite de tentativas de
-     login do app.core.ratelimit passaria a valer pra equipe inteira junta
-     em vez de por pessoa.)
+     (`--proxy-headers` faz o app saber que a conexão original foi HTTPS.
+     O IP de quem acessa, usado no limite de tentativas de login e na
+     auditoria, vem do cabeçalho `CF-Connecting-IP` da Cloudflare que fica
+     na frente do Render -- ver `app/core/contexto.py`.)
    - **Instance Type:** Free
 4. Em **Environment**, adiciona as variáveis:
    | Nome | Valor |
    |---|---|
    | `DATABASE_URL` | a connection string do Neon (passo 1) |
    | `SECRET_KEY` | gere com `python -c "import secrets; print(secrets.token_hex(32))"` |
+   | `CHAVES_CRIPTOGRAFIA` | gere com `python -m scripts.gerar_chaves` (cifra CPF, observações e anexos) |
+   | `CHAVE_HMAC` | sai do mesmo comando acima |
    | `APP_ENV` | `production` |
    | `CORS_ORIGINS` | por enquanto `https://localhost` (ajusta no passo 4) |
+   | `MFA_OBRIGATORIO` | opcional: `admin` (padrão), `todos` ou `ninguem` |
+   | `MIGRATIONS_DATABASE_URL` | opcional: ver "Usuário do banco com permissão mínima" em [docs/SEGURANCA.md](docs/SEGURANCA.md) |
+
+   O app **não sobe** em produção sem `SECRET_KEY`, `CHAVES_CRIPTOGRAFIA` e
+   `CHAVE_HMAC` de verdade -- de propósito. Guarde uma cópia das duas chaves
+   de criptografia num gerenciador de senhas: sem elas, os dados cifrados
+   (inclusive dos backups) não abrem nunca mais.
 5. **Create Web Service**. O primeiro deploy demora alguns minutos.
 6. Quando terminar, copia a URL que o Render deu (algo como
    `https://sistema-casa-espirita.onrender.com`). Teste abrindo
@@ -62,6 +71,15 @@ Remove-Item Env:\DATABASE_URL
 ```
 
 (`--email` é opcional, só um contato -- pode incluir com `--email voce@exemplo.com` se quiser.)
+
+A senha definida aqui é **provisória**. No primeiro login o sistema pede
+pra criar uma senha própria (10+ caracteres) e, como é admin, pra configurar
+a verificação em duas etapas com um aplicativo autenticador no celular
+(Google Authenticator ou Microsoft Authenticator). Perdeu o celular? Rode o
+mesmo comando com `--resetar-mfa`.
+
+(As variáveis `CHAVES_CRIPTOGRAFIA` e `CHAVE_HMAC` também precisam estar no
+terminal ao rodar o script contra a produção -- as mesmas do Render.)
 
 (o `Remove-Item` no final garante que o terminal volta a usar o `.env` local
 depois -- senão os próximos comandos mexeriam sem querer no banco de produção)
@@ -91,7 +109,15 @@ https://sistema-casa-espirita.vercel.app
 Salva -- o Render reinicia o serviço sozinho. Pronto: abre a URL da Vercel e
 testa o login.
 
+## 5. Backup diário
+
+Veja [docs/BACKUP.md](docs/BACKUP.md): gerar a chave do backup e cadastrar
+dois valores no GitHub. Leva 5 minutos e fica rodando sozinho.
+
 ## Atualizações
 
 Depois disso, qualquer `git push` pra `main` já dispara um novo deploy
 automático no Render e na Vercel -- não precisa repetir nada disso.
+
+Segurança, LGPD e o que fazer se algo der errado: [docs/SEGURANCA.md](docs/SEGURANCA.md),
+[docs/LGPD.md](docs/LGPD.md) e [docs/PLANO_DE_INCIDENTE.md](docs/PLANO_DE_INCIDENTE.md).

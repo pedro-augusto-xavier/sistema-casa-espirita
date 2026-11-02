@@ -7,6 +7,7 @@ from datetime import UTC, date, datetime
 from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session, selectinload
 
+from app.core.cripto import hmac_busca
 from app.core.validators import so_digitos
 from app.models.enums import EstadoCivil, Papel
 from app.models.pessoa import Pessoa, PessoaPapel
@@ -23,7 +24,9 @@ def get(db: Session, pessoa_id: int) -> Pessoa | None:
 
 
 def get_by_cpf(db: Session, cpf: str) -> Pessoa | None:
-    return db.scalar(select(Pessoa).where(Pessoa.cpf == so_digitos(cpf)))
+    """O CPF fica cifrado -- a busca é pelo HMAC dele (ver core/cripto.py)."""
+    hash_cpf = hmac_busca(so_digitos(cpf))
+    return db.scalar(select(Pessoa).where(Pessoa.cpf_hash == hash_cpf))
 
 
 def listar(
@@ -47,8 +50,9 @@ def listar(
             Pessoa.telefone.ilike(termo),
         ]
         digitos = so_digitos(q)
-        if digitos:
-            condicoes.append(Pessoa.cpf.ilike(f"%{digitos}%"))
+        if len(digitos) == 11:
+            # CPF cifrado: só dá pra achar pelo CPF completo (via HMAC)
+            condicoes.append(Pessoa.cpf_hash == hmac_busca(digitos))
         stmt = stmt.where(or_(*condicoes))
 
     if papel is not None:
@@ -108,10 +112,16 @@ def atualizar(
     for campo, valor_novo in mudancas.items():
         valor_antigo = getattr(pessoa, campo)
         if valor_antigo != valor_novo:
-            alteracoes[campo] = {
-                "de": _serializa(valor_antigo),
-                "para": _serializa(valor_novo),
-            }
+            if campo in CAMPOS_SEM_VALOR_NA_AUDITORIA:
+                # dado pessoal: a auditoria registra QUE mudou, não o valor
+                # (senão o log vira uma cópia do CPF/endereço, fora da
+                # criptografia e da anonimização)
+                alteracoes[campo] = {"alterado": True}
+            else:
+                alteracoes[campo] = {
+                    "de": _serializa(valor_antigo),
+                    "para": _serializa(valor_novo),
+                }
 
     if "consentimento_lgpd" in mudancas:
         novo = mudancas["consentimento_lgpd"]
@@ -155,6 +165,12 @@ _CAMPOS_PESSOAIS = (
     "como_conheceu",
     "observacoes_gerais",
     "quantidade_filhos",
+)
+
+
+# Na auditoria das edições, estes campos aparecem só como "alterado".
+CAMPOS_SEM_VALOR_NA_AUDITORIA = frozenset(
+    {*_CAMPOS_PESSOAIS, "nome_completo", "sexo", "estado_civil"}
 )
 
 

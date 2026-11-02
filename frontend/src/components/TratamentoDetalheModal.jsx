@@ -219,6 +219,8 @@ export function TratamentoDetalheModal({ tratamentoId, onFechar }) {
               variante="fantasma"
               pequeno
               onClick={async () => {
+                const pessoaId = dados.solicitante?.id ?? dados.assistidos[0]?.pessoa.id
+                if (pessoaId) api.registrarExportacao(pessoaId, 'tratamento_pdf')
                 const { gerarPdfTratamento } = await import('../utils/gerarPdfTratamento')
                 gerarPdfTratamento(dados)
               }}

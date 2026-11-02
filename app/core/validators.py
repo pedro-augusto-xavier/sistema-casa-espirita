@@ -26,6 +26,16 @@ def cpf_valido(cpf: str) -> bool:
     return True
 
 
+def mascarar_cpf(digitos: str | None) -> str | None:
+    """CPF pra mostrar em tela/lista: ***.456.789-** (LGPD -- o completo só
+    aparece quando alguém pede, e isso fica registrado na auditoria)."""
+    if not digitos:
+        return None
+    if len(digitos) == 11:
+        return f"***.{digitos[3:6]}.{digitos[6:9]}-**"
+    return "*" * len(digitos)
+
+
 def normaliza_cep(cep: str | None) -> str | None:
     """Deixa o CEP no formato 00000-000 (ou None se vazio/ inválido)."""
     if not cep:

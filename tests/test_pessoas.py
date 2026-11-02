@@ -22,13 +22,55 @@ def test_criar_e_obter_pessoa(client: TestClient):
     r = client.post("/api/v1/pessoas", json=dados)
     assert r.status_code == 201, r.text
     criada = r.json()
-    assert criada["cpf"] == "39053344705"  # normalizado
+    # LGPD: a ficha devolve o CPF mascarado...
+    assert criada["cpf"] == "***.533.447-**"
     assert criada["papeis"] == ["assistido"]
     assert criada["consentimento_em"] is not None
 
     r2 = client.get(f"/api/v1/pessoas/{criada['id']}")
     assert r2.status_code == 200
     assert r2.json()["nome_completo"] == "Fulano de Tal"
+    assert r2.json()["cpf"] == "***.533.447-**"
+
+    # ...e o completo (normalizado) só pela rota própria
+    r3 = client.get(f"/api/v1/pessoas/{criada['id']}/cpf")
+    assert r3.json() == {"cpf": "39053344705"}
+
+
+def test_ver_cpf_completo_fica_na_auditoria(client: TestClient):
+    criada = client.post("/api/v1/pessoas", json=_nova_pessoa(cpf=CPF_OK)).json()
+    client.get(f"/api/v1/pessoas/{criada['id']}/cpf", params={"motivo": "editar"})
+
+    logs = client.get(
+        "/api/v1/auditoria",
+        params={
+            "entidade": "pessoa",
+            "entidade_id": criada["id"],
+            "acao": "visualizar",
+        },
+    ).json()["items"]
+    assert len(logs) == 1
+    assert logs[0]["dados"] == {"campo": "cpf", "motivo": "editar"}
+    assert logs[0]["usuario_nome"] == "Admin de Teste"
+
+
+def test_cpf_mascarado_nao_pode_ser_gravado_por_cima(client: TestClient):
+    """Se a tela mandar de volta o CPF como recebeu (mascarado), a API recusa
+    em vez de gravar só os números do meio."""
+    criada = client.post("/api/v1/pessoas", json=_nova_pessoa(cpf=CPF_OK)).json()
+    r = client.patch(f"/api/v1/pessoas/{criada['id']}", json={"cpf": criada["cpf"]})
+    assert r.status_code == 422
+    assert (
+        client.get(f"/api/v1/pessoas/{criada['id']}/cpf").json()["cpf"] == "39053344705"
+    )
+
+
+def test_busca_pelo_cpf_completo(client: TestClient):
+    criada = client.post(
+        "/api/v1/pessoas", json=_nova_pessoa(nome_completo="Acha Pelo Cpf", cpf=CPF_OK)
+    ).json()
+    achados = client.get("/api/v1/pessoas", params={"q": CPF_OK}).json()
+    assert [p["id"] for p in achados["items"]] == [criada["id"]]
 
 
 def test_cpf_e_opcional(client: TestClient):
@@ -49,7 +91,8 @@ def test_cpf_com_digito_errado_e_aceito(client: TestClient):
     pode travar o cadastro."""
     r = client.post("/api/v1/pessoas", json=_nova_pessoa(cpf="123.456.789-00"))
     assert r.status_code == 201, r.text
-    assert r.json()["cpf"] == "12345678900"
+    completo = client.get(f"/api/v1/pessoas/{r.json()['id']}/cpf").json()
+    assert completo["cpf"] == "12345678900"
 
 
 def test_cpf_com_mais_de_11_numeros_e_rejeitado(client: TestClient):

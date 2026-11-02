@@ -1,6 +1,6 @@
 """Rotas de Pessoas: /api/v1/pessoas"""
 
-from typing import Annotated
+from typing import Annotated, Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 
@@ -11,6 +11,8 @@ from app.crud import tratamento as crud_tratamento
 from app.models.enums import AcaoAuditoria, Papel
 from app.schemas.common import Page
 from app.schemas.pessoa import (
+    CpfCompletoOut,
+    ExportacaoIn,
     PessoaCreate,
     PessoaListItem,
     PessoaOut,
@@ -162,20 +164,72 @@ def historico_pessoa(db: SessaoDB, pessoa_id: int):
 
 
 @router.get(
+    "/{pessoa_id}/cpf",
+    response_model=CpfCompletoOut,
+    summary="Ver o CPF completo (fica registrado na auditoria)",
+)
+def ver_cpf_completo(
+    db: SessaoDB,
+    pessoa_id: int,
+    usuario: UsuarioAtual,
+    motivo: Literal["ver", "editar", "pdf"] = "ver",
+):
+    """Na ficha e nas listas o CPF aparece mascarado. Quem precisar do
+    número inteiro pede aqui -- e a auditoria guarda quem, quando e pra quê."""
+    pessoa = crud.get(db, pessoa_id)
+    if pessoa is None:
+        raise HTTPException(status_code=404, detail="Pessoa não encontrada")
+    if pessoa.cpf:
+        registrar(
+            db,
+            usuario=usuario,
+            acao=AcaoAuditoria.visualizar,
+            entidade="pessoa",
+            entidade_id=pessoa_id,
+            dados={"campo": "cpf", "motivo": motivo},
+        )
+    return CpfCompletoOut(cpf=pessoa.cpf)
+
+
+@router.post(
+    "/{pessoa_id}/exportacoes",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Registrar que um PDF com dados da pessoa foi gerado",
+)
+def registrar_exportacao(
+    db: SessaoDB, pessoa_id: int, dados: ExportacaoIn, usuario: UsuarioAtual
+):
+    if crud.get(db, pessoa_id) is None:
+        raise HTTPException(status_code=404, detail="Pessoa não encontrada")
+    registrar(
+        db,
+        usuario=usuario,
+        acao=AcaoAuditoria.exportar,
+        entidade="pessoa",
+        entidade_id=pessoa_id,
+        dados={"documento": dados.documento},
+    )
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+@router.get(
     "/{pessoa_id}/exportar",
-    summary="LGPD -- exportar todos os dados da pessoa",
+    summary="LGPD -- exportar todos os dados da pessoa (só admin)",
+    dependencies=[Depends(exigir_admin)],
 )
 def exportar_pessoa(db: SessaoDB, pessoa_id: int, usuario: UsuarioAtual):
+    """Pro pedido de acesso do titular (LGPD art. 18). Restrito a admin e
+    registrado: é a ficha inteira, com CPF, de uma vez só."""
     if crud.get(db, pessoa_id) is None:
         raise HTTPException(status_code=404, detail="Pessoa não encontrada")
     dados = crud.exportar_dados(db, pessoa_id)
     registrar(
         db,
         usuario=usuario,
-        acao=AcaoAuditoria.atualizar,
+        acao=AcaoAuditoria.exportar,
         entidade="pessoa",
         entidade_id=pessoa_id,
-        dados={"acao_lgpd": "exportacao"},
+        dados={"documento": "lgpd_json"},
     )
     return dados
 

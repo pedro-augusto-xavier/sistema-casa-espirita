@@ -17,12 +17,15 @@ export function EditarPessoa() {
   useEffect(() => {
     api
       .get(`/pessoas/${id}`)
-      .then((p) => {
+      .then(async (p) => {
+        // a ficha vem com o CPF mascarado (***.456.789-**); pra editar,
+        // busca o completo -- e isso fica registrado na auditoria
+        const cpf = p.cpf ? (await api.get(`/pessoas/${id}/cpf?motivo=editar`)).cpf : null
         setValores({
           nome_completo: p.nome_completo,
           data_nascimento: isoParaData(p.data_nascimento) || '',
           sexo: p.sexo,
-          cpf: p.cpf ? mascaraCpf(p.cpf) : '',
+          cpf: cpf ? mascaraCpf(cpf) : '',
           telefone: p.telefone ? mascaraTelefone(p.telefone) : '',
           estado_civil: p.estado_civil || 'nao_informado',
           logradouro: p.logradouro || '',

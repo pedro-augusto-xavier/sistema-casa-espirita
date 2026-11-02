@@ -15,7 +15,7 @@ from app.models.tratamento import (
     TratamentoAssistido,
     TratamentoEvolucao,
 )
-from app.models.usuario import AuditLog, Usuario
+from app.models.usuario import AuditLog, SessaoUsuario, Usuario
 
 __all__ = [
     "Escala",
@@ -33,5 +33,6 @@ __all__ = [
     "TratamentoAssistido",
     "TratamentoEvolucao",
     "AuditLog",
+    "SessaoUsuario",
     "Usuario",
 ]

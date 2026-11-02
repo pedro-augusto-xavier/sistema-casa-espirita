@@ -58,6 +58,44 @@ def test_tipo_de_arquivo_nao_aceito_e_rejeitado(client: TestClient):
     assert r.status_code == 422
 
 
+def test_tipo_e_conferido_pelo_conteudo_e_nao_pelo_nome(client: TestClient):
+    """Um executável renomeado pra .jpg (e declarado como imagem) é recusado."""
+    p = _pessoa(client)
+    exe = b"MZ" + bytes.fromhex("9000") + b" isso e um .exe"
+    r = client.post(
+        f"/api/v1/pessoas/{p['id']}/anexos",
+        files={"arquivo": ("foto.jpg", exe, "image/jpeg")},
+    )
+    assert r.status_code == 422
+
+    # e um PNG declarado como JPEG fica registrado como PNG de verdade
+    png = bytes.fromhex("89504e470d0a1a0a") + b"resto do png"
+    r = client.post(
+        f"/api/v1/pessoas/{p['id']}/anexos",
+        files={"arquivo": ("foto.jpg", png, "image/jpeg")},
+    )
+    assert r.status_code == 201
+    assert r.json()["tipo_conteudo"] == "image/png"
+
+
+def test_download_tem_cabecalhos_seguros(client: TestClient):
+    p = _pessoa(client)
+    anexo = client.post(
+        f"/api/v1/pessoas/{p['id']}/anexos",
+        files={"arquivo": ('nome"perigoso;x=1.jpg', CONTEUDO_FAKE, "image/jpeg")},
+    ).json()
+    r = client.get(f"/api/v1/anexos/{anexo['id']}/arquivo")
+    assert "sandbox" in r.headers["content-security-policy"]
+    assert r.headers["cache-control"] == "no-store"
+    # o nome não consegue fechar as aspas nem injetar outro parâmetro
+    import re
+
+    assert re.fullmatch(
+        r'inline; filename="[A-Za-z0-9._ -]+"; filename\*=UTF-8\'\'\S+',
+        r.headers["content-disposition"],
+    )
+
+
 def test_arquivo_acima_do_limite_e_rejeitado(client: TestClient):
     p = _pessoa(client)
     grande = b"0" * (8 * 1024 * 1024 + 1)

@@ -1,4 +1,5 @@
-"""Usuário do sistema (quem faz login) e o log de auditoria (LGPD)."""
+"""Usuário do sistema (quem faz login), as sessões abertas e o log de
+auditoria (LGPD)."""
 
 from datetime import datetime
 
@@ -16,8 +17,14 @@ from sqlalchemy import (
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
+from app.core.config import settings
+from app.core.cripto import TextoCifrado
 from app.core.database import Base
 from app.models.enums import AcaoAuditoria, PapelUsuario
+
+# o que falta a pessoa fazer antes de poder usar o sistema
+PENDENCIA_TROCAR_SENHA = "trocar_senha"
+PENDENCIA_CONFIGURAR_MFA = "configurar_mfa"
 
 
 class Usuario(Base):
@@ -56,9 +63,75 @@ class Usuario(Base):
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )
 
+    # Senha definida por um admin (ex: os 8 números do CPF) -- vale só pro
+    # primeiro acesso: a pessoa é obrigada a criar uma senha própria.
+    senha_provisoria: Mapped[bool] = mapped_column(
+        Boolean, default=False, server_default=text("false"), nullable=False
+    )
+    senha_alterada_em: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True)
+    )
+    ultimo_login_em: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+    # Verificação em duas etapas (TOTP). O segredo fica cifrado como o CPF.
+    mfa_segredo: Mapped[str | None] = mapped_column(
+        TextoCifrado("usuario.mfa_segredo")
+    )
+    mfa_ativo: Mapped[bool] = mapped_column(
+        Boolean, default=False, server_default=text("false"), nullable=False
+    )
+    # último código aceito (o "passo" de 30s) -- impede reusar o mesmo código
+    mfa_ultimo_passo: Mapped[int | None] = mapped_column(Integer)
+
+    @property
+    def mfa_obrigatorio(self) -> bool:
+        if settings.MFA_OBRIGATORIO == "todos":
+            return True
+        if settings.MFA_OBRIGATORIO == "admin":
+            return self.papel == PapelUsuario.admin
+        return False
+
+    @property
+    def pendencias(self) -> list[str]:
+        """O que a pessoa precisa resolver antes de liberar o resto do
+        sistema. Enquanto tiver pendência, a API só aceita as rotas de
+        /auth (ver api/deps.py)."""
+        lista = []
+        if self.senha_provisoria:
+            lista.append(PENDENCIA_TROCAR_SENHA)
+        if self.mfa_obrigatorio and not self.mfa_ativo:
+            lista.append(PENDENCIA_CONFIGURAR_MFA)
+        return lista
+
+
+class SessaoUsuario(Base):
+    """Cada login abre uma sessão. O token só vale enquanto a sessão existir
+    e não estiver revogada -- assim "Sair", trocar a senha ou desativar o
+    usuário cortam o acesso na hora, e não só quando o token expirar."""
+
+    __tablename__ = "sessao_usuario"
+
+    id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    usuario_id: Mapped[int] = mapped_column(
+        ForeignKey("usuario.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    criada_em: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+    expira_em: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False
+    )
+    ultimo_uso_em: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    revogada_em: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    ip: Mapped[str | None] = mapped_column(String(64))
+    user_agent: Mapped[str | None] = mapped_column(String(255))
+
+    usuario: Mapped[Usuario] = relationship()
+
 
 class AuditLog(Base):
-    """Registro de quem fez o quê. Nunca é editado nem apagado."""
+    """Registro de quem fez o quê. Nunca é editado nem apagado -- o banco
+    recusa UPDATE e DELETE nesta tabela (trigger, ver migration)."""
 
     __tablename__ = "audit_log"
 
@@ -72,6 +145,7 @@ class AuditLog(Base):
     entidade: Mapped[str] = mapped_column(String(50), nullable=False)
     entidade_id: Mapped[int | None] = mapped_column(Integer)
     dados: Mapped[dict | None] = mapped_column(JSONB)
+    ip: Mapped[str | None] = mapped_column(String(64))
     criado_em: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )

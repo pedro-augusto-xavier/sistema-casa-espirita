@@ -1,10 +1,11 @@
 """Formatos de entrada e saída da API para Pessoa (validação com Pydantic)."""
 
 from datetime import date, datetime
+from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_serializer, field_validator
 
-from app.core.validators import normaliza_cep, so_digitos
+from app.core.validators import mascarar_cpf, normaliza_cep, so_digitos
 from app.models.enums import EstadoCivil, Papel, Sexo
 
 # --- funções de validação reutilizadas nos schemas de entrada ---
@@ -14,6 +15,10 @@ def _checa_cpf(v: str | None) -> str | None:
     # e o cadastro não pode travar por isso. Só guarda os números.
     if v is None:
         return None
+    if "*" in v:
+        # a tela recebe o CPF mascarado; se ele voltar assim, gravaríamos só
+        # os números do meio por cima do CPF de verdade.
+        raise ValueError("CPF mascarado -- abra o CPF completo antes de editar")
     digitos = so_digitos(v)
     if not digitos:
         return None
@@ -140,6 +145,9 @@ class PessoaListItem(BaseModel):
 
 
 class PessoaOut(PessoaBase):
+    """A ficha. O CPF sai MASCARADO (***.456.789-**): o completo só pela
+    rota /pessoas/{id}/cpf, que registra quem viu."""
+
     model_config = ConfigDict(from_attributes=True)
 
     id: int
@@ -152,3 +160,18 @@ class PessoaOut(PessoaBase):
     papeis: list[Papel]
 
     _v_papeis = field_validator("papeis", mode="before")(_extrai_papeis)
+
+    @field_serializer("cpf")
+    def _mascara_cpf(self, cpf: str | None) -> str | None:
+        return mascarar_cpf(cpf)
+
+
+class CpfCompletoOut(BaseModel):
+    cpf: str | None
+
+
+class ExportacaoIn(BaseModel):
+    """Aviso de que alguém tirou um documento com dados pessoais do sistema
+    (os PDFs são gerados no navegador, então o front avisa a API)."""
+
+    documento: Literal["ficha_pdf", "atendimento_pdf", "tratamento_pdf"]

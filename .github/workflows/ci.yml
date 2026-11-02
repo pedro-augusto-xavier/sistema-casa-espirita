@@ -26,7 +26,8 @@ jobs:
 
     env:
       DATABASE_URL: postgresql+psycopg://postgres:postgres@localhost:5432/casa_espirita
-      SECRET_KEY: ci-secret
+      # só pra passar da trava de "chave fraca em produção" -- não protege nada de verdade, é CI
+      SECRET_KEY: ci-secret-sem-valor-real-mas-com-32-chars-ou-mais
       APP_ENV: ci
 
     steps:

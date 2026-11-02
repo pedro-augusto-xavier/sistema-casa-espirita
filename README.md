@@ -56,8 +56,8 @@ alembic upgrade head
 # 5. Popular listas de referência (tipos de tratamento, funções)
 python -m scripts.seed
 
-# 6. Criar o primeiro usuário administrador
-python -m scripts.criar_admin --nome "Seu Nome" --email voce@exemplo.com --senha "trocar-depois"
+# 6. Criar o primeiro usuário administrador (login é pelo nome, não e-mail)
+python -m scripts.criar_admin --nome "Seu Nome" --senha "trocar-depois"
 
 # 7. Subir a API
 uvicorn app.main:app --reload
@@ -69,9 +69,9 @@ Acesse a documentação interativa em `http://127.0.0.1:8000/docs`.
 
 Todas as rotas de `/api/v1` (menos `/auth/login`) exigem um token.
 
-1. `POST /api/v1/auth/login` com `username` (e-mail) e `password` → devolve `access_token`.
+1. `POST /api/v1/auth/login` com `username` (o **nome** do usuário, não e-mail) e `password` → devolve `access_token`.
 2. Envie o token no cabeçalho `Authorization: Bearer <token>` nas demais chamadas.
-3. No `/docs`, clique em **Authorize** e informe e-mail/senha.
+3. No `/docs`, clique em **Authorize** e informe nome/senha.
 
 Papéis: **operador** faz os cadastros; **admin** faz isso e gerencia usuários
 (`/api/v1/usuarios`).

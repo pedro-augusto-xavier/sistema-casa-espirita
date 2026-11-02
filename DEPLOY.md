@@ -26,8 +26,12 @@ front no **Vercel**. Os três aceitam login com GitHub.
      ```
    - **Start Command:**
      ```
-     uvicorn app.main:app --host 0.0.0.0 --port $PORT
+     uvicorn app.main:app --host 0.0.0.0 --port $PORT --proxy-headers --forwarded-allow-ips='*'
      ```
+     (`--proxy-headers` é importante: sem isso, o Render esconde o IP de
+     quem está acessando atrás do proxy dele, e o limite de tentativas de
+     login do app.core.ratelimit passaria a valer pra equipe inteira junta
+     em vez de por pessoa.)
    - **Instance Type:** Free
 4. Em **Environment**, adiciona as variáveis:
    | Nome | Valor |

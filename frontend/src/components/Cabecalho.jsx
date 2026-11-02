@@ -1,6 +1,8 @@
+import { useState } from 'react'
 import { Link, NavLink } from 'react-router-dom'
 import { useAuth } from '../auth/AuthContext'
 import { Emblema } from './Emblema'
+import { TrocarSenhaModal } from './TrocarSenhaModal'
 import { Avatar, Botao } from './ui'
 
 function ItemNav({ to, children }) {
@@ -22,6 +24,7 @@ function ItemNav({ to, children }) {
 
 export function Cabecalho() {
   const { usuario, sair } = useAuth()
+  const [trocandoSenha, setTrocandoSenha] = useState(false)
 
   return (
     <header className="sticky top-0 z-10 bg-white/90 shadow-sm ring-1 ring-stone-900/5 backdrop-blur">
@@ -62,11 +65,16 @@ export function Cabecalho() {
               </span>
             </span>
           </div>
+          <Botao variante="secundario" pequeno onClick={() => setTrocandoSenha(true)}>
+            Trocar senha
+          </Botao>
           <Botao variante="secundario" pequeno onClick={sair}>
             Sair
           </Botao>
         </div>
       </div>
+
+      {trocandoSenha && <TrocarSenhaModal onFechar={() => setTrocandoSenha(false)} />}
     </header>
   )
 }

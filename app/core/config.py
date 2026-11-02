@@ -6,8 +6,10 @@ Em qualquer lugar do código usamos:  from app.core.config import settings
 
 import json
 
-from pydantic import Field, field_validator
+from pydantic import Field, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+_CHAVE_PADRAO_INSEGURA = "dev-inseguro-troque-no-.env"
 
 
 class Settings(BaseSettings):
@@ -61,6 +63,21 @@ class Settings(BaseSettings):
     @property
     def is_dev(self) -> bool:
         return self.APP_ENV == "dev"
+
+    @model_validator(mode="after")
+    def _recusa_chave_fraca_em_producao(self) -> "Settings":
+        """Fora do dev, não deixa o app nem subir com a chave de exemplo (ou
+        uma chave curta demais) -- é melhor quebrar o deploy do que assinar
+        tokens de sessão com um segredo previsível."""
+        if not self.is_dev and (
+            self.SECRET_KEY == _CHAVE_PADRAO_INSEGURA or len(self.SECRET_KEY) < 32
+        ):
+            raise ValueError(
+                "SECRET_KEY fraca ou não configurada (APP_ENV != dev). Gere uma "
+                "com: python -c \"import secrets; print(secrets.token_hex(32))\" "
+                "e defina a variável SECRET_KEY no ambiente de produção."
+            )
+        return self
 
 
 settings = Settings()  # type: ignore[call-arg]

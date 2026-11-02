@@ -17,6 +17,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.core.database import engine, get_db
+from app.core.ratelimit import _tentativas as _tentativas_login
 from app.core.security import criar_token_acesso, hash_senha
 from app.main import app
 from app.models.enums import PapelUsuario
@@ -27,6 +28,13 @@ from scripts.seed import run as rodar_seed
 @pytest.fixture(scope="session", autouse=True)
 def _seed_referencias() -> None:
     rodar_seed()
+
+
+@pytest.fixture(autouse=True)
+def _zera_limite_de_tentativas() -> None:
+    """O TestClient usa sempre o mesmo IP fake -- sem isso, os logins de um
+    teste contariam pro limite do próximo."""
+    _tentativas_login.clear()
 
 
 @pytest.fixture()

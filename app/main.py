@@ -16,12 +16,15 @@ from app.api.v1.api import api_router
 from app.core.config import settings
 from app.core.database import engine
 from app.core.errors import ErroDominio, NaoEncontrado
+from app.core.security_headers import CabecalhosSeguranca
 
 app = FastAPI(
     title="Sistema Casa Espírita",
     description="Cadastro de pessoas, atendimentos e tratamentos.",
     version="0.1.0",
 )
+
+app.add_middleware(CabecalhosSeguranca)
 
 app.add_middleware(
     CORSMiddleware,

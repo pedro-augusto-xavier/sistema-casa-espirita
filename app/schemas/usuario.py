@@ -39,3 +39,8 @@ class UsuarioOut(BaseModel):
 class Token(BaseModel):
     access_token: str
     token_type: str = "bearer"
+
+
+class TrocarSenhaIn(BaseModel):
+    senha_atual: str
+    senha_nova: str = Field(min_length=8, max_length=128)

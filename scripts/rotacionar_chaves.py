@@ -34,6 +34,8 @@ COLUNAS_CIFRADAS = [
     ("tratamento_assistido", "situacao_final", "tratamento_assistido.situacao_final"),
     ("tratamento_evolucao", "texto", "tratamento_evolucao.texto"),
     ("anexo", "conteudo", "anexo.conteudo"),
+    ("anexo", "nome_arquivo", "anexo.nome_arquivo"),
+    ("anexo", "descricao", "anexo.descricao"),
     ("usuario", "mfa_segredo", "usuario.mfa_segredo"),
 ]
 

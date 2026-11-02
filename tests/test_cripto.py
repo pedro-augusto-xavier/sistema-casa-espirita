@@ -159,3 +159,47 @@ def test_script_de_rotacao_recifra_tudo_com_a_chave_nova(
     ).scalar_one()
     assert cripto.id_da_chave(bytes(cru)) == 2
     assert cripto.decifrar(bytes(cru), "pessoa.cpf") == b"39053344705"
+
+
+def test_nome_e_descricao_do_anexo_ficam_cifrados(client: TestClient, db: Session):
+    p = client.post("/api/v1/pessoas", json={"nome_completo": "Anexo Com Nome"}).json()
+    anexo = client.post(
+        f"/api/v1/pessoas/{p['id']}/anexos",
+        files={"arquivo": ("exame_fulana.pdf", b"%PDF-1.4 x", "application/pdf")},
+        data={"descricao": "laudo do psiquiatra"},
+    ).json()
+
+    cru = db.execute(
+        text("SELECT nome_arquivo, descricao FROM anexo WHERE id = :i"),
+        {"i": anexo["id"]},
+    ).one()
+    assert b"exame" not in bytes(cru.nome_arquivo)
+    assert b"psiquiatra" not in bytes(cru.descricao)
+
+    # pela API continua tudo legível
+    assert anexo["nome_arquivo"] == "exame_fulana.pdf"
+    assert anexo["descricao"] == "laudo do psiquiatra"
+    lista = client.get(f"/api/v1/pessoas/{p['id']}/anexos").json()
+    assert lista[0]["nome_arquivo"] == "exame_fulana.pdf"
+
+
+def test_health_confirma_que_a_chave_abre_os_dados(client: TestClient):
+    client.post(
+        "/api/v1/pessoas", json={"nome_completo": "Saude Ok", "cpf": "39053344705"}
+    )
+    r = client.get("/health")
+    assert r.status_code == 200
+    assert r.json() == {"api": "ok", "banco": "ok", "cripto": "ok"}
+
+
+def test_health_falha_com_a_chave_errada(client: TestClient, chaves_temporarias):
+    """Simula alguém colar outra chave no Render: o /health responde 503 e o
+    Render não põe essa versão no ar."""
+    client.post(
+        "/api/v1/pessoas", json={"nome_completo": "Chave Trocada", "cpf": "39053344705"}
+    )
+    chaves_temporarias(f"1:{_chave_nova()}")  # mesmo id, chave diferente
+
+    r = client.get("/health")
+    assert r.status_code == 503
+    assert r.json() == {"api": "ok", "banco": "ok", "cripto": "erro"}

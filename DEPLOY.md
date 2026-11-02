@@ -33,6 +33,9 @@ front no **Vercel**. Os três aceitam login com GitHub.
      auditoria, vem do cabeçalho `CF-Connecting-IP` da Cloudflare que fica
      na frente do Render -- ver `app/core/contexto.py`.)
    - **Instance Type:** Free
+   - **Health Check Path** (em Settings, depois de criar): `/health`. Ele confere
+     o banco e se as chaves de criptografia abrem os dados; se falhar, o Render
+     não põe a versão nova no ar.
 4. Em **Environment**, adiciona as variáveis:
    | Nome | Valor |
    |---|---|

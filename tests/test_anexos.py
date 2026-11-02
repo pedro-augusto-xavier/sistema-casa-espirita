@@ -165,3 +165,13 @@ def test_anexo_gera_auditoria(client: TestClient):
     corpo = r.json()
     assert corpo["total"] >= 1
     assert corpo["items"][0]["acao"] == "criar"
+
+
+def test_descricao_muito_longa_e_recusada(client: TestClient):
+    p = _pessoa(client)
+    r = client.post(
+        f"/api/v1/pessoas/{p['id']}/anexos",
+        files={"arquivo": ("foto.jpg", CONTEUDO_FAKE, "image/jpeg")},
+        data={"descricao": "x" * 501},
+    )
+    assert r.status_code == 422

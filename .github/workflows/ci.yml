@@ -56,6 +56,13 @@ jobs:
       - name: Análise estática de segurança (bandit)
         run: bandit -r app scripts -ll -q
 
+      # banco vazio do CI: grava dados no formato antigo, cifra, decifra de
+      # volta e cifra de novo, conferindo valor por valor
+      - name: Migrations vão e voltam sem perder dado
+        run: python -m tests.verificar_migracoes
+        env:
+          CONFIRMO_BANCO_DESCARTAVEL: "1"
+
       - name: Migrations
         run: alembic upgrade head
 

@@ -17,7 +17,7 @@ Em produção, rode com a DATABASE_URL e as chaves do Render no ambiente
 import argparse
 from collections import Counter
 
-from sqlalchemy import text
+from sqlalchemy import column, select, table, text, update
 from sqlalchemy.orm import Session
 
 from app.core import cripto
@@ -45,27 +45,21 @@ def rotacionar(
     ativa = cripto.id_chave_ativa()
     relatorio: dict[str, Counter] = {}
 
-    # tabela e coluna vêm da lista fixa acima (nunca de quem usa o script)
-    for tabela, coluna, contexto in COLUNAS_CIFRADAS:
+    for nome_tabela, coluna, contexto in COLUNAS_CIFRADAS:
+        # SQL montado pelo SQLAlchemy (sem juntar texto), um arquivo por vez
+        t = table(nome_tabela, column("id"), column(coluna))
+        valor = t.c[coluna]
         contagem: Counter = Counter()
         ids = db.execute(
-            text(f"SELECT id FROM {tabela} WHERE {coluna} IS NOT NULL ORDER BY id")
+            select(t.c.id).where(valor.is_not(None)).order_by(t.c.id)
         ).scalars().all()
         for id_ in ids:
-            blob = bytes(
-                db.execute(
-                    text(f"SELECT {coluna} FROM {tabela} WHERE id = :id"),
-                    {"id": id_},
-                ).scalar_one()
-            )
+            blob = bytes(db.execute(select(valor).where(t.c.id == id_)).scalar_one())
             contagem[cripto.id_da_chave(blob)] += 1
             if executar and cripto.id_da_chave(blob) != ativa:
                 novo = cripto.cifrar(cripto.decifrar(blob, contexto), contexto)
-                db.execute(
-                    text(f"UPDATE {tabela} SET {coluna} = :v WHERE id = :id"),
-                    {"v": novo, "id": id_},
-                )
-        relatorio[f"{tabela}.{coluna}"] = contagem
+                db.execute(update(t).where(t.c.id == id_).values({coluna: novo}))
+        relatorio[f"{nome_tabela}.{coluna}"] = contagem
 
     if executar and recalcular_hash:
         for id_, cifrado in db.execute(

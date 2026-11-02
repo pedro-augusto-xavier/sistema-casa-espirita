@@ -6,6 +6,7 @@ import {
   mascaraData,
   mascaraTelefone,
   nomeDeLogin,
+  quemAtendeu,
   rotuloFilhos,
   senhaDeCpf,
   soDigitos,
@@ -111,6 +112,25 @@ describe('nomeDeLogin', () => {
   it('lida com vazio', () => {
     expect(nomeDeLogin('')).toBe('')
     expect(nomeDeLogin('   ')).toBe('')
+  })
+})
+
+describe('quemAtendeu', () => {
+  it('usa o guia quando tem', () => {
+    expect(quemAtendeu({ atendido_por_guia: 'Vovó Xica', atendido_por: null })).toBe(
+      'Vovó Xica',
+    )
+  })
+
+  it('cai pra pessoa cadastrada nos atendimentos antigos', () => {
+    expect(
+      quemAtendeu({ atendido_por_guia: null, atendido_por: { nome_completo: 'Tia Maria' } }),
+    ).toBe('Tia Maria')
+  })
+
+  it('null quando não tem nenhum dos dois', () => {
+    expect(quemAtendeu({})).toBeNull()
+    expect(quemAtendeu(null)).toBeNull()
   })
 })
 

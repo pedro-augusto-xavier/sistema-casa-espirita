@@ -47,6 +47,7 @@ class AtendimentoTratamentoOut(BaseModel):
 class AtendimentoBase(BaseModel):
     pessoa_id: int
     data: date | None = None
+    atendido_por_guia: str | None = Field(default=None, max_length=120)
     atendido_por_id: int | None = None
     solicitante_id: int | None = None
     presente: bool = True
@@ -66,6 +67,7 @@ class AtendimentoUpdate(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     data: date | None = None
+    atendido_por_guia: str | None = Field(default=None, max_length=120)
     atendido_por_id: int | None = None
     solicitante_id: int | None = None
     presente: bool | None = None
@@ -84,6 +86,7 @@ class AtendimentoOut(BaseModel):
     # dados completos da pessoa (nascimento, endereço, telefone) -- o PDF
     # da visita precisa deles, igual à ficha de papel.
     pessoa: PessoaOut
+    atendido_por_guia: str | None
     atendido_por: PessoaMini | None
     solicitante: PessoaMini | None
     presente: bool
@@ -101,6 +104,7 @@ class AtendimentoListItem(BaseModel):
     id: int
     data: date
     pessoa: PessoaMini
+    atendido_por_guia: str | None
     atendido_por: PessoaMini | None
     modalidade: Modalidade
     tratamentos_resumo: list[str]

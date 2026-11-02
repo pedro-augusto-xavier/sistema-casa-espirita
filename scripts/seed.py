@@ -19,6 +19,7 @@ TIPOS_TRATAMENTO = [
     ("Ectoplasmia Presencial", FormatoTratamento.individual),
     ("Conversa Fraterna", FormatoTratamento.individual),
     ("Ambulatório", FormatoTratamento.individual),
+    ("Magnetismo", FormatoTratamento.individual),
     ("Grupo Despertar", FormatoTratamento.grupo),
     ("Grupo de Estudos Aberto", FormatoTratamento.grupo),
     ("Desobsessão Presencial", FormatoTratamento.caso),

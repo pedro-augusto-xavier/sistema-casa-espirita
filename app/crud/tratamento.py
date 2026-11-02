@@ -261,7 +261,10 @@ def historico_pessoa(db: Session, pessoa_id: int) -> list[dict]:
     ).all()
     for a in atendimentos:
         nomes = ", ".join(a.tratamentos_resumo) or "sem tratamento registrado"
-        quem = a.atendido_por.nome_completo if a.atendido_por else None
+        # guia (forma atual) ou a pessoa cadastrada (atendimentos antigos)
+        quem = a.atendido_por_guia or (
+            a.atendido_por.nome_completo if a.atendido_por else None
+        )
         itens.append(
             {
                 "tipo": "atendimento",

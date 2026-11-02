@@ -1,6 +1,12 @@
 import { useEffect, useState } from 'react'
 import { api } from '../api/client'
-import { OPCOES_VINCULO, dataParaIso, isoParaData, mascaraData } from '../utils/formatadores'
+import {
+  GUIAS,
+  OPCOES_VINCULO,
+  dataParaIso,
+  isoParaData,
+  mascaraData,
+} from '../utils/formatadores'
 import { Modal } from './Modal'
 import { SeletorPessoa } from './SeletorPessoa'
 import { Avatar, Botao, Campo, MensagemErro } from './ui'
@@ -19,7 +25,7 @@ export function AtendimentoModal({ pessoa, existente, onFechar, onSalvo }) {
 
   const [tipos, setTipos] = useState([])
   const [data, setData] = useState(existente ? isoParaData(existente.data) : hoje())
-  const [atendidoPor, setAtendidoPor] = useState(existente?.atendido_por ?? null)
+  const [guia, setGuia] = useState(existente?.atendido_por_guia ?? '')
   const [modalidade, setModalidade] = useState(existente?.modalidade ?? 'presencial')
   const [presente, setPresente] = useState(existente?.presente ?? true)
   const [solicitante, setSolicitante] = useState(existente?.solicitante ?? null)
@@ -100,7 +106,7 @@ export function AtendimentoModal({ pessoa, existente, onFechar, onSalvo }) {
 
     const corpo = {
       data: dataIso,
-      atendido_por_id: atendidoPor?.id ?? null,
+      atendido_por_guia: guia || null,
       modalidade,
       presente,
       solicitante_id: solicitante?.id ?? null,
@@ -157,13 +163,20 @@ export function AtendimentoModal({ pessoa, existente, onFechar, onSalvo }) {
           </Campo>
         </div>
 
-        <Campo label="Atendido por" dica="médium / trabalhador">
-          <SeletorPessoa
-            valor={atendidoPor}
-            aoSelecionar={setAtendidoPor}
-            papel="trabalhador"
-            placeholder="Buscar trabalhador..."
-          />
+        <Campo label="Atendido por">
+          <select value={guia} onChange={(e) => setGuia(e.target.value)} className="campo">
+            <option value="">Selecione...</option>
+            {GUIAS.map((nome) => (
+              <option key={nome} value={nome}>
+                {nome}
+              </option>
+            ))}
+          </select>
+          {!guia && existente?.atendido_por && (
+            <p className="mt-1 text-xs text-stone-400">
+              Registrado antes como: {existente.atendido_por.nome_completo}
+            </p>
+          )}
         </Campo>
 
         <label className="flex cursor-pointer items-center gap-2 rounded-lg border border-stone-200 px-3 py-2 text-sm text-stone-700 select-none hover:bg-stone-50">

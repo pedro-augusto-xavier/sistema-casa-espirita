@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { api } from '../api/client'
-import { isoParaData } from '../utils/formatadores'
+import { isoParaData, quemAtendeu } from '../utils/formatadores'
 import { Anexos } from './Anexos'
 import { AtendimentoModal } from './AtendimentoModal'
 import { Modal } from './Modal'
@@ -114,7 +114,7 @@ export function AtendimentoDetalheModal({ atendimentoId, onFechar }) {
           </div>
 
           <div className="grid grid-cols-2 gap-4 rounded-xl bg-stone-50 p-4 ring-1 ring-stone-900/5">
-            <Campo label="Atendido por" valor={dados.atendido_por?.nome_completo} />
+            <Campo label="Atendido por" valor={quemAtendeu(dados)} />
             <Campo label="Solicitante" valor={dados.solicitante?.nome_completo} />
             {dados.retorno_previsto && (
               <Campo label="Retorno previsto" valor={isoParaData(dados.retorno_previsto)} />

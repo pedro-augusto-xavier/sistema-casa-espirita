@@ -59,6 +59,34 @@ def test_criar_atendimento_com_tratamentos(client: TestClient):
     assert nomes == {"Reflexologia", "Energização"}
 
 
+def test_atendido_por_guia_e_magnetismo(client: TestClient):
+    pessoa = _cria_pessoa(client, "Atendida Pelo Guia")
+    magnetismo = _id_tipo(client, "Magnetismo")
+
+    r = client.post(
+        "/api/v1/atendimentos",
+        json={
+            "pessoa_id": pessoa,
+            "atendido_por_guia": "Vovó Maria do Congo",
+            "tratamentos": [{"tipo_tratamento_id": magnetismo}],
+        },
+    )
+    assert r.status_code == 201, r.text
+    dados = r.json()
+    assert dados["atendido_por_guia"] == "Vovó Maria do Congo"
+    assert dados["atendido_por"] is None
+
+    # trocar o guia depois
+    r2 = client.patch(
+        f"/api/v1/atendimentos/{dados['id']}", json={"atendido_por_guia": "Pai João"}
+    )
+    assert r2.json()["atendido_por_guia"] == "Pai João"
+
+    # aparece no histórico da ficha
+    historico = client.get(f"/api/v1/pessoas/{pessoa}/historico").json()
+    assert historico[0]["detalhes"]["atendido_por"] == "Pai João"
+
+
 def test_marcar_desobsessao_abre_ficha_de_acompanhamento(client: TestClient):
     """Marcar um tipo 'caso' no atendimento abre a pasta (a ficha de papel)
     uma vez só; a pessoa atendida vira o responsável e, sem assistidos

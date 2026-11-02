@@ -1,5 +1,5 @@
 import { jsPDF } from 'jspdf'
-import { isoParaData, mascaraTelefone } from './formatadores'
+import { isoParaData, mascaraTelefone, quemAtendeu } from './formatadores'
 
 const ROTULO_MODALIDADE = {
   presencial: 'Presencial',
@@ -64,7 +64,7 @@ export function gerarPdfAtendimento(atendimento) {
 
   campo('Data:', isoParaData(atendimento.data))
   campo('Modalidade:', ROTULO_MODALIDADE[atendimento.modalidade])
-  campo('Atendido por:', atendimento.atendido_por?.nome_completo)
+  campo('Atendido por:', quemAtendeu(atendimento))
   if (!atendimento.presente) {
     campo('Solicitante:', atendimento.solicitante?.nome_completo)
   }

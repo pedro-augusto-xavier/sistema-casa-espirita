@@ -45,6 +45,24 @@ export const TOM_PAPEL = {
   voluntario: 'azul',
 }
 
+// Guias que atendem na casa -- opções do campo "Atendido por".
+export const GUIAS = [
+  'Tia Maria',
+  'Pai Joaquim',
+  'Vovó Maria do Congo',
+  'Vovó Xica',
+  'Tia Rosinha',
+  'Pai João',
+  'Pai Francisco',
+  'Vovó Catarina',
+  'Vovó Maria Redonda',
+]
+
+/** Quem atendeu: o guia (forma atual) ou a pessoa cadastrada (registros antigos). */
+export function quemAtendeu(atendimento) {
+  return atendimento?.atendido_por_guia || atendimento?.atendido_por?.nome_completo || null
+}
+
 export const ROTULO_VINCULO = {
   pai: 'Pai',
   mae: 'Mãe',

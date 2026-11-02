@@ -10,6 +10,7 @@ from sqlalchemy import (
     Enum,
     ForeignKey,
     Integer,
+    String,
     Text,
     func,
 )
@@ -31,7 +32,11 @@ class Atendimento(TimestampMixin, Base):
     data: Mapped[date] = mapped_column(
         Date, server_default=func.current_date(), nullable=False
     )
-    # o médium / trabalhador que atendeu (ex: "Tia Maria")
+    # o guia que atendeu (ex: "Tia Maria", "Pai Joaquim") -- lista fixa
+    # escolhida na tela, guardada como texto.
+    atendido_por_guia: Mapped[str | None] = mapped_column(String(120))
+    # forma antiga: uma pessoa cadastrada. Mantido pros atendimentos que já
+    # foram registrados assim -- a tela nova usa o guia acima.
     atendido_por_id: Mapped[int | None] = mapped_column(
         ForeignKey("pessoa.id", ondelete="SET NULL")
     )

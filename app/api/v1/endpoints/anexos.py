@@ -14,6 +14,7 @@ from fastapi import APIRouter, File, Form, HTTPException, Response, UploadFile, 
 from app.api.deps import SessaoDB, UsuarioAtual
 from app.core.auditoria import registrar
 from app.crud import anexo as crud
+from app.crud import auditoria as crud_auditoria
 from app.crud import pessoa as crud_pessoa
 from app.models.enums import AcaoAuditoria
 from app.schemas.anexo import AnexoOut
@@ -84,10 +85,28 @@ def listar_anexos(db: SessaoDB, pessoa_id: int):
 
 
 @router.get("/anexos/{anexo_id}/arquivo", summary="Baixar o arquivo original")
-def baixar_anexo(db: SessaoDB, anexo_id: int):
+def baixar_anexo(db: SessaoDB, anexo_id: int, usuario: UsuarioAtual):
+    """Quem abriu qual arquivo fica na auditoria -- uma vez por pessoa, por
+    arquivo, a cada 24 h (a ficha carrega as miniaturas toda vez que abre;
+    registrar cada carregamento só encheria o log)."""
     anexo = crud.get_com_conteudo(db, anexo_id)
     if anexo is None:
         raise HTTPException(status_code=404, detail="Anexo não encontrado")
+    if not crud_auditoria.registrado_recentemente(
+        db,
+        usuario_id=usuario.id,
+        acao=AcaoAuditoria.visualizar,
+        entidade="anexo",
+        entidade_id=anexo_id,
+    ):
+        registrar(
+            db,
+            usuario=usuario,
+            acao=AcaoAuditoria.visualizar,
+            entidade="anexo",
+            entidade_id=anexo_id,
+            dados={"pessoa_id": anexo.pessoa_id},
+        )
     return Response(
         content=anexo.conteudo,
         media_type=anexo.tipo_conteudo,

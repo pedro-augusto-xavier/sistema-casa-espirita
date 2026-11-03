@@ -70,7 +70,11 @@ def alertas(db: Session) -> dict[str, int | bool]:
     cpfs = db.scalar(
         select(func.count())
         .select_from(AuditLog)
-        .where(AuditLog.acao == AcaoAuditoria.visualizar, AuditLog.criado_em >= semana)
+        .where(
+            AuditLog.acao == AcaoAuditoria.visualizar,
+            AuditLog.entidade == "pessoa",
+            AuditLog.criado_em >= semana,
+        )
     ) or 0
 
     logins = db.scalars(
@@ -91,3 +95,31 @@ def alertas(db: Session) -> dict[str, int | bool]:
         "acessos_fora_de_hora_7d": fora_de_hora,
         "alerta": falhas >= LIMITE_FALHAS_LOGIN_24H or fora_de_hora > 0,
     }
+
+
+def registrado_recentemente(
+    db: Session,
+    *,
+    usuario_id: int,
+    acao: AcaoAuditoria,
+    entidade: str,
+    entidade_id: int,
+    horas: int = 24,
+) -> bool:
+    """Já existe registro igual nas últimas `horas`? (evita repetir no log
+    a mesma pessoa vendo o mesmo arquivo várias vezes no dia)"""
+    desde = datetime.now(UTC) - timedelta(hours=horas)
+    return (
+        db.scalar(
+            select(AuditLog.id)
+            .where(
+                AuditLog.usuario_id == usuario_id,
+                AuditLog.acao == acao,
+                AuditLog.entidade == entidade,
+                AuditLog.entidade_id == entidade_id,
+                AuditLog.criado_em >= desde,
+            )
+            .limit(1)
+        )
+        is not None
+    )

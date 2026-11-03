@@ -175,3 +175,40 @@ def test_descricao_muito_longa_e_recusada(client: TestClient):
         data={"descricao": "x" * 501},
     )
     assert r.status_code == 422
+
+
+def test_download_fica_na_auditoria_uma_vez_por_dia(
+    client: TestClient, client_anon: TestClient, entrar_como
+):
+    p = _pessoa(client)
+    anexo = _upload(client, p["id"]).json()
+
+    def visualizacoes() -> list[dict]:
+        return client.get(
+            "/api/v1/auditoria",
+            params={
+                "entidade": "anexo",
+                "entidade_id": anexo["id"],
+                "acao": "visualizar",
+            },
+        ).json()["items"]
+
+    antes_alerta = client.get("/api/v1/auditoria/alertas").json()["cpfs_vistos_7d"]
+
+    # o admin abre a ficha duas vezes: um registro só
+    client.get(f"/api/v1/anexos/{anexo['id']}/arquivo")
+    client.get(f"/api/v1/anexos/{anexo['id']}/arquivo")
+    assert len(visualizacoes()) == 1
+    assert visualizacoes()[0]["dados"] == {"pessoa_id": p["id"]}
+
+    # outra pessoa da equipe abre: mais um registro, com o nome dela
+    r = client_anon.get(
+        f"/api/v1/anexos/{anexo['id']}/arquivo", headers=entrar_como("Op Arquivo")
+    )
+    assert r.status_code == 200
+    quem = {v["usuario_nome"] for v in visualizacoes()}
+    assert quem == {"Admin de Teste", "Op Arquivo"}
+
+    # ver arquivo não conta como "CPF visto" no resumo de segurança
+    depois_alerta = client.get("/api/v1/auditoria/alertas").json()["cpfs_vistos_7d"]
+    assert depois_alerta == antes_alerta

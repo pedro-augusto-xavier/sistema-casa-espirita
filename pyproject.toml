@@ -18,3 +18,7 @@ extend-exclude = ["alembic/versions"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B"]
+# UP042 (enums viram StrEnum) e UP046 (genérico no estilo PEP 695) mudam
+# comportamento sutil -- o str() dos enums e os genéricos do Pydantic. Não
+# é falha nem segurança; fica pra uma mudança própria, com teste.
+ignore = ["UP042", "UP046"]

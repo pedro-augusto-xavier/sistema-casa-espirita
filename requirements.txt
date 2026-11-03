@@ -6,14 +6,14 @@ starlette==1.10.0
 uvicorn[standard]==0.54.0
 
 # --- Banco de dados ---
-sqlalchemy==2.0.36
-alembic==1.14.0
-psycopg[binary]==3.2.3
+sqlalchemy==2.1.6
+alembic==1.20.1
+psycopg[binary]==3.3.6
 
 # --- Configuração / validação ---
-pydantic==2.10.4
-pydantic-settings==2.7.0
-email-validator==2.2.0
+pydantic==2.14.2
+pydantic-settings==2.16.2
+email-validator==2.3.0
 
 # --- Segurança ---
 bcrypt==5.0.0

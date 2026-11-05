@@ -26,6 +26,9 @@ backups/
 scr_*.txt
 scratch_*
 
+# ---- Relatórios de auditoria de segurança ----
+security-audit/
+
 # ---- Editores / SO ----
 .vscode/
 .idea/

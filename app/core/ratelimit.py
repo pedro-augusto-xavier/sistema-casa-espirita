@@ -14,28 +14,36 @@ pro banco ou pra um Redis.)
 """
 
 import time
-from collections import defaultdict
 
 from fastapi import HTTPException, status
 
 MENSAGEM_BLOQUEIO = "Muitas tentativas. Espere alguns minutos e tente de novo."
+
+# Passando disso, as chaves cujas falhas já venceram são removidas.
+MAX_CHAVES = 10_000
 
 
 class LimiteDeFalhas:
     def __init__(self, limite: int, janela_segundos: int) -> None:
         self.limite = limite
         self.janela = janela_segundos
-        self._falhas: dict[str, list[float]] = defaultdict(list)
+        self._falhas: dict[str, list[float]] = {}
 
-    def _janela_de(self, chave: str) -> list[float]:
+    def _recentes(self, chave: str) -> list[float]:
+        """Falhas da chave ainda dentro da janela. Só consulta: não cria a
+        chave (senão qualquer nome digitado ocuparia espaço)."""
+        janela = self._falhas.get(chave)
+        if not janela:
+            return []
         agora = time.monotonic()
-        janela = self._falhas[chave]
         while janela and agora - janela[0] > self.janela:
             janela.pop(0)
+        if not janela:
+            del self._falhas[chave]
         return janela
 
     def bloqueado(self, chave: str) -> bool:
-        return len(self._janela_de(chave)) >= self.limite
+        return len(self._recentes(chave)) >= self.limite
 
     def exigir_liberado(self, chave: str) -> None:
         if self.bloqueado(chave):
@@ -46,10 +54,23 @@ class LimiteDeFalhas:
             )
 
     def registrar_falha(self, chave: str) -> None:
-        self._janela_de(chave).append(time.monotonic())
-        # evita a memória crescer pra sempre com chaves que só apareceram 1x
-        if len(self._falhas) > 10_000:
-            self._falhas.clear()
+        self._recentes(chave)  # descarta as falhas vencidas dessa chave
+        agora = time.monotonic()
+        self._falhas.setdefault(chave, []).append(agora)
+        # evita a memória crescer pra sempre com chaves que só apareceram 1x.
+        # Remove só as que já venceram: apagar tudo zeraria também quem está
+        # bloqueado agora (dava pra destravar uma conta enchendo de nomes).
+        if len(self._falhas) > MAX_CHAVES:
+            self._remover_vencidas(agora)
+
+    def _remover_vencidas(self, agora: float) -> None:
+        vencidas = [
+            chave
+            for chave, janela in self._falhas.items()
+            if agora - janela[-1] > self.janela
+        ]
+        for chave in vencidas:
+            del self._falhas[chave]
 
     def limpar(self, chave: str) -> None:
         self._falhas.pop(chave, None)

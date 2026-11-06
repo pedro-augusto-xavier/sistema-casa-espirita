@@ -29,9 +29,13 @@ front no **Vercel**. Os três aceitam login com GitHub.
      uvicorn app.main:app --host 0.0.0.0 --port $PORT --proxy-headers --forwarded-allow-ips='*'
      ```
      (`--proxy-headers` faz o app saber que a conexão original foi HTTPS.
+     O `'*'` é o mesmo valor que o Render já põe em `FORWARDED_ALLOW_IPS`
+     no Python -- não restrinja: os IPs do balanceador do Render não são
+     publicados, e restringir faria todo mundo aparecer com o mesmo IP.
      O IP de quem acessa, usado no limite de tentativas de login e na
      auditoria, vem do cabeçalho `CF-Connecting-IP` da Cloudflare que fica
-     na frente do Render -- ver `app/core/contexto.py`.)
+     na frente do Render (variável `IP_CLIENTE_CABECALHO`, não precisa
+     mexer) -- ver `app/core/contexto.py`.)
    - **Instance Type:** Free
    - **Health Check Path** (em Settings, depois de criar): `/health`. Ele confere
      o banco e se as chaves de criptografia abrem os dados; se falhar, o Render

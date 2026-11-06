@@ -14,7 +14,7 @@ from fastapi.security import OAuth2PasswordRequestForm
 from app.api.deps import SessaoAtual, SessaoDB, UsuarioAtual
 from app.core import mfa
 from app.core.auditoria import registrar
-from app.core.contexto import ip_atual
+from app.core.contexto import ip_atual, ip_confiavel
 from app.core.ratelimit import (
     chave_conta,
     chave_ip,
@@ -52,9 +52,10 @@ def _erro(codigo_http: int, codigo: str, mensagem: str) -> HTTPException:
 
 
 def _registrar_falha_de_login(
-    db: SessaoDB, alvo: Usuario | None, motivo: str, chaves: list[str]
+    db: SessaoDB, alvo: Usuario | None, motivo: str, chaves: tuple[str | None, str]
 ) -> None:
-    falhas_por_ip.registrar_falha(chaves[0])
+    if chaves[0] is not None:
+        falhas_por_ip.registrar_falha(chaves[0])
     falhas_por_conta.registrar_falha(chaves[1])
     registrar(
         db,
@@ -80,8 +81,14 @@ def login(
 
     Com `lembrar=true` ("Manter conectado") a sessão dura
     LEMBRAR_TOKEN_EXPIRE_DAYS dias em vez das horas padrão."""
-    chaves = [chave_ip(ip_atual()), chave_conta(form.username)]
-    falhas_por_ip.exigir_liberado(chaves[0])
+    # Sem IP confiável (o cabeçalho do proxy não chegou), não tem limite por
+    # IP: o que sobra é forjável ou igual pra todos -- ver app/core/contexto.py.
+    chaves = (
+        chave_ip(ip_atual()) if ip_confiavel() else None,
+        chave_conta(form.username),
+    )
+    if chaves[0] is not None:
+        falhas_por_ip.exigir_liberado(chaves[0])
     falhas_por_conta.exigir_liberado(chaves[1])
 
     usuario = crud.autenticar(db, form.username, form.password)

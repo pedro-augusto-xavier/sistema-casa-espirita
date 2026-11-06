@@ -265,6 +265,124 @@ def test_login_fica_na_auditoria_com_ip(client: TestClient, client_anon: TestCli
     assert "errada" not in str(falha["dados"])
 
 
+# ---------- de onde vem o IP ----------
+
+
+def _escopo(*cabecalhos: tuple[bytes, bytes]) -> dict:
+    return {"type": "http", "client": ("10.0.0.1", 1234), "headers": list(cabecalhos)}
+
+
+@pytest.mark.parametrize(
+    ("cabecalhos", "esperado"),
+    [
+        ([(b"cf-connecting-ip", b"198.51.100.7")], ("198.51.100.7", True)),
+        ([(b"cf-connecting-ip", b" 2001:DB8::1 ")], ("2001:db8::1", True)),
+        # não é IP / lista de IPs / vazio / não veio: vale a conexão, sem confiança
+        ([(b"cf-connecting-ip", b"lixo")], ("10.0.0.1", False)),
+        ([(b"cf-connecting-ip", b"1.2.3.4, 5.6.7.8")], ("10.0.0.1", False)),
+        ([(b"cf-connecting-ip", b"")], ("10.0.0.1", False)),
+        ([(b"x-forwarded-for", b"203.0.113.5")], ("10.0.0.1", False)),
+    ],
+)
+def test_ip_vem_do_cabecalho_configurado(cabecalhos, esperado):
+    from app.core.contexto import _ip_do_escopo
+
+    assert _ip_do_escopo(_escopo(*cabecalhos), b"cf-connecting-ip") == esperado
+
+
+def test_ip_sem_proxy_configurado_confia_na_conexao():
+    from app.core.contexto import _ip_do_escopo
+
+    escopo = _escopo((b"cf-connecting-ip", b"198.51.100.7"))
+    assert _ip_do_escopo(escopo, b"") == ("10.0.0.1", True)
+
+
+def test_ip_de_outro_cabecalho_configurado():
+    from app.core.contexto import _ip_do_escopo
+
+    escopo = _escopo(
+        (b"cf-connecting-ip", b"198.51.100.7"), (b"true-client-ip", b"192.0.2.9")
+    )
+    assert _ip_do_escopo(escopo, b"true-client-ip") == ("192.0.2.9", True)
+
+
+def test_ip_cabecalho_vem_da_configuracao(monkeypatch):
+    from app.core.contexto import ContextoDaRequisicao
+
+    monkeypatch.setattr(settings, "IP_CLIENTE_CABECALHO", " True-Client-IP ")
+    assert ContextoDaRequisicao(app).cabecalho_ip == b"true-client-ip"
+
+
+@pytest.mark.parametrize("cabecalho", [None, "lixo"])
+def test_sem_ip_confiavel_nao_tem_limite_por_ip_mas_tem_por_conta(
+    client: TestClient, client_anon: TestClient, cabecalho
+):
+    """Se o cabeçalho do proxy não chega, ninguém pode cair na mesma chave
+    de IP (travaria o login de todo mundo) -- mas a conta segue protegida."""
+    headers = {"CF-Connecting-IP": cabecalho} if cabecalho else {}
+
+    def tentar(nome: str, senha: str = "chute"):
+        return client_anon.post(
+            "/api/v1/auth/login",
+            data={"username": nome, "password": senha},
+            headers=headers,
+        )
+
+    for i in range(falhas_por_ip.limite + 2):
+        assert tentar(f"nome {i}").status_code == 401
+
+    senha = _criar(client, "Alvo Sem Ip")
+    for _ in range(falhas_por_conta.limite):
+        assert tentar("Alvo Sem Ip").status_code == 401
+    assert tentar("Alvo Sem Ip", senha).status_code == 429
+
+    # o valor que não é IP não vai parar na auditoria
+    logs = client.get("/api/v1/auditoria", params={"acao": "login_falha"}).json()
+    assert all(x["ip"] != "lixo" for x in logs["items"])
+
+
+# ---------- limite de tentativas: memória ----------
+
+
+def test_muitas_chaves_novas_nao_zeram_o_limite_da_conta():
+    """Antes, passar de 10.000 chaves apagava tudo -- e destravava a conta."""
+    from app.core.ratelimit import MAX_CHAVES, LimiteDeFalhas
+
+    limite = LimiteDeFalhas(limite=5, janela_segundos=300)
+    for _ in range(4):
+        limite.registrar_falha("conta:alvo")
+    for i in range(MAX_CHAVES + 1):
+        limite.registrar_falha(f"conta:outra {i}")
+    limite.registrar_falha("conta:alvo")
+    assert limite.bloqueado("conta:alvo")
+
+
+def test_ao_passar_do_maximo_so_saem_as_chaves_vencidas(monkeypatch):
+    from app.core import ratelimit
+    from app.core.ratelimit import MAX_CHAVES, LimiteDeFalhas
+
+    agora = [1000.0]
+    monkeypatch.setattr(ratelimit.time, "monotonic", lambda: agora[0])
+    limite = LimiteDeFalhas(limite=5, janela_segundos=300)
+
+    limite.registrar_falha("velha")
+    agora[0] += 301
+    for i in range(MAX_CHAVES):
+        limite.registrar_falha(f"nova {i}")
+
+    assert "velha" not in limite._falhas
+    assert len(limite._falhas) == MAX_CHAVES
+
+
+def test_consultar_o_limite_nao_cria_chave():
+    from app.core.ratelimit import LimiteDeFalhas
+
+    limite = LimiteDeFalhas(limite=5, janela_segundos=300)
+    assert not limite.bloqueado("conta:nunca falhou")
+    limite.exigir_liberado("conta:nunca falhou")
+    assert limite._falhas == {}
+
+
 # ---------- senha forte ----------
 
 

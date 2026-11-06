@@ -52,6 +52,11 @@ class Settings(BaseSettings):
     # App
     APP_ENV: str = "dev"
 
+    # Cabeçalho que traz o IP real de quem acessa, preenchido pelo proxy da
+    # frente (no Render, a Cloudflare). Vazio = não tem proxy: vale o IP da
+    # conexão. Ver app/core/contexto.py.
+    IP_CLIENTE_CABECALHO: str = "cf-connecting-ip"
+
     # Origens autorizadas a chamar a API pelo navegador (o front em dev).
     # Fica como texto puro (não lista) porque pydantic-settings tenta ler
     # variável de ambiente de tipo lista como JSON antes de qualquer

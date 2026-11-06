@@ -56,5 +56,13 @@ def ler_token_acesso(token: str) -> dict:
         token,
         settings.SECRET_KEY,
         algorithms=[settings.ALGORITHM],
-        options={"require": ["sub", "sid", "exp"]},
+        options={"require": ["sub", "sid", "exp", "iat"]},
     )
+
+
+def emitido_antes_da_epoca(payload: dict) -> bool:
+    """Token emitido antes de SESSOES_VALIDAS_DESDE (época de revogação de
+    fora do banco) não vale, mesmo que a sessão dele pareça válida no
+    banco -- ex.: banco restaurado de um backup."""
+    desde = settings.SESSOES_VALIDAS_DESDE
+    return desde is not None and payload["iat"] < desde.timestamp()

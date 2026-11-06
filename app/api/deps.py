@@ -18,7 +18,7 @@ from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
-from app.core.security import ler_token_acesso
+from app.core.security import emitido_antes_da_epoca, ler_token_acesso
 from app.crud import sessao as crud_sessao
 from app.models.enums import PapelUsuario
 from app.models.usuario import SessaoUsuario, Usuario
@@ -41,8 +41,11 @@ def get_sessao_atual(
         payload = ler_token_acesso(token)
         usuario_id = int(payload["sub"])
         sessao_id = str(payload["sid"])
+        antigo = emitido_antes_da_epoca(payload)
     except (jwt.PyJWTError, KeyError, ValueError, TypeError) as exc:
         raise _NAO_AUTENTICADO from exc
+    if antigo:
+        raise _NAO_AUTENTICADO
 
     sessao = crud_sessao.obter_valida(db, sessao_id, usuario_id)
     # senha provisória vencida derruba até a sessão aberta antes do prazo

@@ -55,7 +55,8 @@ def main() -> None:
 
     tamanho_kb = destino.stat().st_size / 1024
     print(f"Backup salvo em {destino} ({tamanho_kb:.0f} KB)")
-    print("Restaurar com: pg_restore -d NOME_DO_BANCO --clean --if-exists ARQUIVO")
+    # nunca por cima de um banco em uso (--clean): ver docs/BACKUP.md
+    print("Restaurar num banco NOVO e vazio: createdb NOVO; pg_restore -d NOVO ARQUIVO")
 
 
 if __name__ == "__main__":

@@ -68,9 +68,97 @@ Teste num banco **local**, nunca por cima da produção sem necessidade.
 5. Apague tudo depois: `dropdb -U postgres restauracao_teste` e o
    `backup.sql` (ele está aberto, sem criptografia).
 
-Pra voltar a produção a partir de um backup (último caso — ver
-[PLANO_DE_INCIDENTE.md](PLANO_DE_INCIDENTE.md)): restaure num banco novo do
-Neon (ou num *branch*), confira, e troque o `DATABASE_URL` no Render.
+## Voltar a produção a partir de um backup
+
+O banco guarda também quem pode entrar: senhas, verificação em duas etapas,
+papéis, contas desativadas e sessões abertas. Restaurar o banco **inteiro**
+devolve tudo isso como estava no backup, ou seja, um acesso cortado depois
+dele (conta desativada, senha vazada e redefinida, celular perdido com o MFA
+zerado, admin rebaixado, sessão encerrada) **volta a valer**. Por isso há
+dois caminhos. Escolha pelo que aconteceu:
+
+| Aconteceu | Caminho |
+|---|---|
+| Alguns dados foram apagados ou alterados | **1. Seletivo**: produção continua no ar |
+| O banco se perdeu ou ficou corrompido | **2. Banco inteiro**: último caso |
+
+**Nunca** use `pg_restore --clean` (ou `psql -f` do backup) por cima do banco
+de produção.
+
+### 1. Seletivo (dado apagado ou alterado)
+
+1. Restaure o backup num banco **à parte**, como no roteiro de teste acima
+   (local) ou num *branch* do Neon no ponto no tempo de antes do problema.
+2. Copie de lá **só as linhas que precisa** das tabelas de dados (`pessoa`,
+   `atendimento`, `tratamento`, `anexo`...). Ex.: no banco à parte,
+   `\copy (SELECT * FROM pessoa WHERE id IN (...)) TO 'linhas.csv' CSV`; na
+   produção, `\copy pessoa FROM 'linhas.csv' CSV`. Os campos cifrados vêm
+   cifrados e continuam legíveis (as chaves são as mesmas).
+3. **Proibido copiar `usuario`, `sessao_usuario` e `audit_log`.** As duas
+   primeiras trariam de volta acessos já revogados, e a auditoria não pode
+   ser reescrita.
+4. Apague o banco à parte e os arquivos `.csv`/`backup.sql` (estão abertos).
+
+### 2. Banco inteiro (perda total ou corrupção)
+
+O sistema fica **fora do ar** do passo 1 ao 7 (minutos até uma hora).
+Anote o horário de cada passo (vai pro registro do incidente).
+
+1. **Render** → o serviço → *Suspend*.
+2. **Anote o horário do backup em UTC.** No artefato do GitHub, ele está no
+   nome (`casa-espirita-AAAAMMDD-HHMM`, já em UTC). No Neon, é o ponto no
+   tempo escolhido: some 3h ao horário de Brasília.
+3. **Restaure:**
+   - **A. Histórico do Neon** (se o ponto ainda estiver na janela do plano):
+     restaure o *branch* para o ponto no tempo. O Neon guarda o estado de
+     antes da restauração num *branch* à parte (confira em *Branches*):
+     esse é o **banco antigo** do passo 4.
+   - **B. Artefato do GitHub**: decifre como no roteiro de teste (passos 1
+     e 2) e restaure num banco **novo** do Neon:
+     `psql "<url do banco novo>" -f backup.sql`. Se o banco que se perdeu
+     ainda abrir, ele é o **banco antigo** do passo 4.
+   - Se o app usa o usuário restrito `app_casa`, refaça os `GRANT` de
+     [SEGURANCA.md](SEGURANCA.md) ("Usuário do banco com permissão mínima")
+     no banco restaurado: o backup não leva permissões.
+4. **Refaça as revogações**, no PowerShell, na pasta do projeto. Primeiro
+   sem `--executar` (só mostra o que faria):
+   ```powershell
+   $env:DATABASE_URL="<url do banco restaurado>"
+   .\.venv\Scripts\python.exe -m scripts.pos_restauracao --banco-antigo "<url do banco antigo>" --desde "AAAA-MM-DD HH:MM"
+   ```
+   - Sem banco antigo (não abre mais), troque
+     `--banco-antigo "..." --desde "..."` por `--sem-banco-antigo`: **todas**
+     as contas ativas recebem senha provisória nova e MFA zerado.
+   - Com banco antigo, ele lista a auditoria de usuários desde o backup
+     (desativações, senhas redefinidas, MFA zerado, papel mudado...) e o
+     que vai mudar em cada conta: desativado num dos dois → desativado;
+     papel → o menor; senha ou MFA diferentes → senha provisória nova e MFA
+     zerado.
+   - Em qualquer caso, **todas as sessões são encerradas**.
+
+   Conferiu? Rode de novo com `--executar` no fim e digite o nome do banco
+   pra confirmar. **Copie** as senhas provisórias e as duas linhas
+   `SECRET_KEY=...` e `SESSOES_VALIDAS_DESDE=...` que ele mostra. Depois:
+   `Remove-Item Env:\DATABASE_URL`.
+5. **Render** → *Environment*: `DATABASE_URL` = o banco restaurado (se
+   mudou), `SECRET_KEY` e `SESSOES_VALIDAS_DESDE` com os valores do passo
+   4. Salve. A chave nova e a data invalidam todo token emitido antes, mesmo
+   que alguma sessão do banco restaurado tenha escapado.
+6. **Render** → *Resume*. Confira que a tela de login funciona.
+7. **Sua conta**: entre com a senha provisória que o script mostrou e
+   configure de novo a verificação em duas etapas. Se não der,
+   `python -m scripts.criar_admin --nome "..." --resetar-mfa` apontando pro
+   banco restaurado (ver DEPLOY.md).
+8. **Repasse as senhas provisórias** a cada pessoa, pessoalmente ou por um
+   canal seguro. Elas valem 72h. Depois disso, o admin redefine.
+9. **Dados que se perderam**: refaça as anonimizações feitas depois do
+   backup ([LGPD.md](LGPD.md)) e, pela auditoria do banco antigo, o que mais
+   precisar.
+10. **Não apague o banco antigo** até fechar o incidente (é prova). Apague o
+    `backup.sql` (está aberto).
+
+`SESSOES_VALIDAS_DESDE` pode ficar no Render depois disso: data passada não
+atrapalha ninguém que entrou depois dela.
 
 ## Backup manual
 

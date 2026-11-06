@@ -5,6 +5,7 @@ Em qualquer lugar do código usamos:  from app.core.config import settings
 """
 
 import json
+from datetime import UTC, datetime, timedelta
 from typing import Literal
 
 from pydantic import Field, field_validator, model_validator
@@ -35,6 +36,12 @@ class Settings(BaseSettings):
     # validade do token quando a pessoa marca "Manter conectado" no login
     LEMBRAR_TOKEN_EXPIRE_DAYS: int = 30
     ALGORITHM: str = "HS256"
+    # Época de revogação guardada FORA do banco: todo token emitido antes
+    # dela é recusado, venha da sessão que vier. Serve pra derrubar todo
+    # mundo depois de restaurar um backup (o banco restaurado não sabe das
+    # revogações feitas depois do snapshot) -- ver docs/BACKUP.md. Data e
+    # hora ISO; sem fuso = UTC. Vazia = desligada.
+    SESSOES_VALIDAS_DESDE: datetime | None = None
 
     # Criptografia dos campos sensíveis (CPF, observações, anexos).
     # Formato e rotação: ver app/core/chaves.py. NUNCA no Git.
@@ -78,6 +85,30 @@ class Settings(BaseSettings):
         for prefixo in ("postgres://", "postgresql://"):
             if v.startswith(prefixo):
                 return "postgresql+psycopg://" + v[len(prefixo) :]
+        return v
+
+    @field_validator("SESSOES_VALIDAS_DESDE", mode="before")
+    @classmethod
+    def _vazio_e_desligado(cls, v: object) -> object:
+        if isinstance(v, str) and not v.strip():
+            return None
+        return v
+
+    @field_validator("SESSOES_VALIDAS_DESDE")
+    @classmethod
+    def _epoca_em_utc_e_nao_no_futuro(cls, v: datetime | None) -> datetime | None:
+        """Data no futuro é quase sempre erro de digitação (e recusaria
+        todo login até lá) -- melhor o app nem subir. 10 min de folga pro
+        relógio do computador que gerou o valor."""
+        if v is None:
+            return v
+        if v.tzinfo is None:
+            v = v.replace(tzinfo=UTC)
+        if v > datetime.now(UTC) + timedelta(minutes=10):
+            raise ValueError(
+                "SESSOES_VALIDAS_DESDE está no futuro. Use a data e hora "
+                "(UTC) que o scripts.pos_restauracao mostrou."
+            )
         return v
 
     @property

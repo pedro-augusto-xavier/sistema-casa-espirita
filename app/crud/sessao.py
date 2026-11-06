@@ -22,8 +22,32 @@ def _agora() -> datetime:
     return datetime.now(UTC)
 
 
-def abrir(db: Session, usuario: Usuario, *, lembrar: bool = False) -> str:
-    """Cria a sessão e devolve o token pra mandar pro navegador."""
+def abrir(
+    db: Session,
+    usuario: Usuario,
+    *,
+    lembrar: bool = False,
+    epoca: datetime | None = None,
+) -> str | None:
+    """Cria a sessão e devolve o token pra mandar pro navegador.
+
+    `epoca` é a época de credencial lida junto com a senha no login. Antes
+    de gravar a sessão, o usuário é relido com trava (FOR UPDATE): se ficou
+    inativo ou a credencial mudou desde aquela leitura (a pessoa trocou a
+    senha, ligou o MFA...), não abre nada e devolve None. Sem `epoca`, vale
+    a época atual (quem chama acabou de criar ou conferir o usuário)."""
+    atual = db.scalar(
+        select(Usuario)
+        .where(Usuario.id == usuario.id)
+        .with_for_update()
+        .execution_options(populate_existing=True)
+    )
+    if atual is None or not atual.ativo or (
+        epoca is not None and atual.epoca_credencial != epoca
+    ):
+        db.rollback()
+        return None
+
     agora = _agora()
     validade = (
         timedelta(days=settings.LEMBRAR_TOKEN_EXPIRE_DAYS)
@@ -36,6 +60,7 @@ def abrir(db: Session, usuario: Usuario, *, lembrar: bool = False) -> str:
         criada_em=agora,
         expira_em=agora + validade,
         ultimo_uso_em=agora,
+        epoca_credencial=atual.epoca_credencial,
         ip=ip_atual(),
         user_agent=user_agent_atual(),
     )
@@ -51,6 +76,8 @@ def obter_valida(db: Session, sessao_id: str, usuario_id: int) -> SessaoUsuario 
         or sessao.usuario_id != usuario_id
         or sessao.revogada_em is not None
         or sessao.expira_em <= _agora()
+        # a credencial mudou depois que a sessão foi aberta
+        or sessao.epoca_credencial != sessao.usuario.epoca_credencial
     ):
         return None
     return sessao

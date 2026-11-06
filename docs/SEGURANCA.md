@@ -42,6 +42,7 @@ Documentos relacionados: [LGPD.md](LGPD.md), [PLANO_DE_INCIDENTE.md](PLANO_DE_IN
 | Logout invalida a sessão no servidor | ✅ `POST /auth/logout`. |
 | Recuperação de senha | ➖ Não existe "esqueci a senha" por e-mail. Quem esquece pede pro admin, que redefine (o servidor gera uma senha provisória aleatória que vale 72h, e todas as sessões daquela pessoa caem). |
 | Trocar senha exige a senha atual | ✅ E derruba as outras sessões abertas. E-mail só o admin muda. |
+| Mudança de credencial derruba sessões mesmo com login simultâneo | ✅ **Época de credencial**: trocar ou redefinir a senha, ligar ou desligar a verificação em duas etapas e mudar o papel gravam uma época nova no usuário. Cada sessão guarda a época que valia quando o login conferiu a senha e só vale enquanto ela for a mesma, então um login que leu a senha antiga não escapa da revogação. O login também reconfere o usuário (com trava) antes de abrir a sessão. Quem fez a mudança em si mesmo continua logado naquele aparelho. |
 | Remover acesso de quem saiu no mesmo dia | ✅ Desativar o usuário corta o acesso na hora. Reativar não devolve a senha antiga: o servidor gera uma senha provisória nova (vale 72h). 👤 É processo: quem sai da equipe é desativado no mesmo dia (Usuários → Desativar). |
 
 ## Fase 3 — Criptografia e chaves

@@ -103,6 +103,8 @@ def login(
             "credenciais",
             "Nome ou senha incorretos.",
         )
+    # a época lida na mesma linha do hash que acabou de ser conferido
+    epoca = usuario.epoca_credencial
 
     if usuario.senha_provisoria_vencida:
         _registrar_falha_de_login(db, usuario, "senha_provisoria_vencida", chaves)
@@ -136,7 +138,15 @@ def login(
     usuario.ultimo_login_em = datetime.now(UTC)
     db.commit()
     crud_sessao.limpar_antigas(db)
-    token = crud_sessao.abrir(db, usuario, lembrar=lembrar)
+    token = crud_sessao.abrir(db, usuario, lembrar=lembrar, epoca=epoca)
+    if token is None:
+        # a senha/MFA mudou (ou a conta foi desativada) entre a conferência
+        # da senha e a abertura da sessão
+        raise _erro(
+            status.HTTP_401_UNAUTHORIZED,
+            "credenciais_mudaram",
+            "Seu acesso acabou de ser alterado. Entre de novo.",
+        )
     registrar(
         db,
         usuario=usuario,
@@ -197,7 +207,7 @@ def trocar_senha(
         )
 
     era_provisoria = usuario.senha_provisoria
-    crud.trocar_senha_propria(db, usuario, dados.senha_nova, sessao_atual=sessao.id)
+    crud.trocar_senha_propria(db, usuario, dados.senha_nova, sessao_atual=sessao)
     falhas_por_conta.limpar(limite)
     registrar(
         db,
@@ -271,10 +281,9 @@ def mfa_ativar(
         )
     usuario.mfa_ativo = True
     usuario.mfa_ultimo_passo = passo
-    db.commit()
-    falhas_por_conta.limpar(limite)
     # quem estiver logado em outro lugar (sem o código) perde o acesso
-    crud_sessao.revogar_todas(db, usuario.id, exceto=sessao.id)
+    crud.credencial_mudou(db, usuario, manter_sessao=sessao)
+    falhas_por_conta.limpar(limite)
     registrar(
         db,
         usuario=usuario,
@@ -291,7 +300,10 @@ def mfa_ativar(
     status_code=status.HTTP_204_NO_CONTENT,
     summary="Desligar a verificação em duas etapas (se não for obrigatória)",
 )
-def mfa_desativar(db: SessaoDB, usuario: UsuarioAtual, dados: MfaDesativarIn):
+def mfa_desativar(
+    db: SessaoDB, usuario: UsuarioAtual, sessao: SessaoAtual, dados: MfaDesativarIn
+):
+    """Exige a senha. As outras sessões abertas são encerradas."""
     if usuario.mfa_obrigatorio:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -305,7 +317,7 @@ def mfa_desativar(db: SessaoDB, usuario: UsuarioAtual, dados: MfaDesativarIn):
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Senha incorreta",
         )
-    crud.zerar_mfa(db, usuario)
+    crud.zerar_mfa(db, usuario, manter_sessao=sessao)
     registrar(
         db,
         usuario=usuario,

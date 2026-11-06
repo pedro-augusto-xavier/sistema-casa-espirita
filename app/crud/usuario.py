@@ -13,7 +13,7 @@ from app.core.security import (
     verificar_senha,
 )
 from app.crud import sessao as crud_sessao
-from app.models.usuario import Usuario
+from app.models.usuario import SessaoUsuario, Usuario
 from app.schemas.usuario import UsuarioCreate, UsuarioUpdate
 
 # depois disso a senha provisória não serve mais e o admin redefine de novo
@@ -62,6 +62,27 @@ def _definir_senha_provisoria(usuario: Usuario) -> str:
     return senha
 
 
+def credencial_mudou(
+    db: Session, usuario: Usuario, *, manter_sessao: SessaoUsuario | None = None
+) -> None:
+    """Grava a mudança de senha / MFA / papel junto com uma época de
+    credencial nova, e encerra as sessões do usuário -- menos
+    `manter_sessao` (a de quem fez a mudança em si mesmo), que passa pra
+    época nova.
+
+    A época vai no mesmo commit da credencial: um login concorrente que leu
+    a credencial antiga abre a sessão com a época antiga, e ela não vale,
+    mesmo que seja gravada depois do UPDATE de revogar_todas."""
+    agora = datetime.now(UTC)
+    usuario.epoca_credencial = agora
+    if manter_sessao is not None:
+        manter_sessao.epoca_credencial = agora
+    db.commit()
+    crud_sessao.revogar_todas(
+        db, usuario.id, exceto=manter_sessao.id if manter_sessao else None
+    )
+
+
 def criar(db: Session, dados: UsuarioCreate) -> tuple[Usuario, str]:
     """Cria o usuário com uma senha provisória gerada aqui. Devolve o
     usuário e a senha (a pessoa troca no 1º acesso)."""
@@ -84,8 +105,7 @@ def criar(db: Session, dados: UsuarioCreate) -> tuple[Usuario, str]:
 def redefinir_senha(db: Session, usuario: Usuario) -> str:
     """Admin redefiniu: senha provisória nova e quem estava logado cai."""
     senha = _definir_senha_provisoria(usuario)
-    db.commit()
-    crud_sessao.revogar_todas(db, usuario.id)
+    credencial_mudou(db, usuario)
     db.refresh(usuario)
     return senha
 
@@ -99,8 +119,7 @@ def reativar(db: Session, usuario: Usuario) -> str:
         raise ErroDominio("já existe um usuário ativo com esse nome")
     usuario.ativo = True
     senha = _definir_senha_provisoria(usuario)
-    db.commit()
-    crud_sessao.revogar_todas(db, usuario.id)
+    credencial_mudou(db, usuario)
     db.refresh(usuario)
     return senha
 
@@ -119,9 +138,14 @@ def atualizar(db: Session, usuario: Usuario, dados: UsuarioUpdate) -> Usuario:
             raise ErroDominio("já existe um usuário com esse e-mail")
         mudancas["email"] = mudancas["email"].lower()
 
+    papel_mudou = "papel" in mudancas and mudancas["papel"] != usuario.papel
     for campo, valor in mudancas.items():
         setattr(usuario, campo, valor)
-    db.commit()
+    if papel_mudou:
+        # papel novo: as sessões abertas com o papel de antes caem
+        credencial_mudou(db, usuario)
+    else:
+        db.commit()
 
     # usuário desligado: quem estava logado cai na hora
     if mudancas.get("ativo") is False:
@@ -132,22 +156,25 @@ def atualizar(db: Session, usuario: Usuario, dados: UsuarioUpdate) -> Usuario:
 
 
 def trocar_senha_propria(
-    db: Session, usuario: Usuario, senha_nova: str, *, sessao_atual: str
+    db: Session, usuario: Usuario, senha_nova: str, *, sessao_atual: SessaoUsuario
 ) -> None:
     usuario.senha_hash = hash_senha(senha_nova)
     usuario.senha_provisoria = False
     usuario.senha_provisoria_expira_em = None
     usuario.senha_alterada_em = datetime.now(UTC)
-    db.commit()
     # se alguém mais estava usando a senha antiga, perde o acesso
-    crud_sessao.revogar_todas(db, usuario.id, exceto=sessao_atual)
+    credencial_mudou(db, usuario, manter_sessao=sessao_atual)
 
 
-def zerar_mfa(db: Session, usuario: Usuario) -> None:
+def zerar_mfa(
+    db: Session, usuario: Usuario, *, manter_sessao: SessaoUsuario | None = None
+) -> None:
+    """Desliga a verificação em duas etapas e derruba as sessões (menos
+    `manter_sessao`, quando é a própria pessoa desligando)."""
     usuario.mfa_ativo = False
     usuario.mfa_segredo = None
     usuario.mfa_ultimo_passo = None
-    db.commit()
+    credencial_mudou(db, usuario, manter_sessao=manter_sessao)
 
 
 def autenticar(db: Session, nome: str, senha: str) -> Usuario | None:

@@ -77,6 +77,18 @@ class Usuario(Base):
     )
     ultimo_login_em: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
+    # Época da credencial: muda a cada troca de senha, ativação/desativação
+    # da verificação em duas etapas ou mudança de papel. Cada sessão guarda
+    # a época que valia quando o login leu a senha, e só vale enquanto ela
+    # for a mesma -- assim um login que leu a senha antiga não escapa da
+    # revogação, mesmo que a sessão seja gravada depois dela.
+    epoca_credencial: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        default=lambda: datetime.now(UTC),
+        server_default=func.now(),
+        nullable=False,
+    )
+
     # Verificação em duas etapas (TOTP). O segredo fica cifrado como o CPF.
     mfa_segredo: Mapped[str | None] = mapped_column(
         TextoCifrado("usuario.mfa_segredo")
@@ -119,9 +131,10 @@ class Usuario(Base):
 
 
 class SessaoUsuario(Base):
-    """Cada login abre uma sessão. O token só vale enquanto a sessão existir
-    e não estiver revogada -- assim "Sair", trocar a senha ou desativar o
-    usuário cortam o acesso na hora, e não só quando o token expirar."""
+    """Cada login abre uma sessão. O token só vale enquanto a sessão existir,
+    não estiver revogada e tiver a mesma época de credencial do usuário --
+    assim "Sair", trocar a senha ou desativar o usuário cortam o acesso na
+    hora, e não só quando o token expirar."""
 
     __tablename__ = "sessao_usuario"
 
@@ -137,6 +150,10 @@ class SessaoUsuario(Base):
     )
     ultimo_uso_em: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     revogada_em: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    # época da credencial do usuário quando a sessão foi aberta (ver Usuario)
+    epoca_credencial: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False
+    )
     ip: Mapped[str | None] = mapped_column(String(64))
     user_agent: Mapped[str | None] = mapped_column(String(255))
 

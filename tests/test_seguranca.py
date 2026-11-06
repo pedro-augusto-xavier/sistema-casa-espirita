@@ -106,7 +106,7 @@ def test_campos_extras_no_cadastro_de_usuario_sao_recusados(client: TestClient):
     for extra in ({"ativo": False}, {"mfa_ativo": True}, {"senha_provisoria": False}):
         r = client.post(
             "/api/v1/usuarios",
-            json={"nome": "Campo Extra", "senha": "senha12345", **extra},
+            json={"nome": "Campo Extra", **extra},
         )
         assert r.status_code == 422, extra
 
@@ -214,15 +214,22 @@ def _login(client: TestClient, nome: str, senha: str, ip: str):
     )
 
 
+def _criar(client: TestClient, nome: str) -> str:
+    """Admin cria o usuário; devolve a senha provisória gerada."""
+    r = client.post("/api/v1/usuarios", json={"nome": nome})
+    assert r.status_code == 201, r.text
+    return r.json()["senha_gerada"]
+
+
 def test_conta_e_bloqueada_mesmo_trocando_de_ip(client: TestClient, client_anon):
-    client.post("/api/v1/usuarios", json={"nome": "Alvo Unico", "senha": "senha12345"})
+    senha = _criar(client, "Alvo Unico")
     for i in range(falhas_por_conta.limite):
         assert (
             _login(client_anon, "Alvo Unico", "chute", f"198.51.100.{i}").status_code
             == 401
         )
     # 6ª tentativa, de outro IP e com a senha CERTA: ainda bloqueada
-    r = _login(client_anon, "Alvo Unico", "senha12345", "198.51.100.200")
+    r = _login(client_anon, "Alvo Unico", senha, "198.51.100.200")
     assert r.status_code == 429
 
 
@@ -235,19 +242,16 @@ def test_ip_e_bloqueado_mesmo_trocando_de_nome(client_anon: TestClient):
 
 
 def test_acertar_a_senha_nao_gasta_tentativa(client: TestClient, client_anon):
-    client.post(
-        "/api/v1/usuarios", json={"nome": "Entra Sempre", "senha": "senha12345"}
-    )
+    senha = _criar(client, "Entra Sempre")
     for _ in range(falhas_por_ip.limite + 2):
         assert (
-            _login(client_anon, "Entra Sempre", "senha12345", "192.0.2.1").status_code
-            == 200
+            _login(client_anon, "Entra Sempre", senha, "192.0.2.1").status_code == 200
         )
 
 
 def test_login_fica_na_auditoria_com_ip(client: TestClient, client_anon: TestClient):
-    client.post("/api/v1/usuarios", json={"nome": "Loga Com Ip", "senha": "senha12345"})
-    _login(client_anon, "Loga Com Ip", "senha12345", "203.0.113.77")
+    senha = _criar(client, "Loga Com Ip")
+    _login(client_anon, "Loga Com Ip", senha, "203.0.113.77")
     _login(client_anon, "Loga Com Ip", "errada", "203.0.113.78")
 
     logs = client.get("/api/v1/auditoria", params={"entidade": "usuario"}).json()[
@@ -289,20 +293,20 @@ def test_senha_boa_passa():
 
 
 def test_trocar_senha_aplica_as_regras(client: TestClient, client_anon: TestClient):
-    client.post("/api/v1/usuarios", json={"nome": "Regra Senha", "senha": "senha12345"})
-    token = _login(client_anon, "Regra Senha", "senha12345", "192.0.2.5").json()[
+    senha = _criar(client, "Regra Senha")
+    token = _login(client_anon, "Regra Senha", senha, "192.0.2.5").json()[
         "access_token"
     ]
     headers = {"Authorization": f"Bearer {token}"}
     fraca = client_anon.post(
         "/api/v1/auth/trocar-senha",
-        json={"senha_atual": "senha12345", "senha_nova": "12345678901"},
+        json={"senha_atual": senha, "senha_nova": "12345678901"},
         headers=headers,
     )
     assert fraca.status_code == 422
     igual = client_anon.post(
         "/api/v1/auth/trocar-senha",
-        json={"senha_atual": "senha12345", "senha_nova": "senha12345"},
+        json={"senha_atual": senha, "senha_nova": senha},
         headers=headers,
     )
     assert igual.status_code == 422

@@ -12,9 +12,9 @@ import {
   Pill,
   TituloPagina,
 } from '../components/ui'
-import { mascaraCpf, nomeDeLogin, senhaDeCpf } from '../utils/formatadores'
+import { nomeDeLogin } from '../utils/formatadores'
 
-const VAZIO = { nome: '', email: '', senha: '', papel: 'operador' }
+const VAZIO = { nome: '', email: '', papel: 'operador' }
 
 function quandoFoi(iso) {
   if (!iso) return 'nunca entrou'
@@ -33,11 +33,11 @@ export function Usuarios() {
   const [novo, setNovo] = useState(VAZIO)
   const [enviando, setEnviando] = useState(false)
   const [versao, setVersao] = useState(0)
-  // só ajudam a preencher nome/senha -- não vão pro servidor
+  // só ajuda a preencher o login -- não vai pro servidor
   const [ajudaNome, setAjudaNome] = useState('')
-  const [ajudaCpf, setAjudaCpf] = useState('')
-  const [mostrarSenha, setMostrarSenha] = useState(false)
   const [redefinindo, setRedefinindo] = useState(null) // usuário
+  // senha provisória que o servidor acabou de gerar -- mostrada uma vez só
+  const [senhaGerada, setSenhaGerada] = useState(null)
 
   useEffect(() => {
     api
@@ -57,10 +57,10 @@ export function Usuarios() {
     setErro('')
     setEnviando(true)
     try {
-      await api.post('/usuarios', { ...novo, email: novo.email || null })
+      const criado = await api.post('/usuarios', { ...novo, email: novo.email || null })
       setNovo(VAZIO)
       setAjudaNome('')
-      setAjudaCpf('')
+      setSenhaGerada(criado)
       atualizar('Usuário criado. No primeiro acesso a pessoa vai criar a própria senha.')
     } catch (e) {
       setErro(e.message)
@@ -69,12 +69,8 @@ export function Usuarios() {
     }
   }
 
-  function preencherComNomeECpf() {
-    setNovo((n) => ({
-      ...n,
-      nome: nomeDeLogin(ajudaNome) || n.nome,
-      senha: senhaDeCpf(ajudaCpf) || n.senha,
-    }))
+  function preencherLogin() {
+    setNovo((n) => ({ ...n, nome: nomeDeLogin(ajudaNome) || n.nome }))
   }
 
   async function acao(promessa, mensagem) {
@@ -135,36 +131,28 @@ export function Usuarios() {
             <p className="text-xs font-medium text-stone-600">
               Preencher automático
               <span className="ml-1.5 font-normal text-stone-400">
-                — login = primeiro + último nome · senha provisória = 8 primeiros números do CPF
+                — login = primeiro + último nome
               </span>
             </p>
-            <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-[2fr_1fr_auto]">
+            <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-[1fr_auto]">
               <input
                 placeholder="Nome completo"
                 value={ajudaNome}
                 onChange={(e) => setAjudaNome(e.target.value)}
                 className="campo border-transparent bg-white shadow-none"
               />
-              <input
-                placeholder="CPF"
-                inputMode="numeric"
-                maxLength={14}
-                value={ajudaCpf}
-                onChange={(e) => setAjudaCpf(mascaraCpf(e.target.value))}
-                className="campo border-transparent bg-white shadow-none"
-              />
               <Botao
                 type="button"
                 variante="secundario"
-                onClick={preencherComNomeECpf}
-                disabled={!ajudaNome.trim() && !ajudaCpf.trim()}
+                onClick={preencherLogin}
+                disabled={!ajudaNome.trim()}
               >
                 Preencher
               </Botao>
             </div>
           </div>
 
-          <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
             <Campo label="Nome" dica="é o login">
               <input
                 required
@@ -181,27 +169,6 @@ export function Usuarios() {
                 className="campo"
               />
             </Campo>
-            <Campo label="Senha provisória">
-              <div className="flex items-center gap-2">
-                <input
-                  required
-                  type={mostrarSenha ? 'text' : 'password'}
-                  minLength={8}
-                  placeholder="8+ caracteres"
-                  autoComplete="new-password"
-                  value={novo.senha}
-                  onChange={(e) => setNovo((n) => ({ ...n, senha: e.target.value }))}
-                  className="campo"
-                />
-                <button
-                  type="button"
-                  onClick={() => setMostrarSenha((v) => !v)}
-                  className="shrink-0 text-xs text-stone-400 hover:text-emerald-800 hover:underline"
-                >
-                  {mostrarSenha ? 'ocultar' : 'ver'}
-                </button>
-              </div>
-            </Campo>
             <Campo label="Papel">
               <select
                 value={novo.papel}
@@ -215,7 +182,8 @@ export function Usuarios() {
           </div>
           <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
             <p className="text-xs text-stone-500">
-              No primeiro acesso a pessoa troca a senha provisória por uma só dela
+              O sistema gera uma senha provisória (vale 72h). No primeiro acesso a pessoa troca por
+              uma só dela
               {novo.papel === 'admin' && ' e configura o código do celular (obrigatório pra admin)'}.
             </p>
             <Botao type="submit" disabled={enviando}>
@@ -305,20 +273,23 @@ export function Usuarios() {
         <RedefinirSenhaModal
           usuario={redefinindo}
           onFechar={() => setRedefinindo(null)}
-          onSalvo={() => {
+          onSalvo={(resposta) => {
             const nome = redefinindo.nome
             setRedefinindo(null)
+            setSenhaGerada(resposta)
             atualizar(`Senha de ${nome} redefinida. Ela vale só pro próximo acesso.`)
           }}
         />
+      )}
+
+      {senhaGerada && (
+        <SenhaGeradaModal dados={senhaGerada} onFechar={() => setSenhaGerada(null)} />
       )}
     </div>
   )
 }
 
 function RedefinirSenhaModal({ usuario, onFechar, onSalvo }) {
-  const [senha, setSenha] = useState('')
-  const [cpf, setCpf] = useState('')
   const [erro, setErro] = useState('')
   const [enviando, setEnviando] = useState(false)
 
@@ -327,8 +298,7 @@ function RedefinirSenhaModal({ usuario, onFechar, onSalvo }) {
     setErro('')
     setEnviando(true)
     try {
-      await api.patch(`/usuarios/${usuario.id}`, { senha })
-      onSalvo()
+      onSalvo(await api.post(`/usuarios/${usuario.id}/redefinir-senha`))
     } catch (e) {
       setErro(e.message)
     } finally {
@@ -340,48 +310,67 @@ function RedefinirSenhaModal({ usuario, onFechar, onSalvo }) {
     <Modal titulo={`Redefinir senha de ${usuario.nome}`} onFechar={onFechar}>
       <form onSubmit={salvar} className="flex flex-col gap-4 text-sm">
         <p className="text-stone-600">
-          A senha nova é provisória: serve só pro próximo acesso, quando a pessoa cria a dela. Quem
-          estiver logado com essa conta é desconectado.
+          O sistema gera uma senha provisória nova, que vale 72h e serve só pro próximo acesso,
+          quando a pessoa cria a dela. Quem estiver logado com essa conta é desconectado.
         </p>
-        <div className="flex items-end gap-2">
-          <CampoUi label="Preencher com o CPF" dica="opcional" className="flex-1">
-            <input
-              inputMode="numeric"
-              maxLength={14}
-              value={cpf}
-              onChange={(e) => setCpf(mascaraCpf(e.target.value))}
-              className="campo"
-            />
-          </CampoUi>
-          <Botao
-            variante="secundario"
-            type="button"
-            disabled={!senhaDeCpf(cpf)}
-            onClick={() => setSenha(senhaDeCpf(cpf))}
-          >
-            Usar 8 números
-          </Botao>
-        </div>
-        <CampoUi label="Senha provisória">
-          <input
-            required
-            minLength={8}
-            autoComplete="new-password"
-            value={senha}
-            onChange={(e) => setSenha(e.target.value)}
-            className="campo font-mono"
-          />
-        </CampoUi>
         <MensagemErro>{erro}</MensagemErro>
         <div className="flex justify-end gap-2">
           <Botao variante="secundario" type="button" onClick={onFechar}>
             Cancelar
           </Botao>
           <Botao type="submit" disabled={enviando}>
-            {enviando ? 'Salvando...' : 'Redefinir'}
+            {enviando ? 'Gerando...' : 'Gerar senha nova'}
           </Botao>
         </div>
       </form>
+    </Modal>
+  )
+}
+
+function SenhaGeradaModal({ dados, onFechar }) {
+  const [copiada, setCopiada] = useState(false)
+  const expira = new Date(dados.senha_expira_em)
+
+  async function copiar() {
+    try {
+      await navigator.clipboard.writeText(dados.senha_gerada)
+      setCopiada(true)
+    } catch {
+      setCopiada(false)
+    }
+  }
+
+  return (
+    <Modal titulo={`Senha provisória de ${dados.nome}`} onFechar={onFechar}>
+      <div className="flex flex-col gap-4 text-sm">
+        <p className="text-stone-600">
+          Passe esta senha pra pessoa. <strong>Ela não aparece de novo</strong> depois que você
+          fechar esta janela.
+        </p>
+        <CampoUi label="Senha provisória">
+          <div className="flex items-center gap-2">
+            <input
+              readOnly
+              value={dados.senha_gerada}
+              onFocus={(e) => e.target.select()}
+              className="campo font-mono"
+            />
+            <Botao variante="secundario" type="button" onClick={copiar}>
+              {copiada ? 'Copiada ✓' : 'Copiar'}
+            </Botao>
+          </div>
+        </CampoUi>
+        <p className="text-xs text-stone-500">
+          Vale até {expira.toLocaleDateString('pt-BR')}{' '}
+          {expira.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}. Depois
+          disso, só redefinindo de novo.
+        </p>
+        <div className="flex justify-end">
+          <Botao type="button" onClick={onFechar}>
+            Já anotei
+          </Botao>
+        </div>
+      </div>
     </Modal>
   )
 }

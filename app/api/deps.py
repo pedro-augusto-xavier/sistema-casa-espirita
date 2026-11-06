@@ -45,7 +45,12 @@ def get_sessao_atual(
         raise _NAO_AUTENTICADO from exc
 
     sessao = crud_sessao.obter_valida(db, sessao_id, usuario_id)
-    if sessao is None or not sessao.usuario.ativo:
+    # senha provisória vencida derruba até a sessão aberta antes do prazo
+    if (
+        sessao is None
+        or not sessao.usuario.ativo
+        or sessao.usuario.senha_provisoria_vencida
+    ):
         raise _NAO_AUTENTICADO
     crud_sessao.marcar_uso(db, sessao)
     return sessao

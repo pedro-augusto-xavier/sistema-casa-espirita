@@ -97,6 +97,15 @@ def login(
             "Nome ou senha incorretos.",
         )
 
+    if usuario.senha_provisoria_vencida:
+        _registrar_falha_de_login(db, usuario, "senha_provisoria_vencida", chaves)
+        raise _erro(
+            status.HTTP_401_UNAUTHORIZED,
+            "senha_provisoria_vencida",
+            "Essa senha provisória venceu. Peça ao administrador para "
+            "redefinir a sua senha.",
+        )
+
     if usuario.mfa_ativo:
         if not codigo:
             raise _erro(
@@ -161,8 +170,8 @@ def trocar_senha(
     db: SessaoDB, usuario: UsuarioAtual, sessao: SessaoAtual, dados: TrocarSenhaIn
 ):
     """Exige a senha atual. É também como quem entrou com a senha
-    provisória (ex: o CPF) cria a sua -- e as outras sessões abertas com a
-    senha antiga são encerradas."""
+    provisória cria a sua -- e as outras sessões abertas com a senha antiga
+    são encerradas."""
     limite = chave_usuario(usuario.id)
     falhas_por_conta.exigir_liberado(limite)
     if not verificar_senha(dados.senha_atual, usuario.senha_hash):

@@ -23,7 +23,7 @@ Faça na ordem. Anote a hora de cada passo (vai pro registro).
 
 1. **Cortar o acesso de quem não devia.**
    - Conta da equipe comprometida: tela **Usuários** → *Desativar* (derruba as sessões na hora) ou *Desconectar* + *Redefinir senha*.
-   - Não dá pra entrar como admin: `python -m scripts.criar_admin --nome "..." --senha "..." --resetar-mfa` apontando pro banco de produção (ver DEPLOY.md).
+   - Não dá pra entrar como admin: `python -m scripts.criar_admin --nome "..." --resetar-mfa` (mostra a senha provisória gerada) apontando pro banco de produção (ver DEPLOY.md).
 2. **Derrubar todas as sessões de todo mundo**, se não souber qual conta foi: troque a `SECRET_KEY` no Render (`python -c "import secrets; print(secrets.token_hex(32))"`). Todos os tokens deixam de valer.
 3. **Tirar o sistema do ar**, se o ataque estiver em andamento: Render → o serviço → *Suspend*. (A Vercel continua mostrando a tela de login, mas sem a API nada funciona.)
 4. **Trocar as senhas e chaves** que podem ter vazado:

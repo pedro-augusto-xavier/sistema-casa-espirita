@@ -69,13 +69,14 @@ banco do Neon:
 
 ```powershell
 $env:DATABASE_URL = "postgresql+psycopg://usuario:senha@ep-xxxx.aws.neon.tech/neondb?sslmode=require"
-.\.venv\Scripts\python.exe -m scripts.criar_admin --nome "Seu Nome" --senha "escolha-uma-boa"
+.\.venv\Scripts\python.exe -m scripts.criar_admin --nome "Seu Nome"
 Remove-Item Env:\DATABASE_URL
 ```
 
 (`--email` é opcional, só um contato -- pode incluir com `--email voce@exemplo.com` se quiser.)
 
-A senha definida aqui é **provisória**. No primeiro login o sistema pede
+O script gera a senha e mostra uma vez só no terminal: anote na hora. Ela é
+**provisória** e vale 72h. No primeiro login o sistema pede
 pra criar uma senha própria (10+ caracteres) e, como é admin, pra configurar
 a verificação em duas etapas com um aplicativo autenticador no celular
 (Google Authenticator ou Microsoft Authenticator). Perdeu o celular? Rode o

@@ -1,7 +1,7 @@
 """Usuário do sistema (quem faz login), as sessões abertas e o log de
 auditoria (LGPD)."""
 
-from datetime import datetime
+from datetime import UTC, datetime
 
 from sqlalchemy import (
     Boolean,
@@ -63,10 +63,14 @@ class Usuario(Base):
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )
 
-    # Senha definida por um admin (ex: os 8 números do CPF) -- vale só pro
-    # primeiro acesso: a pessoa é obrigada a criar uma senha própria.
+    # Senha aleatória gerada pelo servidor quando o admin cria ou redefine o
+    # usuário -- vale só pro primeiro acesso (a pessoa é obrigada a criar uma
+    # senha própria) e só até senha_provisoria_expira_em.
     senha_provisoria: Mapped[bool] = mapped_column(
         Boolean, default=False, server_default=text("false"), nullable=False
+    )
+    senha_provisoria_expira_em: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True)
     )
     senha_alterada_em: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True)
@@ -90,6 +94,16 @@ class Usuario(Base):
         if settings.MFA_OBRIGATORIO == "admin":
             return self.papel == PapelUsuario.admin
         return False
+
+    @property
+    def senha_provisoria_vencida(self) -> bool:
+        """Senha provisória que passou da validade (ou sem validade gravada)
+        não serve mais: nem pra entrar, nem pra continuar numa sessão aberta
+        com ela. Só o admin redefinindo resolve."""
+        if not self.senha_provisoria:
+            return False
+        expira = self.senha_provisoria_expira_em
+        return expira is None or datetime.now(UTC) >= expira
 
     @property
     def pendencias(self) -> list[str]:

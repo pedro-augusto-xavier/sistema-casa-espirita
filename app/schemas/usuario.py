@@ -14,9 +14,7 @@ class UsuarioCreate(BaseModel):
     nome: str = Field(min_length=3, max_length=120)
     # login é pelo nome -- e-mail é só um contato opcional.
     email: EmailStr | None = None
-    # senha PROVISÓRIA (ex: 8 números do CPF): a pessoa troca no 1º acesso,
-    # aí valem as regras de senha forte (core/senhas.py).
-    senha: str = Field(min_length=8, max_length=128)
+    # sem campo de senha: o servidor gera a provisória (ver UsuarioComSenhaOut)
     papel: PapelUsuario = PapelUsuario.operador
 
 
@@ -25,8 +23,7 @@ class UsuarioUpdate(BaseModel):
 
     nome: str | None = Field(default=None, min_length=3, max_length=120)
     email: EmailStr | None = None
-    # redefinir a senha também deixa ela provisória
-    senha: str | None = Field(default=None, min_length=8, max_length=128)
+    # senha não se edita aqui: POST /usuarios/{id}/redefinir-senha
     papel: PapelUsuario | None = None
     ativo: bool | None = None
 
@@ -44,6 +41,14 @@ class UsuarioOut(BaseModel):
     mfa_ativo: bool
     mfa_obrigatorio: bool
     ultimo_login_em: datetime | None
+
+
+class UsuarioComSenhaOut(UsuarioOut):
+    """Resposta de criar/redefinir senha: a senha provisória gerada aparece
+    só aqui, uma vez. O admin repassa pra pessoa."""
+
+    senha_gerada: str
+    senha_expira_em: datetime
 
 
 class UsuarioEu(UsuarioOut):

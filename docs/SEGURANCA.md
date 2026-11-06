@@ -32,7 +32,7 @@ Documentos relacionados: [LGPD.md](LGPD.md), [PLANO_DE_INCIDENTE.md](PLANO_DE_IN
 | Item | Situação |
 |---|---|
 | Hash de senha com bcrypt/Argon2 | ✅ bcrypt (biblioteca `bcrypt`). |
-| Senha mínima de 10+ e sem senha manjada | ✅ 10 caracteres, pelo menos uma letra, nada de senha comum, nome da pessoa ou nome da casa (`app/core/senhas.py`). A senha que o admin define (ex.: os 8 números do CPF) é **provisória**: no primeiro acesso a pessoa é obrigada a criar a dela, e aí as regras valem. |
+| Senha mínima de 10+ e sem senha manjada | ✅ 10 caracteres, pelo menos uma letra, nada de senha comum, nome da pessoa ou nome da casa (`app/core/senhas.py`). Quando o admin cria ou redefine um usuário, o servidor gera uma senha **provisória** aleatória (`secrets`), que aparece uma vez só pro admin e vale 72h. No primeiro acesso a pessoa é obrigada a criar a dela, e aí as regras valem. Vencida, o login com ela é recusado (e sessões abertas com ela caem) até o admin redefinir de novo. |
 | Verificação em duas etapas (MFA) | ✅ Código de aplicativo autenticador (TOTP), com proteção contra reuso do mesmo código. **Obrigatória pra admin**; opcional e recomendada pra operador (Minha conta → Ligar). 👤 Pra exigir de todo mundo: `MFA_OBRIGATORIO=todos` no Render. |
 | Limite de tentativas no login | ✅ 10 erros em 5 min por IP **e** 5 erros em 5 min por conta (mesmo trocando de IP). Também na troca de senha e na confirmação do código. O IP vem do cabeçalho que a Cloudflare do Render preenche e o cliente não consegue forjar (`app/core/contexto.py`). |
 | Mesma mensagem pra "usuário não existe" e "senha errada" | ✅ E o mesmo tempo de resposta (o hash é calculado mesmo quando o nome não existe). |
@@ -40,7 +40,7 @@ Documentos relacionados: [LGPD.md](LGPD.md), [PLANO_DE_INCIDENTE.md](PLANO_DE_IN
 | Cookies HttpOnly/Secure/SameSite | ➖ O login não usa cookie: o token vai no cabeçalho `Authorization`. Em troca, o site tem uma CSP rígida (só roda script do próprio site) e o token é inútil depois de "Sair" (ver próxima linha). |
 | JWT curto + refresh revogável | ✅ Feito com **sessão no servidor**: cada login cria uma sessão no banco, conferida a cada requisição. Dá o mesmo resultado do refresh token revogável (dá pra cortar na hora), com menos peças. Validade: 8 h, ou 30 dias com "Manter conectado". |
 | Logout invalida a sessão no servidor | ✅ `POST /auth/logout`. |
-| Recuperação de senha | ➖ Não existe "esqueci a senha" por e-mail. Quem esquece pede pro admin, que redefine (senha provisória + todas as sessões daquela pessoa caem). |
+| Recuperação de senha | ➖ Não existe "esqueci a senha" por e-mail. Quem esquece pede pro admin, que redefine (o servidor gera uma senha provisória aleatória que vale 72h, e todas as sessões daquela pessoa caem). |
 | Trocar senha exige a senha atual | ✅ E derruba as outras sessões abertas. E-mail só o admin muda. |
 | Remover acesso de quem saiu no mesmo dia | ✅ Desativar o usuário corta o acesso na hora. 👤 É processo: quem sai da equipe é desativado no mesmo dia (Usuários → Desativar). |
 

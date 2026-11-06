@@ -83,18 +83,17 @@ def test_operador_nao_ve_auditoria(client_anon: TestClient, entrar_como):
 
 
 def test_login_fica_na_auditoria(client: TestClient, client_anon: TestClient):
-    client.post(
+    senha = client.post(
         "/api/v1/usuarios",
         json={
             "nome": "Quem Loga",
             "email": "loga@example.com",
-            "senha": "senha12345",
             "papel": "operador",
         },
-    )
+    ).json()["senha_gerada"]
     client_anon.post(
         "/api/v1/auth/login",
-        data={"username": "Quem Loga", "password": "senha12345"},
+        data={"username": "Quem Loga", "password": senha},
     )
     logs = client.get("/api/v1/auditoria", params={"entidade": "usuario"}).json()
     assert any(x["acao"] == "login" for x in logs["items"])

@@ -8,7 +8,6 @@ import {
   nomeDeLogin,
   quemAtendeu,
   rotuloFilhos,
-  senhaDeCpf,
   soDigitos,
 } from './formatadores'
 
@@ -131,21 +130,6 @@ describe('quemAtendeu', () => {
   it('null quando não tem nenhum dos dois', () => {
     expect(quemAtendeu({})).toBeNull()
     expect(quemAtendeu(null)).toBeNull()
-  })
-})
-
-describe('senhaDeCpf', () => {
-  it('pega os 8 primeiros dígitos do CPF', () => {
-    expect(senhaDeCpf('390.533.447-05')).toBe('39053344')
-  })
-
-  it('funciona com CPF ainda sem pontuação', () => {
-    expect(senhaDeCpf('39053344705')).toBe('39053344')
-  })
-
-  it('retorna vazio quando o CPF tem menos de 8 dígitos', () => {
-    expect(senhaDeCpf('123.456')).toBe('')
-    expect(senhaDeCpf('')).toBe('')
   })
 })
 

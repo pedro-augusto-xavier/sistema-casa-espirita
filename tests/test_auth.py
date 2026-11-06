@@ -5,23 +5,27 @@ from fastapi.testclient import TestClient
 from tests.conftest import SENHA_BOA
 
 
+def _criar(client: TestClient, nome: str, papel: str = "operador") -> str:
+    """Admin cria o usuário; devolve a senha provisória gerada pelo servidor."""
+    r = client.post("/api/v1/usuarios", json={"nome": nome, "papel": papel})
+    assert r.status_code == 201, r.text
+    return r.json()["senha_gerada"]
+
+
 def _criar_e_logar(
     client: TestClient,
     client_anon: TestClient,
     nome: str,
-    senha: str = "senha12345",
     papel: str = "operador",
-) -> dict:
-    """Admin cria o usuário (senha provisória) e a pessoa faz login."""
-    r = client.post(
-        "/api/v1/usuarios", json={"nome": nome, "senha": senha, "papel": papel}
-    )
-    assert r.status_code == 201, r.text
+) -> tuple[dict, str]:
+    """Admin cria o usuário (senha provisória) e a pessoa faz login.
+    Devolve o login e a senha provisória."""
+    senha = _criar(client, nome, papel)
     r = client_anon.post(
         "/api/v1/auth/login", data={"username": nome, "password": senha}
     )
     assert r.status_code == 200, r.text
-    return r.json()
+    return r.json(), senha
 
 
 def _cabecalho(token: str) -> dict:
@@ -36,7 +40,7 @@ def test_rota_protegida_sem_token_da_401(client_anon: TestClient):
 def test_primeiro_acesso_exige_trocar_a_senha_provisoria(
     client: TestClient, client_anon: TestClient
 ):
-    login = _criar_e_logar(client, client_anon, "Operador Um")
+    login, senha = _criar_e_logar(client, client_anon, "Operador Um")
     assert login["pendencias"] == ["trocar_senha"]
     headers = _cabecalho(login["access_token"])
 
@@ -52,7 +56,7 @@ def test_primeiro_acesso_exige_trocar_a_senha_provisoria(
 
     r = client_anon.post(
         "/api/v1/auth/trocar-senha",
-        json={"senha_atual": "senha12345", "senha_nova": SENHA_BOA},
+        json={"senha_atual": senha, "senha_nova": SENHA_BOA},
         headers=headers,
     )
     assert r.status_code == 204, r.text
@@ -67,13 +71,10 @@ def test_primeiro_acesso_exige_trocar_a_senha_provisoria(
 def test_login_ignora_maiuscula_e_espaco_nas_pontas(
     client: TestClient, client_anon: TestClient
 ):
-    client.post(
-        "/api/v1/usuarios",
-        json={"nome": "Dona Marta", "senha": "senha12345", "papel": "operador"},
-    )
+    senha = _criar(client, "Dona Marta")
     r = client_anon.post(
         "/api/v1/auth/login",
-        data={"username": "  dona marta  ", "password": "senha12345"},
+        data={"username": "  dona marta  ", "password": senha},
     )
     assert r.status_code == 200, r.text
 
@@ -81,7 +82,7 @@ def test_login_ignora_maiuscula_e_espaco_nas_pontas(
 def test_email_e_opcional_no_cadastro_de_usuario(client: TestClient):
     r = client.post(
         "/api/v1/usuarios",
-        json={"nome": "Sem Email", "senha": "senha12345", "papel": "operador"},
+        json={"nome": "Sem Email", "papel": "operador"},
     )
     assert r.status_code == 201, r.text
     assert r.json()["email"] is None
@@ -91,10 +92,7 @@ def test_email_e_opcional_no_cadastro_de_usuario(client: TestClient):
 def test_senha_errada_e_usuario_inexistente_dao_a_mesma_resposta(
     client: TestClient, client_anon: TestClient
 ):
-    client.post(
-        "/api/v1/usuarios",
-        json={"nome": "Fulano", "senha": "senhacerta1", "papel": "operador"},
-    )
+    _criar(client, "Fulano")
     senha_errada = client_anon.post(
         "/api/v1/auth/login", data={"username": "Fulano", "password": "senhaerrada"}
     )
@@ -106,13 +104,10 @@ def test_senha_errada_e_usuario_inexistente_dao_a_mesma_resposta(
 
 
 def test_nome_duplicado_entre_ativos_da_erro(client: TestClient):
-    client.post(
-        "/api/v1/usuarios",
-        json={"nome": "Nome Repetido", "senha": "senha12345", "papel": "operador"},
-    )
+    _criar(client, "Nome Repetido")
     r = client.post(
         "/api/v1/usuarios",
-        json={"nome": "nome repetido", "senha": "outrasenha1", "papel": "operador"},
+        json={"nome": "nome repetido", "papel": "operador"},
     )
     assert r.status_code == 422
 
@@ -120,13 +115,13 @@ def test_nome_duplicado_entre_ativos_da_erro(client: TestClient):
 def test_nome_de_usuario_desativado_pode_ser_reusado(client: TestClient):
     primeiro = client.post(
         "/api/v1/usuarios",
-        json={"nome": "Vai Sair", "senha": "senha12345", "papel": "operador"},
+        json={"nome": "Vai Sair", "papel": "operador"},
     ).json()
     client.patch(f"/api/v1/usuarios/{primeiro['id']}", json={"ativo": False})
 
     r = client.post(
         "/api/v1/usuarios",
-        json={"nome": "Vai Sair", "senha": "outrasenha1", "papel": "operador"},
+        json={"nome": "Vai Sair", "papel": "operador"},
     )
     assert r.status_code == 201, r.text
 
@@ -153,10 +148,7 @@ def test_manter_conectado_gera_token_mais_longo(
 ):
     from app.core.security import ler_token_acesso
 
-    client.post(
-        "/api/v1/usuarios",
-        json={"nome": "Lembrada", "senha": "senha12345", "papel": "operador"},
-    )
+    senha = _criar(client, "Lembrada")
 
     def duracao(dados: dict) -> int:
         r = client_anon.post("/api/v1/auth/login", data=dados)
@@ -164,7 +156,7 @@ def test_manter_conectado_gera_token_mais_longo(
         payload = ler_token_acesso(r.json()["access_token"])
         return payload["exp"] - payload["iat"]
 
-    base = {"username": "Lembrada", "password": "senha12345"}
+    base = {"username": "Lembrada", "password": senha}
     curto = duracao(base)
     longo = duracao({**base, "lembrar": "true"})
     assert longo > curto
@@ -197,17 +189,17 @@ def test_desativar_usuario_derruba_a_sessao_dele_na_hora(
 def test_trocar_senha_derruba_as_outras_sessoes(
     client: TestClient, client_anon: TestClient
 ):
-    login = _criar_e_logar(client, client_anon, "Duas Abas")
+    login, senha = _criar_e_logar(client, client_anon, "Duas Abas")
     aba1 = _cabecalho(login["access_token"])
     aba2 = _cabecalho(
         client_anon.post(
             "/api/v1/auth/login",
-            data={"username": "Duas Abas", "password": "senha12345"},
+            data={"username": "Duas Abas", "password": senha},
         ).json()["access_token"]
     )
     r = client_anon.post(
         "/api/v1/auth/trocar-senha",
-        json={"senha_atual": "senha12345", "senha_nova": SENHA_BOA},
+        json={"senha_atual": senha, "senha_nova": SENHA_BOA},
         headers=aba1,
     )
     assert r.status_code == 204
@@ -221,14 +213,14 @@ def test_admin_redefinir_senha_deixa_provisoria_e_derruba_sessao(
     headers = entrar_como("Esqueceu A Senha")
     eu = client_anon.get("/api/v1/auth/me", headers=headers).json()
 
-    r = client.patch(f"/api/v1/usuarios/{eu['id']}", json={"senha": "39053344"})
+    r = client.post(f"/api/v1/usuarios/{eu['id']}/redefinir-senha")
     assert r.status_code == 200
     assert r.json()["senha_provisoria"] is True
     assert client_anon.get("/api/v1/auth/me", headers=headers).status_code == 401
 
     novo = client_anon.post(
         "/api/v1/auth/login",
-        data={"username": "Esqueceu A Senha", "password": "39053344"},
+        data={"username": "Esqueceu A Senha", "password": r.json()["senha_gerada"]},
     ).json()
     assert novo["pendencias"] == ["trocar_senha"]
 

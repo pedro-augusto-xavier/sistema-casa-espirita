@@ -10,7 +10,12 @@ from app.crud import sessao as crud_sessao
 from app.crud import usuario as crud
 from app.models.enums import AcaoAuditoria, PapelUsuario
 from app.schemas.common import Page
-from app.schemas.usuario import UsuarioCreate, UsuarioOut, UsuarioUpdate
+from app.schemas.usuario import (
+    UsuarioComSenhaOut,
+    UsuarioCreate,
+    UsuarioOut,
+    UsuarioUpdate,
+)
 
 router = APIRouter(
     prefix="/usuarios",
@@ -41,16 +46,25 @@ def listar_usuarios(
     )
 
 
+def _com_senha(usuario, senha: str) -> UsuarioComSenhaOut:
+    return UsuarioComSenhaOut(
+        **UsuarioOut.model_validate(usuario).model_dump(),
+        senha_gerada=senha,
+        senha_expira_em=usuario.senha_provisoria_expira_em,
+    )
+
+
 @router.post(
     "",
-    response_model=UsuarioOut,
+    response_model=UsuarioComSenhaOut,
     status_code=status.HTTP_201_CREATED,
     summary="Criar usuário",
 )
 def criar_usuario(db: SessaoDB, dados: UsuarioCreate, atual: UsuarioAtual):
-    """A senha informada aqui é provisória: no primeiro acesso a pessoa é
-    obrigada a criar uma só dela."""
-    usuario = crud.criar(db, dados)
+    """O servidor gera uma senha provisória aleatória e devolve só nesta
+    resposta. Ela vale 72h; no primeiro acesso a pessoa é obrigada a criar
+    uma só dela."""
+    usuario, senha = crud.criar(db, dados)
     registrar(
         db,
         usuario=atual,
@@ -59,7 +73,7 @@ def criar_usuario(db: SessaoDB, dados: UsuarioCreate, atual: UsuarioAtual):
         entidade_id=usuario.id,
         dados={"papel": usuario.papel.value},
     )
-    return UsuarioOut.model_validate(usuario)
+    return _com_senha(usuario, senha)
 
 
 @router.get("/{usuario_id}", response_model=UsuarioOut, summary="Ver usuário")
@@ -71,8 +85,8 @@ def obter_usuario(db: SessaoDB, usuario_id: int):
 def editar_usuario(
     db: SessaoDB, usuario_id: int, dados: UsuarioUpdate, atual: UsuarioAtual
 ):
-    """Redefinir a senha deixa ela provisória e derruba as sessões abertas;
-    desativar também corta o acesso na hora."""
+    """Desativar corta o acesso na hora. A senha não se muda aqui (ver
+    /redefinir-senha)."""
     usuario = _obter(db, usuario_id)
 
     # ninguém se tranca pra fora sem querer (e o sistema nunca fica sem admin
@@ -89,7 +103,6 @@ def editar_usuario(
     papel_antes = usuario.papel
     usuario = crud.atualizar(db, usuario, dados)
     campos = dados.model_dump(exclude_unset=True, mode="json")
-    campos.pop("senha", None)  # nunca logar senha
     if "papel" in campos:
         campos["papel"] = {"de": papel_antes.value, "para": usuario.papel.value}
     registrar(
@@ -98,9 +111,30 @@ def editar_usuario(
         acao=AcaoAuditoria.atualizar,
         entidade="usuario",
         entidade_id=usuario_id,
-        dados={**campos, "senha_alterada": "senha" in dados.model_fields_set},
+        dados=campos,
     )
     return UsuarioOut.model_validate(usuario)
+
+
+@router.post(
+    "/{usuario_id}/redefinir-senha",
+    response_model=UsuarioComSenhaOut,
+    summary="Gerar uma senha provisória nova (a pessoa esqueceu a senha)",
+)
+def redefinir_senha(db: SessaoDB, usuario_id: int, atual: UsuarioAtual):
+    """Gera uma senha provisória aleatória, que vale 72h e aparece só nesta
+    resposta. As sessões abertas da pessoa são encerradas."""
+    usuario = _obter(db, usuario_id)
+    senha = crud.redefinir_senha(db, usuario)
+    registrar(
+        db,
+        usuario=atual,
+        acao=AcaoAuditoria.atualizar,
+        entidade="usuario",
+        entidade_id=usuario_id,
+        dados={"senha_alterada": True},  # nunca a senha
+    )
+    return _com_senha(usuario, senha)
 
 
 @router.post(

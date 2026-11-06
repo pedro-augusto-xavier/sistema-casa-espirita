@@ -1,7 +1,7 @@
 """Regras de senha forte -- valem pra senha que a própria pessoa escolhe.
 
-A senha que um admin define no cadastro (ex: os 8 números do CPF) é só
-provisória: no primeiro acesso a pessoa é obrigada a trocar, e aí estas
+A senha que o servidor gera quando o admin cria ou redefine um usuário é
+só provisória: no primeiro acesso a pessoa é obrigada a trocar, e aí estas
 regras entram.
 
 Seguimos a linha do NIST (SP 800-63B): tamanho mínimo decente, recusar

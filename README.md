@@ -57,7 +57,8 @@ alembic upgrade head
 python -m scripts.seed
 
 # 6. Criar o primeiro usuário administrador (login é pelo nome, não e-mail)
-python -m scripts.criar_admin --nome "Seu Nome" --senha "trocar-depois"
+#    (a senha provisória é gerada e aparece no terminal; vale 72h)
+python -m scripts.criar_admin --nome "Seu Nome"
 
 # 7. Subir a API
 uvicorn app.main:app --reload

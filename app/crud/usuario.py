@@ -90,6 +90,21 @@ def redefinir_senha(db: Session, usuario: Usuario) -> str:
     return senha
 
 
+def reativar(db: Session, usuario: Usuario) -> str:
+    """Admin reativou: volta com senha provisória nova -- a senha de antes
+    da desativação não serve mais."""
+    if usuario.ativo:
+        raise ErroDominio("esse usuário já está ativo")
+    if get_by_nome(db, usuario.nome):
+        raise ErroDominio("já existe um usuário ativo com esse nome")
+    usuario.ativo = True
+    senha = _definir_senha_provisoria(usuario)
+    db.commit()
+    crud_sessao.revogar_todas(db, usuario.id)
+    db.refresh(usuario)
+    return senha
+
+
 def atualizar(db: Session, usuario: Usuario, dados: UsuarioUpdate) -> Usuario:
     mudancas = dados.model_dump(exclude_unset=True)
 

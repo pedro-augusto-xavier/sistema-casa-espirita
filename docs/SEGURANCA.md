@@ -42,7 +42,7 @@ Documentos relacionados: [LGPD.md](LGPD.md), [PLANO_DE_INCIDENTE.md](PLANO_DE_IN
 | Logout invalida a sessão no servidor | ✅ `POST /auth/logout`. |
 | Recuperação de senha | ➖ Não existe "esqueci a senha" por e-mail. Quem esquece pede pro admin, que redefine (o servidor gera uma senha provisória aleatória que vale 72h, e todas as sessões daquela pessoa caem). |
 | Trocar senha exige a senha atual | ✅ E derruba as outras sessões abertas. E-mail só o admin muda. |
-| Remover acesso de quem saiu no mesmo dia | ✅ Desativar o usuário corta o acesso na hora. 👤 É processo: quem sai da equipe é desativado no mesmo dia (Usuários → Desativar). |
+| Remover acesso de quem saiu no mesmo dia | ✅ Desativar o usuário corta o acesso na hora. Reativar não devolve a senha antiga: o servidor gera uma senha provisória nova (vale 72h). 👤 É processo: quem sai da equipe é desativado no mesmo dia (Usuários → Desativar). |
 
 ## Fase 3 — Criptografia e chaves
 

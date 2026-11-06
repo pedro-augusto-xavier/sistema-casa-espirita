@@ -82,12 +82,27 @@ export function Usuarios() {
     }
   }
 
-  function alternarAtivo(u) {
-    if (u.ativo && !confirm(`Desativar ${u.nome}? A pessoa é desconectada na hora.`)) return
-    acao(
-      api.patch(`/usuarios/${u.id}`, { ativo: !u.ativo }),
-      u.ativo ? `${u.nome} foi desativado(a) e desconectado(a).` : `${u.nome} foi reativado(a).`,
+  async function alternarAtivo(u) {
+    if (u.ativo) {
+      if (!confirm(`Desativar ${u.nome}? A pessoa é desconectada na hora.`)) return
+      acao(
+        api.patch(`/usuarios/${u.id}`, { ativo: false }),
+        `${u.nome} foi desativado(a) e desconectado(a).`,
+      )
+      return
+    }
+    if (
+      !confirm(
+        `Reativar ${u.nome}? A senha antiga deixa de valer: o sistema gera uma senha provisória nova (vale 72h).`,
+      )
     )
+      return
+    try {
+      setSenhaGerada(await api.post(`/usuarios/${u.id}/reativar`))
+      atualizar(`${u.nome} foi reativado(a). No próximo acesso a pessoa cria a própria senha.`)
+    } catch (e) {
+      setErro(e.message)
+    }
   }
 
   function zerarDuasEtapas(u) {

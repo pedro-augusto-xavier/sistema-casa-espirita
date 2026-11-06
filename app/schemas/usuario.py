@@ -1,6 +1,7 @@
 """Schemas de Usuário do sistema, do login e da verificação em duas etapas."""
 
 from datetime import datetime
+from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
@@ -25,7 +26,9 @@ class UsuarioUpdate(BaseModel):
     email: EmailStr | None = None
     # senha não se edita aqui: POST /usuarios/{id}/redefinir-senha
     papel: PapelUsuario | None = None
-    ativo: bool | None = None
+    # aqui só desativa -- reativar é POST /usuarios/{id}/reativar, que gera
+    # senha nova
+    ativo: Literal[False] | None = None
 
 
 class UsuarioOut(BaseModel):

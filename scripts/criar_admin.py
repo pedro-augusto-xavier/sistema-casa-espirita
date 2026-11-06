@@ -38,7 +38,7 @@ def main() -> None:
             crud.atualizar(
                 db,
                 existente,
-                UsuarioUpdate(papel=PapelUsuario.admin, ativo=True),
+                UsuarioUpdate(papel=PapelUsuario.admin),
             )
             senha = crud.redefinir_senha(db, existente)
             if args.resetar_mfa:

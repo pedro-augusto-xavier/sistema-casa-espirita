@@ -86,7 +86,7 @@ def editar_usuario(
     db: SessaoDB, usuario_id: int, dados: UsuarioUpdate, atual: UsuarioAtual
 ):
     """Desativar corta o acesso na hora. A senha não se muda aqui (ver
-    /redefinir-senha)."""
+    /redefinir-senha), e reativar também não (ver /reativar)."""
     usuario = _obter(db, usuario_id)
 
     # ninguém se tranca pra fora sem querer (e o sistema nunca fica sem admin
@@ -133,6 +133,28 @@ def redefinir_senha(db: SessaoDB, usuario_id: int, atual: UsuarioAtual):
         entidade="usuario",
         entidade_id=usuario_id,
         dados={"senha_alterada": True},  # nunca a senha
+    )
+    return _com_senha(usuario, senha)
+
+
+@router.post(
+    "/{usuario_id}/reativar",
+    response_model=UsuarioComSenhaOut,
+    summary="Reativar usuário (com senha provisória nova)",
+)
+def reativar_usuario(db: SessaoDB, usuario_id: int, atual: UsuarioAtual):
+    """Volta a dar acesso a quem foi desativado. A senha de antes não vale
+    mais: o servidor gera uma provisória aleatória, que vale 72h e aparece
+    só nesta resposta."""
+    usuario = _obter(db, usuario_id)
+    senha = crud.reativar(db, usuario)
+    registrar(
+        db,
+        usuario=atual,
+        acao=AcaoAuditoria.atualizar,
+        entidade="usuario",
+        entidade_id=usuario_id,
+        dados={"reativado": True, "senha_alterada": True},  # nunca a senha
     )
     return _com_senha(usuario, senha)
 

@@ -25,6 +25,13 @@ from app.core.config import settings
 from app.core.cripto import decifrar, hmac_busca
 
 ANTES_DA_CRIPTOGRAFIA = "c8985d0345aa"
+ANTES_DA_REATIVACAO = "3f1a9c2e7b54"  # 1352e867c028 vem logo depois
+USUARIOS = (
+    "Usuario Antigo",
+    "Usuario Inativo",
+    "Usuario Reativado Sem Senha",
+    "Usuario Com Senha Propria",
+)
 
 CPF = "11122233344"
 ARQUIVO = bytes.fromhex("ffd8ffe0") + b" foto de exemplo"
@@ -139,12 +146,66 @@ def gravar_formato_antigo() -> None:
             "INSERT INTO usuario (nome, senha_hash, papel, ativo, criado_em) "
             "VALUES ('Usuario Antigo', 'x', 'operador', true, now())"
         )
+        # desativado quando 0adbab7209a9 rodou: o backfill dela pulava
+        inserir(
+            "INSERT INTO usuario (nome, senha_hash, papel, ativo, criado_em) "
+            "VALUES ('Usuario Inativo', 'x', 'operador', false, now())"
+        )
         inserir(
             "INSERT INTO audit_log (acao, entidade, entidade_id, dados, criado_em) "
             "VALUES ('atualizar', 'pessoa', :p, CAST(:dados AS jsonb), now())",
             p=pessoa,
             dados=json.dumps({"cpf": {"de": None, "para": CPF}, "ativo": True}),
         )
+
+
+def gravar_antes_da_reativacao() -> None:
+    """Estados possíveis entre 0adbab7209a9 e 1352e867c028."""
+    with motor.begin() as c:
+        # reativado por PATCH {"ativo": true}: voltou com a senha antiga
+        c.execute(
+            text(
+                "INSERT INTO usuario (nome, senha_hash, papel, ativo, criado_em, "
+                "senha_provisoria) VALUES ('Usuario Reativado Sem Senha', 'x', "
+                "'admin', true, now(), false)"
+            )
+        )
+        # já criou a senha dele pelas regras novas: não pode ser afetado
+        c.execute(
+            text(
+                "INSERT INTO usuario (nome, senha_hash, papel, ativo, criado_em, "
+                "senha_provisoria, senha_alterada_em) VALUES "
+                "('Usuario Com Senha Propria', 'x', 'operador', true, now(), "
+                "false, now())"
+            )
+        )
+
+
+def senha_provisoria_de(nome: str) -> tuple[bool, str]:
+    """(senha_provisoria, 'vencida' | 'valendo' | 'sem prazo')"""
+    with motor.connect() as c:
+        return tuple(
+            c.execute(
+                text(
+                    "SELECT senha_provisoria, CASE "
+                    "WHEN senha_provisoria_expira_em IS NULL THEN 'sem prazo' "
+                    "WHEN senha_provisoria_expira_em <= now() THEN 'vencida' "
+                    "ELSE 'valendo' END FROM usuario WHERE nome = :n"
+                ),
+                {"n": nome},
+            ).one()
+        )
+
+
+def conferir_reativacao() -> None:
+    checar(
+        senha_provisoria_de("Usuario Reativado Sem Senha") == (True, "vencida"),
+        "conta reativada com a senha antiga continua entrando com ela",
+    )
+    checar(
+        senha_provisoria_de("Usuario Com Senha Propria") == (False, "sem prazo"),
+        "a migração mexeu em quem já tinha senha própria",
+    )
 
 
 def conferir_cifrado() -> None:
@@ -168,8 +229,12 @@ def conferir_cifrado() -> None:
     checar(decifrar(arquivo, "anexo.conteudo") == ARQUIVO, "anexo não decifra")
 
     checar(
-        valor("SELECT senha_provisoria FROM usuario WHERE nome = 'Usuario Antigo'"),
-        "usuário existente não ficou com senha provisória",
+        senha_provisoria_de("Usuario Antigo") == (True, "valendo"),
+        "usuário existente não ficou com senha provisória (com prazo)",
+    )
+    checar(
+        senha_provisoria_de("Usuario Inativo") == (True, "vencida"),
+        "conta inativa escapou da senha provisória",
     )
     dados = valor("SELECT dados FROM audit_log WHERE entidade = 'pessoa'")
     checar(dados["cpf"] == {"alterado": True}, "auditoria ainda guarda o CPF")
@@ -201,7 +266,10 @@ def apagar_dados_de_exemplo() -> None:
         c.execute(
             text("DELETE FROM tipo_tratamento WHERE nome = 'Tipo Teste Migracao'")
         )
-        c.execute(text("DELETE FROM usuario WHERE nome = 'Usuario Antigo'"))
+        c.execute(
+            text("DELETE FROM usuario WHERE nome = ANY(:nomes)"),
+            {"nomes": list(USUARIOS)},
+        )
 
 
 def main() -> None:
@@ -211,9 +279,14 @@ def main() -> None:
     gravar_formato_antigo()
     print("ok: dados de exemplo no formato antigo")
 
+    command.upgrade(alembic_cfg, ANTES_DA_REATIVACAO)
+    gravar_antes_da_reativacao()
+
     command.upgrade(alembic_cfg, "head")
     conferir_cifrado()
     print("ok: upgrade cifrou tudo e decifra pro original")
+    conferir_reativacao()
+    print("ok: contas inativas e reativadas sem senha nova ficaram vencidas")
 
     command.downgrade(alembic_cfg, ANTES_DA_CRIPTOGRAFIA)
     conferir_texto_puro()

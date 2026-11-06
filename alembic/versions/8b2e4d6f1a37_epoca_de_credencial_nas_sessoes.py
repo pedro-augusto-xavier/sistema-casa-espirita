@@ -10,6 +10,12 @@ for a mesma.
 As sessões que já existem recebem a época atual do dono -- ninguém é
 deslogado no deploy.
 
+Seguro com o código ANTIGO rodando (o Render migra no build, com a versão
+anterior ainda no ar): usuario.epoca_credencial tem server_default, e
+sessao_usuario.epoca_credencial aceita NULL -- o login do código antigo
+continua gravando sessão. Sessão com época NULL (aberta nessa janela) não
+vale pro código novo: a pessoa entra de novo.
+
 Revision ID: 8b2e4d6f1a37
 Revises: 1352e867c028
 Create Date: 2026-11-06 22:00:00.000000
@@ -44,7 +50,6 @@ def upgrade() -> None:
         "UPDATE sessao_usuario s SET epoca_credencial = u.epoca_credencial "
         "FROM usuario u WHERE u.id = s.usuario_id"
     )
-    op.alter_column("sessao_usuario", "epoca_credencial", nullable=False)
 
 
 def downgrade() -> None:

@@ -76,7 +76,8 @@ def obter_valida(db: Session, sessao_id: str, usuario_id: int) -> SessaoUsuario 
         or sessao.usuario_id != usuario_id
         or sessao.revogada_em is not None
         or sessao.expira_em <= _agora()
-        # a credencial mudou depois que a sessão foi aberta
+        # a credencial mudou depois que a sessão foi aberta (NULL nunca vale)
+        or sessao.epoca_credencial is None
         or sessao.epoca_credencial != sessao.usuario.epoca_credencial
     ):
         return None

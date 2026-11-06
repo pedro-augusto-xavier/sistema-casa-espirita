@@ -17,7 +17,7 @@ from datetime import UTC, datetime, timedelta
 import pyotp
 import pytest
 from fastapi.testclient import TestClient
-from sqlalchemy import select
+from sqlalchemy import select, text
 from sqlalchemy.orm import Session
 
 from app.core.security import criar_token_sessao
@@ -258,3 +258,35 @@ def test_editar_sem_mudar_o_papel_nao_derruba(
     r = client.patch(f"/api/v1/usuarios/{uid}", json={"papel": "operador"})
     assert r.status_code == 200, r.text
     assert _vale(client_anon, sessao)
+
+
+# ---------- deploy: a migração roda com o código antigo ainda no ar ----------
+
+
+def test_inserts_do_codigo_antigo_funcionam_e_a_sessao_dele_nao_vale(
+    client_anon: TestClient, db: Session
+):
+    """O Render migra no build, com a versão anterior ainda atendendo. Os
+    INSERTs dela não conhecem epoca_credencial e não podem falhar; a sessão
+    que ela abrir nessa janela só não vale pro código novo."""
+    agora = datetime.now(UTC)
+    uid = db.execute(
+        text(
+            "INSERT INTO usuario (nome, senha_hash, papel, ativo, criado_em) "
+            "VALUES ('Codigo Antigo', 'x', 'operador', true, now()) RETURNING id"
+        )
+    ).scalar_one()
+    db.execute(
+        text(
+            "INSERT INTO sessao_usuario (id, usuario_id, criada_em, expira_em) "
+            "VALUES ('sessao-do-codigo-antigo', :uid, :agora, :expira)"
+        ),
+        {"uid": uid, "agora": agora, "expira": agora + timedelta(hours=8)},
+    )
+    assert db.get(Usuario, uid).epoca_credencial is not None
+
+    token = criar_token_sessao(
+        uid, "sessao-do-codigo-antigo", agora + timedelta(hours=8)
+    )
+    headers = {"Authorization": f"Bearer {token}"}
+    assert client_anon.get("/api/v1/auth/me", headers=headers).status_code == 401

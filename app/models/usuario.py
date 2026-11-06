@@ -150,9 +150,11 @@ class SessaoUsuario(Base):
     )
     ultimo_uso_em: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     revogada_em: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
-    # época da credencial do usuário quando a sessão foi aberta (ver Usuario)
-    epoca_credencial: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), nullable=False
+    # época da credencial do usuário quando a sessão foi aberta (ver Usuario).
+    # NULL = aberta pelo código de antes da época existir (durante o deploy
+    # que criou a coluna) -- não vale.
+    epoca_credencial: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True)
     )
     ip: Mapped[str | None] = mapped_column(String(64))
     user_agent: Mapped[str | None] = mapped_column(String(255))

@@ -40,62 +40,65 @@ export function Cabecalho() {
   }, [ehAdmin])
 
   return (
-    <header className="sticky top-0 z-10 bg-white/90 shadow-sm ring-1 ring-stone-900/5 backdrop-blur">
-      <div className="h-1 bg-linear-to-r from-emerald-800 via-emerald-600 to-amber-500" />
-      <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-x-6 gap-y-3 px-4 py-3 sm:px-6">
-        <div className="flex flex-wrap items-center gap-x-8 gap-y-2">
-          <Link to="/" className="flex items-center gap-3">
-            <Emblema className="h-10 w-10 shrink-0" />
-            <span className="flex flex-col leading-tight">
-              <span className="font-display text-base font-semibold text-emerald-950 sm:text-lg">
-                Casa Espírita Amor e Perdão
+    <>
+      <header className="sticky top-0 z-10 bg-white/90 shadow-sm ring-1 ring-stone-900/5 backdrop-blur">
+        <div className="h-1 bg-linear-to-r from-emerald-800 via-emerald-600 to-amber-500" />
+        <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-x-6 gap-y-3 px-4 py-3 sm:px-6">
+          <div className="flex flex-wrap items-center gap-x-8 gap-y-2">
+            <Link to="/" className="flex items-center gap-3">
+              <Emblema className="h-10 w-10 shrink-0" />
+              <span className="flex flex-col leading-tight">
+                <span className="font-display text-base font-semibold text-emerald-950 sm:text-lg">
+                  Casa Espírita Amor e Perdão
+                </span>
+                <span className="text-[10px] font-medium tracking-[0.2em] text-stone-400 uppercase">
+                  Nova Friburgo · RJ
+                </span>
               </span>
-              <span className="text-[10px] font-medium tracking-[0.2em] text-stone-400 uppercase">
-                Nova Friburgo · RJ
-              </span>
-            </span>
-          </Link>
+            </Link>
 
-          <nav className="flex flex-wrap items-center gap-x-5 gap-y-1">
-            <ItemNav to="/">Pessoas</ItemNav>
-            <ItemNav to="/agenda">Agenda</ItemNav>
-            {ehAdmin && (
-              <>
-                <ItemNav to="/usuarios">Usuários</ItemNav>
-                <ItemNav to="/auditoria">
-                  Auditoria
-                  {alerta && (
-                    <span
-                      title="Tem algo pra conferir na auditoria"
-                      className="ml-1 inline-block h-2 w-2 rounded-full bg-red-500 align-top"
-                    />
-                  )}
-                </ItemNav>
-              </>
-            )}
-          </nav>
-        </div>
-
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2">
-            <Avatar nome={usuario.nome} className="h-8 w-8 text-xs" />
-            <span className="hidden flex-col leading-tight sm:flex">
-              <span className="text-sm font-medium text-stone-700">{usuario.nome}</span>
-              <span className="text-[10px] tracking-wider text-stone-400 uppercase">
-                {usuario.papel}
-              </span>
-            </span>
+            <nav className="flex flex-wrap items-center gap-x-5 gap-y-1">
+              <ItemNav to="/">Pessoas</ItemNav>
+              <ItemNav to="/agenda">Agenda</ItemNav>
+              {ehAdmin && (
+                <>
+                  <ItemNav to="/usuarios">Usuários</ItemNav>
+                  <ItemNav to="/auditoria">
+                    Auditoria
+                    {alerta && (
+                      <span
+                        title="Tem algo pra conferir na auditoria"
+                        className="ml-1 inline-block h-2 w-2 rounded-full bg-red-500 align-top"
+                      />
+                    )}
+                  </ItemNav>
+                </>
+              )}
+            </nav>
           </div>
-          <Botao variante="secundario" pequeno onClick={() => setContaAberta(true)}>
-            Minha conta
-          </Botao>
-          <Botao variante="secundario" pequeno onClick={sair}>
-            Sair
-          </Botao>
-        </div>
-      </div>
 
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
+              <Avatar nome={usuario.nome} className="h-8 w-8 text-xs" />
+              <span className="hidden flex-col leading-tight sm:flex">
+                <span className="text-sm font-medium text-stone-700">{usuario.nome}</span>
+                <span className="text-[10px] tracking-wider text-stone-400 uppercase">
+                  {usuario.papel}
+                </span>
+              </span>
+            </div>
+            <Botao variante="secundario" pequeno onClick={() => setContaAberta(true)}>
+              Minha conta
+            </Botao>
+            <Botao variante="secundario" pequeno onClick={sair}>
+              Sair
+            </Botao>
+          </div>
+        </div>
+      </header>
+
+      {/* fora do header: o backdrop-blur dele prenderia o modal (position: fixed) na faixa do topo */}
       {contaAberta && <ContaModal onFechar={() => setContaAberta(false)} />}
-    </header>
+    </>
   )
 }

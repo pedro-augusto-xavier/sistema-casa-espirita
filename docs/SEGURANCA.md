@@ -104,7 +104,7 @@ todo mundo é desconectado e entra de novo.
 | Item | Situação |
 |---|---|
 | SSH, firewall, atualizações do sistema, fail2ban, app sem root | ➖ Não existe servidor próprio: Render, Vercel e Neon são serviços gerenciados (sem SSH). ☁️ Eles cuidam do sistema operacional, do firewall e das atualizações. |
-| Usuário do banco com permissão mínima | 👤 Opcional e recomendado — ver abaixo. O código já suporta (`MIGRATIONS_DATABASE_URL`). |
+| Usuário do banco com permissão mínima | 👤 Opcional e recomendado — ver abaixo. A API roda com `app_casa`; as migrations rodam fora do Render, no workflow de deploy, com a URL do dono num segredo do GitHub. |
 | Cloudflare na frente | ☁️ O Render já fica atrás da Cloudflare; a Vercel tem rede própria com proteção contra DDoS. |
 | Painéis administrativos fechados | ✅ `/docs` desligado em produção. 👤 O DBeaver conecta direto no Neon: só no seu computador, com a senha guardada no gerenciador. |
 | Ambientes separados | ✅ Desenvolvimento usa banco local e chaves de exemplo — que a produção recusa. 👤 Não copie dados reais pro banco local. |
@@ -112,9 +112,14 @@ todo mundo é desconectado e entra de novo.
 
 ### Usuário do banco com permissão mínima (opcional)
 
-Hoje o app usa o usuário dono do banco (pode criar e apagar tabelas). Com um
-usuário restrito, quem invadir o app não consegue apagar tabelas nem mexer
-na auditoria — nem desligar o trigger que a protege.
+Sem isso, o app usa o usuário dono do banco (pode criar e apagar tabelas).
+Com um usuário restrito, quem invadir o app não consegue apagar tabelas nem
+mexer na auditoria — nem desligar o trigger que a protege. Isso só vale se
+a URL do dono **não estiver no Render**: tudo que está no Environment do
+serviço chega ao processo da API, e quem invadir o app leria a variável.
+Por isso as migrations rodam no workflow de deploy do GitHub (ver
+[DEPLOY.md](../DEPLOY.md)), e a URL do dono fica só no gerenciador de senhas
+e no segredo `DONO_DATABASE_URL` do Environment `producao` do GitHub.
 
 1. No Neon (Roles → New role), crie `app_casa` e copie a senha.
 2. No SQL Editor do Neon, como dono do banco:
@@ -130,8 +135,9 @@ na auditoria — nem desligar o trigger que a protege.
    ALTER DEFAULT PRIVILEGES IN SCHEMA public
      GRANT USAGE, SELECT ON SEQUENCES TO app_casa;
    ```
-3. No Render: `MIGRATIONS_DATABASE_URL` = a URL atual (do dono) e
-   `DATABASE_URL` = a URL com `app_casa` e a senha nova.
+3. No Render, `DATABASE_URL` = a URL com `app_casa` e a senha nova
+   (`python -m scripts.senha_do_app` gera e imprime). A URL do dono vai pro
+   segredo `DONO_DATABASE_URL` do GitHub, **nunca** pro Render.
 
 ## Fase 6 — Logs, backup e incidente
 
@@ -139,7 +145,7 @@ na auditoria — nem desligar o trigger que a protege.
 |---|---|
 | Registrar logins, permissões, dado completo visto, exportações, exclusões (quem, o quê, quando, IP) | ✅ Tudo na tabela `audit_log`, com IP. Tela: **Auditoria** (só admin), com filtro por ação. |
 | Logs sem senha, token ou CPF | ✅ A auditoria guarda **quais** campos mudaram, não os valores (CPF, endereço e observações não viram cópia no log). Falha de login não guarda o que foi digitado. O log de acesso do servidor corta a busca da URL (`?q=` pode ser um CPF). |
-| Logs que o app não consegue apagar | ✅ O banco recusa UPDATE, DELETE e TRUNCATE na auditoria (trigger). Com o usuário restrito acima, nem desligar o trigger dá. Cópia fora do servidor: vai junto no backup diário. |
+| Logs que o app não consegue apagar | ✅ O banco recusa UPDATE, DELETE e TRUNCATE na auditoria (trigger). Com o usuário restrito acima (e a URL do dono fora do Render), nem desligar o trigger dá. Cópia fora do servidor: vai junto no backup diário. |
 | Alerta pra coisa estranha | ✅ Bolinha vermelha em "Auditoria" pro admin quando há 10+ logins errados em 24 h ou acesso entre 23 h e 6 h; resumo no topo da tela. |
 | Backup diário, em outro lugar, criptografado, 30 dias | ✅ Workflow `.github/workflows/backup.yml`. 👤 Precisa ser ligado uma vez: [BACKUP.md](BACKUP.md). |
 | Testar a restauração | 👤 A cada 3 meses, roteiro em [BACKUP.md](BACKUP.md). |

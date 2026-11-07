@@ -22,8 +22,12 @@ front no **Vercel**. Os três aceitam login com GitHub.
    - **Runtime:** Python 3
    - **Build Command:**
      ```
-     pip install -r requirements.txt && alembic upgrade head && python -m scripts.seed
+     pip install -r requirements.txt
      ```
+     (As migrations e o seed **não** rodam aqui: rodam no GitHub, antes do
+     deploy -- ver "Atualizações" no fim. Tudo que está no Environment do
+     Render chega ao processo da API, e a migration precisa da URL do dono
+     do banco.)
    - **Start Command:**
      ```
      uvicorn app.main:app --host 0.0.0.0 --port $PORT --proxy-headers --forwarded-allow-ips='*'
@@ -40,6 +44,11 @@ front no **Vercel**. Os três aceitam login com GitHub.
    - **Health Check Path** (em Settings, depois de criar): `/health`. Ele confere
      o banco e se as chaves de criptografia abrem os dados; se falhar, o Render
      não põe a versão nova no ar.
+   - **Auto-Deploy** (em Settings → Build & Deploy): **Off**. Quem dispara o
+     deploy é o workflow do GitHub, depois das migrations.
+   - **Deploy Hook** (mesma tela): copie a URL -- ela vira o segredo
+     `RENDER_DEPLOY_HOOK_URL` no GitHub ("Atualizações", no fim). Quem tem
+     essa URL consegue fazer deploy: trate como senha.
 4. Em **Environment**, adiciona as variáveis:
    | Nome | Valor |
    |---|---|
@@ -50,7 +59,11 @@ front no **Vercel**. Os três aceitam login com GitHub.
    | `APP_ENV` | `production` |
    | `CORS_ORIGINS` | por enquanto `https://localhost` (ajusta no passo 4) |
    | `MFA_OBRIGATORIO` | opcional: `admin` (padrão), `todos` ou `ninguem` |
-   | `MIGRATIONS_DATABASE_URL` | opcional: ver "Usuário do banco com permissão mínima" em [docs/SEGURANCA.md](docs/SEGURANCA.md) |
+
+   Recomendado: em vez da URL do dono, `DATABASE_URL` com o usuário restrito
+   `app_casa` -- ver "Usuário do banco com permissão mínima" em
+   [docs/SEGURANCA.md](docs/SEGURANCA.md). A URL do dono do banco **nunca**
+   fica no Render.
 
    O app **não sobe** em produção sem `SECRET_KEY`, `CHAVES_CRIPTOGRAFIA` e
    `CHAVE_HMAC` de verdade -- de propósito. Guarde uma cópia das duas chaves
@@ -124,8 +137,83 @@ dois valores no GitHub. Leva 5 minutos e fica rodando sozinho.
 
 ## Atualizações
 
-Depois disso, qualquer `git push` pra `main` já dispara um novo deploy
-automático no Render e na Vercel -- não precisa repetir nada disso.
+A **Vercel** publica o front sozinha a cada `git push` pra `main`. A **API**
+passa pelo job `deploy` do workflow de CI ([.github/workflows/ci.yml](.github/workflows/ci.yml)):
+
+1. push na `main` → o CI roda (testes, lint, auditoria de dependências);
+2. com o CI verde, o job `deploy` **espera a sua aprovação**: GitHub →
+   Actions → o run do commit → *Review deployments* → `producao` → *Approve*;
+3. aprovado, ele roda `alembic upgrade head` e o seed no banco de produção,
+   com a URL do dono;
+4. e chama o deploy hook do Render pra publicar **exatamente aquele commit**.
+   O Render só troca a versão no ar quando a nova passa no `/health`.
+
+**Aprove logo depois do push.** Enquanto você não aprova, o front novo já
+está no ar com a API antiga -- se o commit mexeu nos dois lados, o front
+pode chamar algo que a API ainda não tem. Se der dois pushes seguidos, basta
+aprovar o mais recente: ele leva as migrations dos dois. (Um run antigo
+aprovado depois não publica nada: o job só chama o Render se o commit ainda
+for o último da `main`.)
+
+O workflow termina quando chama o hook; acompanhe o deploy em si pelo painel
+(ou e-mail) do Render.
+
+### Configurar uma vez (GitHub)
+
+Repositório → **Settings → Environments → New environment** → `producao`:
+
+- **Required reviewers:** você. **Não** marque *Prevent self-review* (senão
+  ninguém consegue aprovar o seu próprio push).
+- **Deployment branches and tags:** *Selected branches and tags* → `main`.
+- **Environment secrets:**
+
+  | Nome | Valor |
+  |---|---|
+  | `DONO_DATABASE_URL` | URL do dono do banco (`neondb_owner`) -- a do Neon, passo 1 |
+  | `CHAVES_CRIPTOGRAFIA` | a mesma do Render |
+  | `CHAVE_HMAC` | a mesma do Render |
+  | `RENDER_DEPLOY_HOOK_URL` | o Deploy Hook do Render (passo 2) |
+
+As chaves de criptografia vão junto porque algumas migrations cifram dados
+(e o job roda com `APP_ENV=production`, que recusa as chaves de exemplo:
+sem elas a migration falha, em vez de cifrar dado real com chave pública).
+A `SECRET_KEY` de verdade **não** vai: o job gera uma descartável.
+
+O log do Actions deste repositório é **público**. Os segredos aparecem como
+`***`, e o job também esconde a senha e cada chave sozinhas. Ao mexer no
+job: nada de `set -x`, `echo` de variável ou `${{ secrets.X }}` dentro do
+script -- segredo só por `env:` do passo.
+
+### Regra pras migrations
+
+Entre a migration rodar e o código novo entrar no ar, o código **antigo**
+continua atendendo (minutos, ou mais se o deploy falhar). Então a migration
+não pode quebrar o código que está no ar:
+
+- acrescentar tabela, coluna que aceita vazio ou com padrão: pode, num
+  deploy só;
+- apagar ou renomear coluna/tabela, ou tornar obrigatória: em **dois**
+  deploys -- primeiro o código para de usar, depois a migration remove.
+
+### Plano B: rodar do seu PC (GitHub Actions fora do ar)
+
+No PowerShell, na pasta do projeto (URL do dono e chaves do gerenciador de
+senhas):
+
+```powershell
+$env:APP_ENV = "production"
+$env:DATABASE_URL = "<URL do dono do banco>"
+$env:CHAVES_CRIPTOGRAFIA = "<a mesma do Render>"
+$env:CHAVE_HMAC = "<a mesma do Render>"
+$env:SECRET_KEY = .\.venv\Scripts\python.exe -c "import secrets; print(secrets.token_hex(32))"
+.\.venv\Scripts\python.exe -m alembic upgrade head
+.\.venv\Scripts\python.exe -m scripts.seed
+Remove-Item Env:\APP_ENV, Env:\DATABASE_URL, Env:\CHAVES_CRIPTOGRAFIA, Env:\CHAVE_HMAC, Env:\SECRET_KEY
+```
+
+Depois, no Render: **Manual Deploy → Deploy latest commit**. (O
+`Remove-Item` garante que o terminal volta a usar o `.env` local -- senão os
+próximos comandos mexeriam no banco de produção.)
 
 Segurança, LGPD e o que fazer se algo der errado: [docs/SEGURANCA.md](docs/SEGURANCA.md),
 [docs/LGPD.md](docs/LGPD.md) e [docs/PLANO_DE_INCIDENTE.md](docs/PLANO_DE_INCIDENTE.md).

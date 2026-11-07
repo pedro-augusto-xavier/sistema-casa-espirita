@@ -7,9 +7,9 @@ A senha nasce no seu computador e vai direto pro banco:
     não grava comandos em log (log_statement = none);
   - o script testa o login com ela e imprime a URL pronta pro Render.
 
-Uso (PowerShell): três comandos, no mesmo terminal. A URL é a DATABASE_URL
-ATUAL do Render (a do dono do banco, `neondb_owner`) -- copie pelo ícone de
-olho no Render:
+Uso (PowerShell): três comandos, no mesmo terminal. A URL é a do dono do
+banco (`neondb_owner`), que fica no seu gerenciador de senhas e no segredo
+DONO_DATABASE_URL do GitHub -- nunca no Render:
 
     $env:DONO_DATABASE_URL='<url atual>'
     .\.venv\Scripts\python.exe -m scripts.senha_do_app
@@ -63,16 +63,19 @@ def main() -> None:
     url_dono = os.environ.get("DONO_DATABASE_URL", "").strip()
     if not url_dono:
         sys.exit(
-            "Defina DONO_DATABASE_URL (a DATABASE_URL atual do Render)"
+            "Defina DONO_DATABASE_URL (a URL do dono do banco, neondb_owner)"
             " -- ver o topo do arquivo."
         )
     url_app = definir_senha(url_dono)
     print("\nSenha nova definida e testada. Login como app_casa funcionou.\n")
-    print("No Render > Environment:")
-    print("  1. Crie MIGRATIONS_DATABASE_URL com o valor ATUAL de DATABASE_URL.")
-    print("  2. Troque DATABASE_URL por esta (copie a linha inteira):\n")
+    print("No Render > Environment, troque DATABASE_URL por esta")
+    print("(copie a linha inteira):\n")
     print(url_app)
-    print("\nDepois feche este terminal. A senha só fica guardada no Render.")
+    print(
+        "\nA URL do dono NÃO vai pro Render: ela fica só no gerenciador de"
+        "\nsenhas e no segredo DONO_DATABASE_URL do Environment 'producao'"
+        "\ndo GitHub (ver DEPLOY.md). Depois feche este terminal."
+    )
 
 
 if __name__ == "__main__":

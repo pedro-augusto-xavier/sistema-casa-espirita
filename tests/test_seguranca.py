@@ -657,3 +657,30 @@ def test_settings_aceita_chave_fraca_em_dev():
         APP_ENV="dev",
     )
     assert s.SECRET_KEY == "dev-inseguro-troque-no-.env"
+
+
+def test_settings_nao_carrega_url_do_dono_do_banco(monkeypatch):
+    """A URL do dono do banco não pode chegar à API (achado #9): as
+    migrations rodam fora do Render, e mesmo que a variável antiga fique
+    no ambiente, a configuração do app não guarda o valor."""
+    monkeypatch.setenv("MIGRATIONS_DATABASE_URL", "postgresql://dono:senha-do-dono@h/db")
+    s = _settings_prod()
+    assert "MIGRATIONS_DATABASE_URL" not in s.model_dump()
+    assert "senha-do-dono" not in repr(s.model_dump())
+
+
+def test_erro_de_configuracao_nao_mostra_os_valores():
+    """O deploy roda num GitHub Actions com log público: um erro de
+    validação não pode imprimir a URL do banco nem pedaço das chaves."""
+    with pytest.raises(ValidationError) as erro:
+        _settings_prod(
+            SECRET_KEY="curta",
+            DATABASE_URL="postgresql+psycopg://u:senha-secreta@localhost/db",
+        )
+    texto = str(erro.value)
+    assert "SECRET_KEY" in texto  # a mensagem continua dizendo o que falta
+    # o pydantic mostra o começo e o fim de todos os valores de entrada; qual
+    # valor cai na ponta depende da ordem das fontes (.env, ambiente...)
+    assert "input_value" not in texto
+    for segredo in ("senha-secreta", "AAAAAAAA", "BBBBBBBB", "curta"):
+        assert segredo not in texto

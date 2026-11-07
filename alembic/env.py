@@ -16,13 +16,10 @@ from app.core.database import Base
 config = context.config
 
 # Injeta a URL do banco vinda do .env (não deixamos senha no alembic.ini).
-# Se existir MIGRATIONS_DATABASE_URL (usuário de banco com permissão de
-# criar/alterar tabelas), as migrations usam ela -- e o app roda com um
-# usuário mais restrito (ver docs/SEGURANCA.md).
-config.set_main_option(
-    "sqlalchemy.url",
-    (settings.MIGRATIONS_DATABASE_URL or settings.DATABASE_URL).replace("%", "%%"),
-)
+# Em produção, quem roda as migrations (workflow de deploy ou o seu PC)
+# define DATABASE_URL com a URL do dono do banco; a API, no Render, só
+# tem a do usuário restrito app_casa (ver docs/SEGURANCA.md).
+config.set_main_option("sqlalchemy.url", settings.DATABASE_URL.replace("%", "%%"))
 
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)

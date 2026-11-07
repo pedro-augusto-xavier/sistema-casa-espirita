@@ -104,3 +104,66 @@ jobs:
 
       - name: Build
         run: npm run build
+
+  # Produção: migrations + seed com a URL do dono do banco e, depois, o
+  # deploy da API no Render pelo deploy hook (auto-deploy desligado lá).
+  # A URL do dono só existe aqui, no Environment "producao" (aprovação
+  # obrigatória, só a main) -- nunca no Render. Ver DEPLOY.md.
+  # O log deste repositório é público: nada de `set -x` nem de imprimir
+  # variáveis; os segredos vão por `env:` de cada passo, nunca no script.
+  deploy:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: [testes, frontend]
+    runs-on: ubuntu-latest
+    environment: producao
+    concurrency:
+      group: producao
+      cancel-in-progress: false
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Instalar dependências
+        run: pip install -r requirements.txt
+
+      - name: Migrations e seed (banco de produção)
+        env:
+          APP_ENV: production
+          DATABASE_URL: ${{ secrets.DONO_DATABASE_URL }}
+          CHAVES_CRIPTOGRAFIA: ${{ secrets.CHAVES_CRIPTOGRAFIA }}
+          CHAVE_HMAC: ${{ secrets.CHAVE_HMAC }}
+        run: |
+          # O GitHub só esconde o segredo inteiro; esconde também a senha e
+          # cada chave sozinhas, caso algum erro mostre só um pedaço.
+          python - <<'EOF'
+          import os
+          from urllib.parse import urlsplit
+          partes = [urlsplit(os.environ["DATABASE_URL"]).password or ""]
+          partes += [p.partition(":")[2].strip() for p in os.environ["CHAVES_CRIPTOGRAFIA"].split(",")]
+          partes.append(os.environ["CHAVE_HMAC"].strip())
+          for parte in filter(None, partes):
+              print(f"::add-mask::{parte}")
+          EOF
+          # Migration não assina token: uma SECRET_KEY descartável basta pra
+          # passar da trava de produção, e a de verdade fica só no Render.
+          SECRET_KEY="$(python -c 'import secrets; print(secrets.token_hex(32))')"
+          export SECRET_KEY
+          alembic upgrade head
+          python -m scripts.seed
+
+      - name: Deploy da API no Render (este commit)
+        env:
+          RENDER_DEPLOY_HOOK_URL: ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
+        run: |
+          # Run de commit antigo aprovado depois de um mais novo não pode
+          # publicar o código antigo por cima: quem publica é o run da ponta.
+          if [ "$(git ls-remote origin refs/heads/main | cut -f1)" != "$GITHUB_SHA" ]; then
+            echo "A main já avançou; o run do commit mais novo faz o deploy."
+            exit 0
+          fi
+          curl -fsS -X POST -o /dev/null "${RENDER_DEPLOY_HOOK_URL}&ref=${GITHUB_SHA}"

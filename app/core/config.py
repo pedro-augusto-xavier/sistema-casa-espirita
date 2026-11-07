@@ -21,14 +21,16 @@ class Settings(BaseSettings):
         env_file=".env",
         env_file_encoding="utf-8",
         extra="ignore",
+        # Erro de validação sem os valores: as migrations rodam num GitHub
+        # Actions de log público, e o pydantic mostraria pedaços da URL do
+        # banco e das chaves.
+        hide_input_in_errors=True,
     )
 
-    # Banco de dados
+    # Banco de dados. Na API (Render) é o usuário restrito app_casa; quem
+    # roda as migrations (workflow de deploy ou o seu PC) põe aqui a URL do
+    # dono do banco -- ela nunca vai pro Render (ver docs/SEGURANCA.md).
     DATABASE_URL: str
-    # Opcional: URL de um usuário do banco com mais permissão, só pras
-    # migrations (criar/alterar tabelas). Assim o app em si pode rodar com um
-    # usuário que só lê e grava dados -- ver docs/SEGURANCA.md.
-    MIGRATIONS_DATABASE_URL: str | None = None
 
     # Segurança / JWT
     SECRET_KEY: str = _CHAVE_PADRAO_INSEGURA
@@ -74,14 +76,12 @@ class Settings(BaseSettings):
         validation_alias="CORS_ORIGINS",
     )
 
-    @field_validator("DATABASE_URL", "MIGRATIONS_DATABASE_URL")
+    @field_validator("DATABASE_URL")
     @classmethod
-    def _driver_psycopg(cls, v: str | None) -> str | None:
+    def _driver_psycopg(cls, v: str) -> str:
         """Provedores (Neon, Render, Railway...) dão a URL sem o driver.
         O SQLAlchemy precisa do 'postgresql+psycopg://' explícito.
         """
-        if v is None:
-            return v
         for prefixo in ("postgres://", "postgresql://"):
             if v.startswith(prefixo):
                 return "postgresql+psycopg://" + v[len(prefixo) :]

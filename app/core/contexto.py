@@ -73,8 +73,10 @@ def _ip_do_escopo(scope: Scope, cabecalho: bytes) -> tuple[str, bool]:
                 return ip, True
             break
 
+    # o health check do Render bate direto no app, sem passar pela
+    # Cloudflare: não tem o cabeçalho e não deve gastar o aviso único
     global _avisou_sem_cabecalho
-    if not _avisou_sem_cabecalho:
+    if not _avisou_sem_cabecalho and scope.get("path") != "/health":
         _avisou_sem_cabecalho = True
         logger.warning(
             "Requisição sem um IP válido no cabeçalho %s: o limite de "

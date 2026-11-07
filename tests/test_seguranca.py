@@ -306,6 +306,24 @@ def test_ip_de_outro_cabecalho_configurado():
     assert _ip_do_escopo(escopo, b"true-client-ip") == ("192.0.2.9", True)
 
 
+def test_aviso_sem_cabecalho_ignora_health_check(monkeypatch, caplog):
+    """O health check do Render não passa pela Cloudflare: não avisa nem
+    gasta o aviso único, que fica pra primeira requisição de verdade."""
+    from app.core import contexto
+
+    monkeypatch.setattr(contexto, "_avisou_sem_cabecalho", False)
+    caplog.set_level("WARNING", logger=contexto.__name__)
+
+    health = {**_escopo(), "path": "/health"}
+    assert contexto._ip_do_escopo(health, b"cf-connecting-ip") == ("10.0.0.1", False)
+    assert caplog.records == []
+
+    rota = {**_escopo(), "path": "/api/v1/auth/login"}
+    contexto._ip_do_escopo(rota, b"cf-connecting-ip")
+    assert len(caplog.records) == 1
+    assert "cf-connecting-ip" in caplog.records[0].getMessage()
+
+
 def test_ip_cabecalho_vem_da_configuracao(monkeypatch):
     from app.core.contexto import ContextoDaRequisicao
 

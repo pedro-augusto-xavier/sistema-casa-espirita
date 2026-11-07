@@ -127,3 +127,76 @@ def test_excluir_caso_registra_cada_anexo_apagado(client: TestClient, entrar_com
     assert excluir[0]["usuario_nome"] == "Op Exclui Caso"
     assert excluir[0]["dados"] == {"pessoa_id": p, "tratamento_id": t}
 
+
+# ---------- #11: caso aberto/alterado pelo atendimento ----------
+
+
+def test_atendimento_que_abre_e_altera_caso_fica_na_auditoria_do_caso(
+    client: TestClient, entrar_como
+):
+    op = entrar_como("Op Caso")
+    p = _pessoa(client, "Pessoa P Caso")
+    q = _pessoa(client, "Pessoa Q Caso")
+    r_ = _pessoa(client, "Pessoa R Caso")
+    desob = _id_tipo(client, "Desobsessão Presencial")
+
+    # 1) abre o caso (sem nº de sessões ainda)
+    r = client.post(
+        "/api/v1/atendimentos",
+        json={
+            "pessoa_id": p,
+            "tratamentos": [
+                {"tipo_tratamento_id": desob, "assistidos": [{"pessoa_id": q}]}
+            ],
+        },
+        headers=op,
+    )
+    assert r.status_code == 201, r.text
+    at1 = r.json()["id"]
+    t = client.get("/api/v1/tratamentos", params={"pessoa_id": p}).json()["items"][0][
+        "id"
+    ]
+
+    # 2) outro atendimento: acrescenta R e completa o nº de sessões
+    r = client.post(
+        "/api/v1/atendimentos",
+        json={
+            "pessoa_id": p,
+            "tratamentos": [
+                {
+                    "tipo_tratamento_id": desob,
+                    "sessoes_previstas": 3,
+                    "assistidos": [{"pessoa_id": q}, {"pessoa_id": r_}],
+                }
+            ],
+        },
+        headers=op,
+    )
+    assert r.status_code == 201, r.text
+    at2 = r.json()["id"]
+
+    # 3) um atendimento que não muda o caso (Q já é assistida) não grava nada
+    # nele. Sem assistidos não serve: aí a própria P entraria como assistida.
+    r = client.post(
+        "/api/v1/atendimentos",
+        json={
+            "pessoa_id": p,
+            "tratamentos": [
+                {"tipo_tratamento_id": desob, "assistidos": [{"pessoa_id": q}]}
+            ],
+        },
+        headers=op,
+    )
+    assert r.status_code == 201, r.text
+
+    linhas = _auditoria(client, entidade="tratamento", entidade_id=t)
+    assert [(i["acao"], i["dados"]) for i in linhas] == [
+        ("criar", {"atendimento_id": at1}),
+        ("atualizar", {"assistido_adicionado": r_, "atendimento_id": at2}),
+        ("atualizar", {"campos": ["sessoes_previstas"], "atendimento_id": at2}),
+    ]
+    assert {i["usuario_nome"] for i in linhas} == {"Op Caso"}
+
+    # apagar o atendimento não apaga o rastro do caso
+    assert client.delete(f"/api/v1/atendimentos/{at1}", headers=op).status_code == 204
+    assert len(_auditoria(client, entidade="tratamento", entidade_id=t)) == 3

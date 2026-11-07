@@ -1,5 +1,6 @@
 """Acesso ao banco para Atendimento (a visita avulsa)."""
 
+from dataclasses import dataclass, field
 from datetime import date
 
 from sqlalchemy import func, select
@@ -114,9 +115,20 @@ def _monta_tratamentos(
     ]
 
 
+@dataclass
+class MudancaNoCaso:
+    """O que o atendimento fez num caso, pra rota registrar na auditoria com
+    entidade="tratamento" (como fazem as rotas de /tratamentos)."""
+
+    caso: Tratamento
+    aberto_agora: bool = False
+    assistidos_adicionados: list[int] = field(default_factory=list)
+    sessoes_previstas_preenchidas: bool = False
+
+
 def _abre_fichas_de_acompanhamento(
     db: Session, dados: AtendimentoCreate, itens: list[AtendimentoTratamentoIn]
-) -> None:
+) -> list[MudancaNoCaso]:
     """Tratamentos de formato "caso" (Desobsessão etc.) têm uma pasta própria:
     na capa, o Responsável (quem vem à casa receber o tratamento) e os
     Assistidos (por quem ele pediu -- filhos, amigos, ele mesmo); dentro,
@@ -125,8 +137,9 @@ def _abre_fichas_de_acompanhamento(
     Quando um deles é marcado no atendimento, a pessoa atendida vira o
     responsável. Se ela ainda não tem a pasta aberta, abrimos uma; se já
     tem, só acrescentamos assistidos novos e completamos o nº de vezes."""
+    mudancas: list[MudancaNoCaso] = []
     if not itens:
-        return
+        return mudancas
     tipos_caso = set(
         db.scalars(
             select(TipoTratamento.id).where(
@@ -161,8 +174,10 @@ def _abre_fichas_de_acompanhamento(
             )
         )
         if aberto is not None:
+            mudanca = MudancaNoCaso(caso=aberto)
             if aberto.sessoes_previstas is None and item.sessoes_previstas:
                 aberto.sessoes_previstas = item.sessoes_previstas
+                mudanca.sessoes_previstas_preenchidas = True
             ja_tem = {a.pessoa_id for a in aberto.assistidos}
             for pessoa_id in vinculos:
                 if pessoa_id not in ja_tem:
@@ -172,6 +187,9 @@ def _abre_fichas_de_acompanhamento(
                             vinculo_com_responsavel=vinculos[pessoa_id],
                         )
                     )
+                    mudanca.assistidos_adicionados.append(pessoa_id)
+            if mudanca.sessoes_previstas_preenchidas or mudanca.assistidos_adicionados:
+                mudancas.append(mudanca)
             continue
 
         ficha = Tratamento(
@@ -189,9 +207,13 @@ def _abre_fichas_de_acompanhamento(
         if dados.data is not None:
             ficha.data_inicio = dados.data
         db.add(ficha)
+        mudancas.append(MudancaNoCaso(caso=ficha, aberto_agora=True))
+    return mudancas
 
 
-def criar(db: Session, dados: AtendimentoCreate) -> Atendimento:
+def criar(
+    db: Session, dados: AtendimentoCreate
+) -> tuple[Atendimento, list[MudancaNoCaso]]:
     _checa_pessoa(db, dados.pessoa_id, "pessoa_id")
     _checa_pessoa(db, dados.atendido_por_id, "atendido_por_id")
     _checa_pessoa(db, dados.solicitante_id, "solicitante_id")
@@ -202,11 +224,11 @@ def criar(db: Session, dados: AtendimentoCreate) -> Atendimento:
         atendimento.data = dados.data
 
     atendimento.tratamentos = _monta_tratamentos(db, dados.tratamentos)
-    _abre_fichas_de_acompanhamento(db, dados, dados.tratamentos)
+    casos = _abre_fichas_de_acompanhamento(db, dados, dados.tratamentos)
 
     db.add(atendimento)
     db.commit()
-    return get(db, atendimento.id)  # type: ignore[return-value]
+    return get(db, atendimento.id), casos  # type: ignore[return-value]
 
 
 def atualizar(

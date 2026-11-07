@@ -58,7 +58,7 @@ def listar_atendimentos(
     summary="Registrar atendimento",
 )
 def criar_atendimento(db: SessaoDB, dados: AtendimentoCreate, usuario: UsuarioAtual):
-    atendimento = crud.criar(db, dados)
+    atendimento, casos = crud.criar(db, dados)
     registrar(
         db,
         usuario=usuario,
@@ -66,7 +66,42 @@ def criar_atendimento(db: SessaoDB, dados: AtendimentoCreate, usuario: UsuarioAt
         entidade="atendimento",
         entidade_id=atendimento.id,
     )
+    # o caso aberto/alterado aqui fica no rastro do caso, como nas rotas de
+    # /tratamentos; o atendimento_id liga os dois mesmo se ele for excluído
+    vinculo = {"atendimento_id": atendimento.id}
+    for mudanca in casos:
+        caso_id = mudanca.caso.id
+        if mudanca.aberto_agora:
+            _registrar_caso(db, usuario, AcaoAuditoria.criar, caso_id, vinculo)
+            continue
+        for pessoa_id in mudanca.assistidos_adicionados:
+            _registrar_caso(
+                db,
+                usuario,
+                AcaoAuditoria.atualizar,
+                caso_id,
+                {"assistido_adicionado": pessoa_id, **vinculo},
+            )
+        if mudanca.sessoes_previstas_preenchidas:
+            _registrar_caso(
+                db,
+                usuario,
+                AcaoAuditoria.atualizar,
+                caso_id,
+                {"campos": ["sessoes_previstas"], **vinculo},
+            )
     return AtendimentoOut.model_validate(atendimento)
+
+
+def _registrar_caso(db, usuario, acao, caso_id, dados) -> None:
+    registrar(
+        db,
+        usuario=usuario,
+        acao=acao,
+        entidade="tratamento",
+        entidade_id=caso_id,
+        dados=dados,
+    )
 
 
 @router.get(

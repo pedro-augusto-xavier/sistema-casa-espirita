@@ -8,7 +8,11 @@ from typing import Annotated
 
 from fastapi import APIRouter, HTTPException, Query, Response, status
 
-from app.api.deps import SessaoDB, UsuarioAtual
+from app.api.deps import (
+    SessaoDB,
+    UsuarioAtual,
+    barrar_operador_em_ficha_anonimizada,
+)
 from app.core.auditoria import campos_alterados, registrar
 from app.crud import tratamento as crud
 from app.models.enums import AcaoAuditoria, StatusTratamento
@@ -32,6 +36,12 @@ def _obter(db: SessaoDB, tratamento_id: int):
     if tratamento is None:
         raise HTTPException(status_code=404, detail="Tratamento não encontrado")
     return tratamento
+
+
+def _so_admin_se_anonimizada(db: SessaoDB, usuario, tratamento) -> None:
+    barrar_operador_em_ficha_anonimizada(
+        usuario, crud.ligado_a_anonimizada(db, tratamento)
+    )
 
 
 def _auditar(db, usuario, acao, tratamento_id, dados=None) -> None:
@@ -99,6 +109,7 @@ def editar_tratamento(
     db: SessaoDB, tratamento_id: int, dados: TratamentoUpdate, usuario: UsuarioAtual
 ):
     tratamento = _obter(db, tratamento_id)
+    _so_admin_se_anonimizada(db, usuario, tratamento)
     tratamento = crud.atualizar(db, tratamento, dados)
     _auditar(
         db,
@@ -134,6 +145,7 @@ def adicionar_assistido(
     db: SessaoDB, tratamento_id: int, dados: AssistidoIn, usuario: UsuarioAtual
 ):
     tratamento = _obter(db, tratamento_id)
+    _so_admin_se_anonimizada(db, usuario, tratamento)
     resultado = crud.adicionar_assistido(db, tratamento, dados)
     _auditar(
         db,
@@ -160,6 +172,7 @@ def atualizar_assistido(
     assistido = crud.get_assistido(db, tratamento_id, assistido_id)
     if assistido is None:
         raise HTTPException(status_code=404, detail="Assistido não encontrado")
+    _so_admin_se_anonimizada(db, usuario, _obter(db, tratamento_id))
     resultado = crud.atualizar_assistido(db, assistido, dados)
     _auditar(
         db,
@@ -209,6 +222,7 @@ def adicionar_evolucao(
     db: SessaoDB, tratamento_id: int, dados: EvolucaoIn, usuario: UsuarioAtual
 ):
     tratamento = _obter(db, tratamento_id)
+    _so_admin_se_anonimizada(db, usuario, tratamento)
     resultado = crud.adicionar_evolucao(db, tratamento, dados)
     _auditar(
         db, usuario, AcaoAuditoria.atualizar, tratamento_id, {"evolucao": "nova"}
@@ -231,6 +245,10 @@ def editar_evolucao(
     evolucao = crud.get_evolucao(db, tratamento_id, evolucao_id)
     if evolucao is None:
         raise HTTPException(status_code=404, detail="Evolução não encontrada")
+    barrar_operador_em_ficha_anonimizada(
+        usuario,
+        crud.evolucao_ligada_a_anonimizada(db, _obter(db, tratamento_id), evolucao),
+    )
     resultado = crud.atualizar_evolucao(db, evolucao, dados)
     _auditar(
         db,

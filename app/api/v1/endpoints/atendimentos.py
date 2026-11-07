@@ -5,7 +5,11 @@ from typing import Annotated
 
 from fastapi import APIRouter, HTTPException, Query, Response, status
 
-from app.api.deps import SessaoDB, UsuarioAtual
+from app.api.deps import (
+    SessaoDB,
+    UsuarioAtual,
+    barrar_operador_em_ficha_anonimizada,
+)
 from app.core.auditoria import campos_alterados, registrar
 from app.crud import atendimento as crud
 from app.models.enums import AcaoAuditoria
@@ -87,6 +91,9 @@ def editar_atendimento(
     atendimento = crud.get(db, atendimento_id)
     if atendimento is None:
         raise HTTPException(status_code=404, detail="Atendimento não encontrado")
+    barrar_operador_em_ficha_anonimizada(
+        usuario, crud.ligado_a_anonimizada(db, atendimento)
+    )
     atendimento = crud.atualizar(db, atendimento, dados)
     registrar(
         db,

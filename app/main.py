@@ -22,7 +22,7 @@ from app.api.v1.api import api_router
 from app.core.config import settings
 from app.core.contexto import ContextoDaRequisicao
 from app.core.cripto import chaves_abrem_os_dados
-from app.core.errors import ErroDominio, NaoEncontrado
+from app.core.errors import Conflito, ErroDominio, NaoEncontrado
 from app.core.security_headers import CabecalhosSeguranca
 
 logger = logging.getLogger("app")
@@ -69,12 +69,14 @@ app.include_router(api_router, prefix="/api/v1")
 
 @app.exception_handler(ErroDominio)
 def _erro_dominio(request: Request, exc: ErroDominio) -> JSONResponse:
-    """Regra de negócio violada -> 404 se for referência inexistente, senão 422."""
-    codigo = (
-        status.HTTP_404_NOT_FOUND
-        if isinstance(exc, NaoEncontrado)
-        else status.HTTP_422_UNPROCESSABLE_CONTENT
-    )
+    """Regra de negócio violada -> 404 se for referência inexistente, 409 se
+    esbarra no estado do registro, senão 422."""
+    if isinstance(exc, NaoEncontrado):
+        codigo = status.HTTP_404_NOT_FOUND
+    elif isinstance(exc, Conflito):
+        codigo = status.HTTP_409_CONFLICT
+    else:
+        codigo = status.HTTP_422_UNPROCESSABLE_CONTENT
     return JSONResponse(status_code=codigo, content={"detail": exc.mensagem})
 
 

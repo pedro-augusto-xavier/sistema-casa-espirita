@@ -14,8 +14,15 @@ function formatarTamanho(bytes) {
  * Seção de arquivos (fotos, PDFs) de uma pessoa. Sem `atendimentoId`/
  * `tratamentoId`, mostra os anexos "gerais" da ficha; com um dos dois,
  * mostra só os que foram enviados naquele item específico do histórico.
+ * `somenteLeitura` esconde o envio (ficha anonimizada não aceita arquivo novo).
  */
-export function Anexos({ pessoaId, atendimentoId = null, tratamentoId = null, titulo = 'Arquivos' }) {
+export function Anexos({
+  pessoaId,
+  atendimentoId = null,
+  tratamentoId = null,
+  titulo = 'Arquivos',
+  somenteLeitura = false,
+}) {
   const [itens, setItens] = useState(null)
   const [erro, setErro] = useState('')
   const [enviando, setEnviando] = useState(false)
@@ -82,14 +89,16 @@ export function Anexos({ pessoaId, atendimentoId = null, tratamentoId = null, ti
         <p className="text-[11px] font-semibold tracking-wider text-stone-400 uppercase">
           {titulo}
         </p>
-        <Botao
-          variante="fantasma"
-          pequeno
-          onClick={() => inputRef.current?.click()}
-          disabled={enviando}
-        >
-          {enviando ? 'Enviando...' : '+ Adicionar'}
-        </Botao>
+        {!somenteLeitura && (
+          <Botao
+            variante="fantasma"
+            pequeno
+            onClick={() => inputRef.current?.click()}
+            disabled={enviando}
+          >
+            {enviando ? 'Enviando...' : '+ Adicionar'}
+          </Botao>
+        )}
         <input
           ref={inputRef}
           type="file"

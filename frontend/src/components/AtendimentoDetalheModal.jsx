@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { api } from '../api/client'
+import { useAuth } from '../auth/AuthContext'
 import { isoParaData, quemAtendeu } from '../utils/formatadores'
 import { Anexos } from './Anexos'
 import { AtendimentoModal } from './AtendimentoModal'
@@ -16,6 +17,7 @@ export function AtendimentoDetalheModal({ atendimentoId, onFechar }) {
   const [dados, setDados] = useState(null)
   const [erro, setErro] = useState('')
   const [editando, setEditando] = useState(false)
+  const { usuario } = useAuth()
 
   useEffect(() => {
     carregar()
@@ -127,6 +129,7 @@ export function AtendimentoDetalheModal({ atendimentoId, onFechar }) {
               pessoaId={dados.pessoa.id}
               atendimentoId={dados.id}
               titulo="Arquivos deste atendimento"
+              somenteLeitura={dados.pessoa.anonimizada}
             />
           </div>
 
@@ -134,9 +137,12 @@ export function AtendimentoDetalheModal({ atendimentoId, onFechar }) {
             <Botao variante="perigo" pequeno onClick={excluir}>
               Excluir
             </Botao>
-            <Botao variante="secundario" pequeno onClick={() => setEditando(true)}>
-              ✎ Editar
-            </Botao>
+            {/* ficha anonimizada: só o admin corrige o registro antigo */}
+            {(!dados.pessoa.anonimizada || usuario.papel === 'admin') && (
+              <Botao variante="secundario" pequeno onClick={() => setEditando(true)}>
+                ✎ Editar
+              </Botao>
+            )}
           </div>
         </div>
       )}

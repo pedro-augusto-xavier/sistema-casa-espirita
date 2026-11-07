@@ -8,10 +8,33 @@ from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session, selectinload
 
 from app.core.cripto import hmac_busca
+from app.core.errors import Conflito
 from app.core.validators import so_digitos
 from app.models.enums import EstadoCivil, Papel
 from app.models.pessoa import Pessoa, PessoaPapel
 from app.schemas.pessoa import PessoaCreate, PessoaUpdate
+
+FICHA_ANONIMIZADA = (
+    "Esta ficha foi anonimizada (LGPD) e não aceita mais alterações nem "
+    "registros novos."
+)
+
+
+def exigir_nao_anonimizada(pessoa: Pessoa, campo: str | None = None) -> None:
+    """A anonimização é terminal: ninguém (nem o admin) edita, reativa ou
+    liga registro novo a uma ficha anonimizada -- senão o histórico mantido
+    de propósito volta a ter identidade e o apagamento não pode ser refeito."""
+    if pessoa.anonimizada:
+        prefixo = f"{campo}: pessoa {pessoa.id} -- " if campo else ""
+        raise Conflito(prefixo + FICHA_ANONIMIZADA)
+
+
+def alguma_anonimizada(db: Session, ids) -> bool:
+    ids = {i for i in ids if i is not None}
+    if not ids:
+        return False
+    stmt = select(Pessoa.id).where(Pessoa.id.in_(ids), Pessoa.anonimizada).limit(1)
+    return db.scalar(stmt) is not None
 
 
 def get(db: Session, pessoa_id: int) -> Pessoa | None:

@@ -88,6 +88,7 @@ def editar_pessoa(
     pessoa = crud.get(db, pessoa_id)
     if pessoa is None:
         raise HTTPException(status_code=404, detail="Pessoa não encontrada")
+    crud.exigir_nao_anonimizada(pessoa)
 
     if dados.cpf:
         existente = crud.get_by_cpf(db, dados.cpf)
@@ -137,6 +138,7 @@ def reativar_pessoa(db: SessaoDB, pessoa_id: int, usuario: UsuarioAtual):
     pessoa = crud.get(db, pessoa_id)
     if pessoa is None:
         raise HTTPException(status_code=404, detail="Pessoa não encontrada")
+    crud.exigir_nao_anonimizada(pessoa)
     pessoa = crud.reativar(db, pessoa)
     registrar(
         db,

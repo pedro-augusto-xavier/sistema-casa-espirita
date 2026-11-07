@@ -4,6 +4,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload, undefer
 
 from app.core.errors import ErroDominio, NaoEncontrado
+from app.crud.pessoa import exigir_nao_anonimizada
 from app.models.anexo import Anexo
 from app.models.atendimento import Atendimento
 from app.models.pessoa import Pessoa
@@ -83,8 +84,10 @@ def criar(
     tratamento_id: int | None,
     enviado_por_id: int | None,
 ) -> Anexo:
-    if db.get(Pessoa, pessoa_id) is None:
+    pessoa = db.get(Pessoa, pessoa_id)
+    if pessoa is None:
         raise NaoEncontrado(f"pessoa {pessoa_id} não existe")
+    exigir_nao_anonimizada(pessoa)
     if atendimento_id is not None and tratamento_id is not None:
         raise ErroDominio(
             "um anexo só pode estar ligado a um atendimento OU a um tratamento"

@@ -4,6 +4,7 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session, selectinload
 
 from app.core.errors import ErroDominio, NaoEncontrado
+from app.crud.pessoa import alguma_anonimizada, exigir_nao_anonimizada
 from app.models.enums import StatusTratamento
 from app.models.pessoa import Pessoa
 from app.models.tratamento import (
@@ -41,8 +42,26 @@ def _envolve_pessoa(pessoa_id: int):
 
 
 def _pessoa_ou_erro(db: Session, pessoa_id: int, campo: str) -> None:
-    if db.get(Pessoa, pessoa_id) is None:
+    pessoa = db.get(Pessoa, pessoa_id)
+    if pessoa is None:
         raise NaoEncontrado(f"{campo}: pessoa {pessoa_id} não existe")
+    exigir_nao_anonimizada(pessoa, campo)
+
+
+def ligado_a_anonimizada(db: Session, tratamento: Tratamento) -> bool:
+    """O caso envolve alguma ficha anonimizada (responsável ou assistido)?"""
+    return alguma_anonimizada(
+        db,
+        [tratamento.solicitante_id, *(a.pessoa_id for a in tratamento.assistidos)],
+    )
+
+
+def evolucao_ligada_a_anonimizada(
+    db: Session, tratamento: Tratamento, evolucao: TratamentoEvolucao
+) -> bool:
+    return ligado_a_anonimizada(db, tratamento) or alguma_anonimizada(
+        db, (evolucao.pessoa_id, evolucao.registrado_por_id)
+    )
 
 
 def get(db: Session, tratamento_id: int) -> Tratamento | None:
@@ -116,8 +135,9 @@ def atualizar(
     db: Session, tratamento: Tratamento, dados: TratamentoUpdate
 ) -> Tratamento:
     mudancas = dados.model_dump(exclude_unset=True)
-    if "solicitante_id" in mudancas and mudancas["solicitante_id"] is not None:
-        _pessoa_ou_erro(db, mudancas["solicitante_id"], "solicitante_id")
+    novo = mudancas.get("solicitante_id")
+    if novo is not None and novo != tratamento.solicitante_id:
+        _pessoa_ou_erro(db, novo, "solicitante_id")
 
     for campo, valor in mudancas.items():
         setattr(tratamento, campo, valor)
@@ -222,8 +242,9 @@ def atualizar_evolucao(
 ) -> Tratamento:
     mudancas = dados.model_dump(exclude_unset=True)
     for campo in ("registrado_por_id", "pessoa_id"):
-        if campo in mudancas and mudancas[campo] is not None:
-            _pessoa_ou_erro(db, mudancas[campo], campo)
+        novo = mudancas.get(campo)
+        if novo is not None and novo != getattr(evolucao, campo):
+            _pessoa_ou_erro(db, novo, campo)
     for campo, valor in mudancas.items():
         setattr(evolucao, campo, valor)
     db.commit()

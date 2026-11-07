@@ -6,6 +6,7 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session, selectinload
 
 from app.core.errors import NaoEncontrado
+from app.crud.pessoa import alguma_anonimizada, exigir_nao_anonimizada
 from app.models.atendimento import Atendimento, AtendimentoTratamento
 from app.models.enums import FormatoTratamento, StatusTratamento, TipoVinculo
 from app.models.pessoa import Pessoa
@@ -69,8 +70,21 @@ def listar(
 def _checa_pessoa(db: Session, pessoa_id: int | None, campo: str) -> None:
     if pessoa_id is None:
         return
-    if db.get(Pessoa, pessoa_id) is None:
+    pessoa = db.get(Pessoa, pessoa_id)
+    if pessoa is None:
         raise NaoEncontrado(f"{campo}: pessoa {pessoa_id} não existe")
+    exigir_nao_anonimizada(pessoa, campo)
+
+
+def ligado_a_anonimizada(db: Session, atendimento: Atendimento) -> bool:
+    return alguma_anonimizada(
+        db,
+        (
+            atendimento.pessoa_id,
+            atendimento.atendido_por_id,
+            atendimento.solicitante_id,
+        ),
+    )
 
 
 def _monta_tratamentos(
@@ -200,7 +214,9 @@ def atualizar(
     mudancas = dados.model_dump(exclude_unset=True, exclude={"tratamentos"})
 
     for campo in ("atendido_por_id", "solicitante_id"):
-        if campo in mudancas:
+        # só confere vínculo NOVO: reenviar o mesmo valor (a tela manda tudo)
+        # não pode travar a edição de um registro antigo
+        if campo in mudancas and mudancas[campo] != getattr(atendimento, campo):
             _checa_pessoa(db, mudancas[campo], campo)
 
     for campo, valor in mudancas.items():

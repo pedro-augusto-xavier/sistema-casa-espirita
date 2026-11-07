@@ -261,9 +261,11 @@ export function FichaPessoa() {
               </div>
 
               <div className="flex shrink-0 gap-2">
-                <BotaoLink to={`/pessoas/${id}/editar`} variante="secundario">
-                  Editar
-                </BotaoLink>
+                {!pessoa.anonimizada && (
+                  <BotaoLink to={`/pessoas/${id}/editar`} variante="secundario">
+                    Editar
+                  </BotaoLink>
+                )}
                 {pessoa.ativo && (
                   <Botao variante="perigo" onClick={desativar}>
                     Desativar
@@ -323,7 +325,7 @@ export function FichaPessoa() {
             )}
 
             <div className="mt-6 border-t border-stone-100 pt-5">
-              <Anexos pessoaId={pessoa.id} titulo="Arquivos" />
+              <Anexos pessoaId={pessoa.id} titulo="Arquivos" somenteLeitura={pessoa.anonimizada} />
             </div>
 
             <MensagemErro className="mt-4">{erro}</MensagemErro>
@@ -438,7 +440,9 @@ export function FichaPessoa() {
                 </span>
               )}
             </div>
-            <Botao onClick={() => setModalAberto('atendimento')}>+ Registrar atendimento</Botao>
+            {!pessoa.anonimizada && (
+              <Botao onClick={() => setModalAberto('atendimento')}>+ Registrar atendimento</Botao>
+            )}
           </div>
 
           {historico.length === 0 ? (
@@ -446,7 +450,9 @@ export function FichaPessoa() {
               titulo="Nenhum atendimento ainda"
               descricao="Cada visita vai aparecer aqui, da mais recente à mais antiga. Clique num registro para abrir, editar ou baixar o PDF."
               acao={
-                <Botao onClick={() => setModalAberto('atendimento')}>+ Registrar atendimento</Botao>
+                !pessoa.anonimizada && (
+                  <Botao onClick={() => setModalAberto('atendimento')}>+ Registrar atendimento</Botao>
+                )
               }
             />
           ) : (

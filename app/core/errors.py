@@ -1,7 +1,8 @@
 """Erros de regra de negócio.
 
 A camada crud levanta ErroDominio quando algo é inválido (ex: tipo de
-tratamento inexistente). O main.py transforma isso num HTTP 422 com a mensagem.
+tratamento inexistente). O main.py transforma isso num HTTP 422 com a mensagem
+(404 pra NaoEncontrado, 409 pra Conflito).
 """
 
 
@@ -13,3 +14,7 @@ class ErroDominio(Exception):
 
 class NaoEncontrado(ErroDominio):
     """Recurso referenciado não existe."""
+
+
+class Conflito(ErroDominio):
+    """A operação esbarra no estado atual do registro (ex: ficha anonimizada)."""

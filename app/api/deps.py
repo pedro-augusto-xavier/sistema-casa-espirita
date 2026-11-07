@@ -92,3 +92,17 @@ def exigir_admin(usuario: UsuarioAtual) -> Usuario:
 
 
 Admin = Annotated[Usuario, Depends(exigir_admin)]
+
+
+def barrar_operador_em_ficha_anonimizada(usuario: Usuario, ligado: bool) -> None:
+    """Registro antigo ligado a ficha anonimizada: só o admin corrige (ex:
+    tirar do texto algo que identifique a pessoa). O operador poderia
+    reidentificá-la escrevendo no texto."""
+    if ligado and usuario.papel != PapelUsuario.admin:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=(
+                "Este registro é de uma ficha anonimizada (LGPD): só o admin "
+                "pode alterá-lo."
+            ),
+        )

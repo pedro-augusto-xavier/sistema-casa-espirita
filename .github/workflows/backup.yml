@@ -6,8 +6,9 @@ name: Backup do banco
 # outro provedor, fora do Neon -- e some sozinho depois disso.
 #
 # Configuração e restauração: docs/BACKUP.md
-# Sem o secret BACKUP_DATABASE_URL e a variável BACKUP_AGE_RECIPIENT, o
-# workflow só avisa e termina (não falha).
+# O secret BACKUP_DATABASE_URL e a variável BACKUP_AGE_RECIPIENT ficam no
+# Environment "backup" (só a main, sem aprovação). Se faltar um deles, o
+# workflow FALHA -- backup que some em silêncio é pior que nenhum.
 
 on:
   schedule:
@@ -21,27 +22,23 @@ jobs:
   backup:
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    environment: backup
     env:
       BACKUP_DATABASE_URL: ${{ secrets.BACKUP_DATABASE_URL }}
       AGE_RECIPIENT: ${{ vars.BACKUP_AGE_RECIPIENT }}
 
     steps:
       - name: Conferir configuração
-        id: config
         run: |
           if [ -z "$BACKUP_DATABASE_URL" ] || [ -z "$AGE_RECIPIENT" ]; then
-            echo "::warning::Backup não configurado: falta o secret BACKUP_DATABASE_URL ou a variável BACKUP_AGE_RECIPIENT (ver docs/BACKUP.md)."
-            echo "pronto=nao" >> "$GITHUB_OUTPUT"
-          else
-            echo "pronto=sim" >> "$GITHUB_OUTPUT"
+            echo "::error::Backup não configurado: falta o secret BACKUP_DATABASE_URL ou a variável BACKUP_AGE_RECIPIENT no Environment \"backup\" (ver docs/BACKUP.md)."
+            exit 1
           fi
 
       - name: Instalar age
-        if: steps.config.outputs.pronto == 'sim'
         run: sudo apt-get update -qq && sudo apt-get install -y -qq age
 
       - name: Dump compactado e criptografado
-        if: steps.config.outputs.pronto == 'sim'
         run: |
           set -euo pipefail
           arquivo="casa-espirita-$(date -u +%Y%m%d-%H%M).sql.gz.age"
@@ -59,7 +56,6 @@ jobs:
           echo "ARQUIVO=$arquivo" >> "$GITHUB_ENV"
 
       - name: Guardar por 30 dias
-        if: steps.config.outputs.pronto == 'sim'
         uses: actions/upload-artifact@v4
         with:
           name: backup-${{ github.run_id }}

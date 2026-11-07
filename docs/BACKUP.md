@@ -25,20 +25,37 @@ de qualquer servidor. Mesmo que alguém baixe o arquivo, não consegue ler.
    privada**: guarde no gerenciador de senhas e/ou num pendrive guardado na
    casa, e apague do computador. **Nunca** no Git. Sem ela, nenhum backup
    abre.
-3. **(Recomendado) usuário de banco só de leitura** pro backup. No Neon,
-   crie a role `backup_leitura` (Roles → New role) e, no SQL Editor:
+3. **(Recomendado) usuário de banco só de leitura** pro backup. Crie a role
+   **por SQL**, nunca pelo painel (Roles → New role): role criada pelo
+   painel ganha `neon_superuser`, que escreve em tudo. Gere a senha no
+   gerenciador de senhas (24+ caracteres, só letras e números, pra não
+   precisar escapar na URL). No SQL Editor, logado com o **mesmo usuário
+   dono** que as migrations usam (o do `DONO_DATABASE_URL`) — senão os
+   `ALTER DEFAULT PRIVILEGES` não valem pras tabelas novas:
    ```sql
+   CREATE ROLE backup_leitura WITH LOGIN PASSWORD '<senha>';
    GRANT USAGE ON SCHEMA public TO backup_leitura;
    GRANT SELECT ON ALL TABLES IN SCHEMA public TO backup_leitura;
    GRANT SELECT ON ALL SEQUENCES IN SCHEMA public TO backup_leitura;
    ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT ON TABLES TO backup_leitura;
    ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT ON SEQUENCES TO backup_leitura;
    ```
-4. No GitHub, no repositório → **Settings → Secrets and variables → Actions**:
-   - aba **Secrets** → *New repository secret*: `BACKUP_DATABASE_URL` = a
-     connection string do Neon (de preferência a do `backup_leitura`);
-   - aba **Variables** → *New repository variable*: `BACKUP_AGE_RECIPIENT` =
-     a chave pública `age1...`.
+   Confira (as duas devem dar `false`):
+   ```sql
+   SELECT pg_has_role('backup_leitura', 'neon_superuser', 'member'),
+          has_table_privilege('backup_leitura', 'pessoa', 'INSERT');
+   ```
+4. No GitHub, no repositório → **Settings → Environments → New
+   environment** `backup`:
+   - *Deployment branches and tags* → **Selected branches** → `main`.
+     **Sem** *Required reviewers* (roda de madrugada, ninguém aprova);
+   - *Environment secrets* → `BACKUP_DATABASE_URL` = a connection string do
+     `backup_leitura`, **sem pooling** (no *Connect* do Neon, desligue
+     *Connection pooling*: o host não pode ter `-pooler`);
+   - *Environment variables* → `BACKUP_AGE_RECIPIENT` = a chave pública
+     `age1...`.
+
+   Sem um dos dois, o workflow falha (fica vermelho) em vez de passar.
 5. **Teste:** Actions → *Backup do banco* → *Run workflow*. Deve terminar
    verde, com um artefato `backup-...` no fim da página.
 

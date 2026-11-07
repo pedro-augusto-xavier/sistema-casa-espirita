@@ -6,6 +6,7 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session, selectinload
 
 from app.core.errors import NaoEncontrado
+from app.crud.anexo import remover_ligados as remover_anexos_ligados
 from app.crud.pessoa import alguma_anonimizada, exigir_nao_anonimizada
 from app.models.atendimento import Atendimento, AtendimentoTratamento
 from app.models.enums import FormatoTratamento, StatusTratamento, TipoVinculo
@@ -229,6 +230,9 @@ def atualizar(
     return get(db, atendimento.id)  # type: ignore[return-value]
 
 
-def remover(db: Session, atendimento: Atendimento) -> None:
+def remover(db: Session, atendimento: Atendimento) -> list[tuple[int, int]]:
+    """Devolve (id, pessoa_id) dos anexos apagados junto, pra auditoria."""
+    anexos = remover_anexos_ligados(db, atendimento_id=atendimento.id)
     db.delete(atendimento)
     db.commit()
+    return anexos

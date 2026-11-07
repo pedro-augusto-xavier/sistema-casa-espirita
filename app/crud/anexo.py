@@ -1,6 +1,6 @@
 """Acesso ao banco para Anexo (fotos e documentos enviados)."""
 
-from sqlalchemy import select
+from sqlalchemy import delete, select
 from sqlalchemy.orm import Session, selectinload, undefer
 
 from app.core.errors import ErroDominio, NaoEncontrado
@@ -127,6 +127,26 @@ def criar(
 def remover(db: Session, anexo: Anexo) -> None:
     db.delete(anexo)
     db.commit()
+
+
+def remover_ligados(
+    db: Session,
+    *,
+    atendimento_id: int | None = None,
+    tratamento_id: int | None = None,
+) -> list[tuple[int, int]]:
+    """Apaga os anexos de um atendimento ou caso que vai ser excluído e
+    devolve (id, pessoa_id) de cada um, pra rota registrar na auditoria.
+    Sem commit: vai junto com a exclusão do atendimento/caso. Sem isso, o
+    ON DELETE CASCADE do banco apagaria os arquivos sem o app saber quais."""
+    if atendimento_id is not None:
+        filtro = Anexo.atendimento_id == atendimento_id
+    else:
+        filtro = Anexo.tratamento_id == tratamento_id
+    apagados = db.execute(
+        delete(Anexo).where(filtro).returning(Anexo.id, Anexo.pessoa_id)
+    ).all()
+    return [(anexo_id, pessoa_id) for anexo_id, pessoa_id in apagados]
 
 
 def remover_todos_da_pessoa(db: Session, pessoa_id: int) -> None:

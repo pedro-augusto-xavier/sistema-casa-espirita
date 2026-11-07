@@ -4,6 +4,7 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session, selectinload
 
 from app.core.errors import ErroDominio, NaoEncontrado
+from app.crud.anexo import remover_ligados as remover_anexos_ligados
 from app.crud.pessoa import alguma_anonimizada, exigir_nao_anonimizada
 from app.models.enums import StatusTratamento
 from app.models.pessoa import Pessoa
@@ -146,9 +147,12 @@ def atualizar(
     return get(db, tratamento.id)  # type: ignore[return-value]
 
 
-def remover(db: Session, tratamento: Tratamento) -> None:
+def remover(db: Session, tratamento: Tratamento) -> list[tuple[int, int]]:
+    """Devolve (id, pessoa_id) dos anexos apagados junto, pra auditoria."""
+    anexos = remover_anexos_ligados(db, tratamento_id=tratamento.id)
     db.delete(tratamento)
     db.commit()
+    return anexos
 
 
 # ---------- assistidos ----------

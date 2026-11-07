@@ -116,7 +116,7 @@ def excluir_atendimento(db: SessaoDB, atendimento_id: int, usuario: UsuarioAtual
     atendimento = crud.get(db, atendimento_id)
     if atendimento is None:
         raise HTTPException(status_code=404, detail="Atendimento não encontrado")
-    crud.remover(db, atendimento)
+    anexos_apagados = crud.remover(db, atendimento)
     registrar(
         db,
         usuario=usuario,
@@ -124,4 +124,13 @@ def excluir_atendimento(db: SessaoDB, atendimento_id: int, usuario: UsuarioAtual
         entidade="atendimento",
         entidade_id=atendimento_id,
     )
+    for anexo_id, pessoa_id in anexos_apagados:
+        registrar(
+            db,
+            usuario=usuario,
+            acao=AcaoAuditoria.excluir,
+            entidade="anexo",
+            entidade_id=anexo_id,
+            dados={"pessoa_id": pessoa_id, "atendimento_id": atendimento_id},
+        )
     return Response(status_code=status.HTTP_204_NO_CONTENT)

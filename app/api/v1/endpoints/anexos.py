@@ -61,14 +61,20 @@ async def enviar_anexo(
         tratamento_id=tratamento_id,
         enviado_por_id=usuario.id,
     )
+    # sem o nome do arquivo: às vezes ele é "rg_fulana.jpg"
+    dados = {"pessoa_id": pessoa_id, "tipo": anexo.tipo_conteudo}
+    # o vínculo liga o anexo ao atendimento/caso, que pode ser excluído depois
+    if atendimento_id is not None:
+        dados["atendimento_id"] = atendimento_id
+    if tratamento_id is not None:
+        dados["tratamento_id"] = tratamento_id
     registrar(
         db,
         usuario=usuario,
         acao=AcaoAuditoria.criar,
         entidade="anexo",
         entidade_id=anexo.id,
-        # sem o nome do arquivo: às vezes ele é "rg_fulana.jpg"
-        dados={"pessoa_id": pessoa_id, "tipo": anexo.tipo_conteudo},
+        dados=dados,
     )
     return AnexoOut.model_validate(anexo)
 

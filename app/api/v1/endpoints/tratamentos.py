@@ -127,8 +127,17 @@ def editar_tratamento(
     summary="Excluir caso",
 )
 def excluir_tratamento(db: SessaoDB, tratamento_id: int, usuario: UsuarioAtual):
-    crud.remover(db, _obter(db, tratamento_id))
+    anexos_apagados = crud.remover(db, _obter(db, tratamento_id))
     _auditar(db, usuario, AcaoAuditoria.excluir, tratamento_id)
+    for anexo_id, pessoa_id in anexos_apagados:
+        registrar(
+            db,
+            usuario=usuario,
+            acao=AcaoAuditoria.excluir,
+            entidade="anexo",
+            entidade_id=anexo_id,
+            dados={"pessoa_id": pessoa_id, "tratamento_id": tratamento_id},
+        )
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 

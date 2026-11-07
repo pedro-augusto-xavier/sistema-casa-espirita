@@ -102,9 +102,24 @@ em "coordenação da casa". Prazo interno: **até 15 dias**.
 |---|---|
 | Saber se a casa tem dados e receber uma cópia | Ficha → LGPD → **Exportar dados (JSON)** (admin) |
 | Corrigir | Ficha → **Editar** |
-| Excluir / anonimizar | Ficha → LGPD → **Anonimizar** (admin) — apaga dados pessoais e arquivos, mantém só o registro sem identificação |
+| Excluir / anonimizar | Ficha → LGPD → **Anonimizar** (admin) — apaga dados pessoais e arquivos, mantém só o registro sem identificação. Não tem volta: ver abaixo |
 | Retirar o consentimento | Ficha → Editar → desmarcar o consentimento (e, se pedir, anonimizar) |
 | Saber com quem os dados são compartilhados | Política de privacidade (`/privacidade`) |
+
+**Ficha anonimizada é definitiva.** Depois de anonimizada, o sistema
+recusa (erro 409), para todos, inclusive o admin:
+
+- editar ou reativar a ficha;
+- ligar qualquer registro novo a ela: arquivo, atendimento (como atendida,
+  quem atendeu ou solicitante), tratamento, assistido ou anotação no diário.
+
+O histórico que ficou (atendimentos, tratamentos, diário) continua visível.
+Esses registros **só o admin corrige**, por exemplo para tirar do texto algo
+que identifique a pessoa. O operador recebe 409, porque poderia
+reidentificá-la escrevendo no texto, e a tela esconde para ele os botões de
+edição. Isso vale também para registros de outras pessoas em que a ficha
+anonimizada aparece (ex: atendimentos feitos por um trabalhador que pediu a
+exclusão). Excluir esses registros continua permitido.
 
 ## Encarregado (DPO) 👤
 

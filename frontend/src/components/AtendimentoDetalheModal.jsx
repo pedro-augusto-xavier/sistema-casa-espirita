@@ -138,7 +138,12 @@ export function AtendimentoDetalheModal({ atendimentoId, onFechar }) {
               Excluir
             </Botao>
             {/* ficha anonimizada: só o admin corrige o registro antigo */}
-            {(!dados.pessoa.anonimizada || usuario.papel === 'admin') && (
+            {(usuario.papel === 'admin' ||
+              !(
+                dados.pessoa.anonimizada ||
+                dados.atendido_por?.anonimizada ||
+                dados.solicitante?.anonimizada
+              )) && (
               <Botao variante="secundario" pequeno onClick={() => setEditando(true)}>
                 ✎ Editar
               </Botao>

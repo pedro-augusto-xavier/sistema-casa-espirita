@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { api } from '../api/client'
+import { useAuth } from '../auth/AuthContext'
 import { ROTULO_VINCULO, isoParaData } from '../utils/formatadores'
 import { Modal } from './Modal'
 import { Avatar, Botao, Carregando, MensagemErro, Pill, Rotulo } from './ui'
@@ -9,6 +10,7 @@ export function TratamentoDetalheModal({ tratamentoId, onFechar }) {
   const [erro, setErro] = useState('')
   const [novaEvolucao, setNovaEvolucao] = useState('')
   const [enviando, setEnviando] = useState(false)
+  const { usuario } = useAuth()
 
   useEffect(() => {
     carregar()
@@ -79,6 +81,14 @@ export function TratamentoDetalheModal({ tratamentoId, onFechar }) {
   }
 
   const concluido = dados?.status === 'concluido'
+  // caso ligado a ficha anonimizada: só o admin mexe (o servidor também barra)
+  const podeEditar =
+    !concluido &&
+    (usuario.papel === 'admin' ||
+      !(
+        dados?.solicitante?.anonimizada ||
+        dados?.assistidos.some((a) => a.pessoa.anonimizada)
+      ))
 
   return (
     <Modal titulo="" onFechar={onFechar} largura="max-w-xl">
@@ -131,7 +141,7 @@ export function TratamentoDetalheModal({ tratamentoId, onFechar }) {
                         {ROTULO_VINCULO[a.vinculo_com_responsavel]}
                       </Pill>
                     )}
-                    {a.status === 'ativo' && !concluido && (
+                    {a.status === 'ativo' && podeEditar && (
                       <button
                         type="button"
                         onClick={() => concluirAssistido(a.id)}
@@ -198,7 +208,7 @@ export function TratamentoDetalheModal({ tratamentoId, onFechar }) {
               </ol>
             )}
 
-            {!concluido && (
+            {podeEditar && (
               <form onSubmit={adicionarEvolucao} className="mt-4 flex gap-2">
                 <input
                   type="text"
@@ -231,7 +241,7 @@ export function TratamentoDetalheModal({ tratamentoId, onFechar }) {
               <Botao variante="perigo" pequeno onClick={excluir}>
                 Excluir
               </Botao>
-              {!concluido && (
+              {podeEditar && (
                 <Botao variante="secundario" pequeno onClick={fecharCaso}>
                   Fechar caso
                 </Botao>

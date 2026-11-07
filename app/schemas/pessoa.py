@@ -65,6 +65,8 @@ class PessoaMini(BaseModel):
 
     id: int
     nome_completo: str
+    # a tela esconde a edição de registro ligado a ficha anonimizada
+    anonimizada: bool
 
 
 class PessoaBase(BaseModel):

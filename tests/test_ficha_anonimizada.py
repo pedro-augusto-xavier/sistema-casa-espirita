@@ -244,3 +244,18 @@ def test_operador_segue_editando_registro_comum(client_anon: TestClient, cenario
         headers=cenario["op"],
     )
     assert r.status_code == 200, r.text
+
+
+def test_registros_dizem_quem_esta_anonimizada(client: TestClient, cenario: dict):
+    """A tela usa essa marca pra esconder a edição do operador."""
+    caso = client.get(f"/api/v1/tratamentos/{cenario['caso']}").json()
+    assert caso["solicitante"]["anonimizada"] is True
+    assert caso["assistidos"][0]["pessoa"]["anonimizada"] is True
+    assert caso["evolucoes"][0]["pessoa"]["anonimizada"] is True
+
+    at = client.get(f"/api/v1/atendimentos/{cenario['at_outra']}").json()
+    assert at["pessoa"]["anonimizada"] is False
+    assert at["atendido_por"]["anonimizada"] is True
+
+    comum = client.get(f"/api/v1/tratamentos/{cenario['caso_outra']}").json()
+    assert comum["solicitante"]["anonimizada"] is False

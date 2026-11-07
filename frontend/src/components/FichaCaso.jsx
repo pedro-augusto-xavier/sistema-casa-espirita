@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { api } from '../api/client'
+import { useAuth } from '../auth/AuthContext'
 import { OPCOES_VINCULO, ROTULO_VINCULO, isoParaData } from '../utils/formatadores'
 import { SeletorPessoa } from './SeletorPessoa'
 import { Avatar, Botao, MensagemErro, Pill, Rotulo } from './ui'
@@ -36,8 +37,14 @@ export function FichaCaso({ caso, pessoaId, aoMudar, aoAbrir }) {
   const [enviando, setEnviando] = useState(false)
   const [erro, setErro] = useState('')
   const [adicionando, setAdicionando] = useState(false)
+  const { usuario } = useAuth()
 
   const concluido = caso.status === 'concluido'
+  // caso ligado a ficha anonimizada: só o admin mexe (o servidor também barra)
+  const podeEditar =
+    !concluido &&
+    (usuario.papel === 'admin' ||
+      !(caso.solicitante?.anonimizada || caso.assistidos.some((a) => a.pessoa.anonimizada)))
   const previstas = caso.sessoes_previstas
   const feitas = caso.sessoes_realizadas ?? 0
   const progresso = previstas ? Math.min(100, Math.round((feitas / previstas) * 100)) : null
@@ -158,7 +165,7 @@ export function FichaCaso({ caso, pessoaId, aoMudar, aoAbrir }) {
                       />
                     </span>
                     {a.pessoa.id !== caso.solicitante?.id &&
-                      (ativo && !concluido ? (
+                      (ativo && podeEditar ? (
                         <select
                           value={a.vinculo_com_responsavel || ''}
                           onChange={(e) => definirVinculo(a.id, e.target.value)}
@@ -181,7 +188,7 @@ export function FichaCaso({ caso, pessoaId, aoMudar, aoAbrir }) {
                     {!ativo && a.data_conclusao && (
                       <span className="text-[10px] text-stone-400">{isoParaData(a.data_conclusao)}</span>
                     )}
-                    {ativo && !concluido && (
+                    {ativo && podeEditar && (
                       <button
                         type="button"
                         onClick={() => concluirAssistido(a)}
@@ -194,7 +201,7 @@ export function FichaCaso({ caso, pessoaId, aoMudar, aoAbrir }) {
                 )
               })}
             </ul>
-            {!concluido &&
+            {podeEditar &&
               (adicionando ? (
                 <div className="mt-2">
                   <SeletorPessoa
@@ -288,7 +295,7 @@ export function FichaCaso({ caso, pessoaId, aoMudar, aoAbrir }) {
             </ul>
           )}
 
-          {!concluido && (
+          {podeEditar && (
             <form onSubmit={anotar} className="mt-3 flex gap-2">
               <input
                 type="text"

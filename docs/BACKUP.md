@@ -64,26 +64,64 @@ uma olhada em Actions uma vez por mês (a rotina de segurança já inclui isso).
 
 ## Restaurar (e testar a cada 3 meses)
 
-Teste num banco **local**, nunca por cima da produção sem necessidade.
+Teste num banco **local**, nunca por cima da produção sem necessidade. O
+backup é decifrado **direto pro banco**: nunca existe um `.sql` aberto no
+disco.
 
 1. Actions → *Backup do banco* → abra uma execução → baixe o artefato (vem
-   um `.zip`) e extraia o `.sql.gz.age`.
-2. No **Git Bash**, na pasta do arquivo:
-   ```bash
-   age -d -i /caminho/chave-backup-casa.txt casa-espirita-AAAAMMDD-HHMM.sql.gz.age | gzip -d > backup.sql
+   um `.zip`) e extraia o `.sql.gz.age` numa pasta temporária **fora do
+   OneDrive** (PowerShell):
+   ```powershell
+   New-Item -ItemType Directory D:\restauracao-teste
+   Get-ChildItem "$env:USERPROFILE\Downloads\backup-*.zip" | Expand-Archive -DestinationPath D:\restauracao-teste
+   Remove-Item "$env:USERPROFILE\Downloads\backup-*.zip"
    ```
-3. Crie um banco vazio e restaure (use um PostgreSQL atualizado: o `psql`
-   precisa ser 17.6+ ou 16.10+ pra entender o arquivo gerado pelo `pg_dump` 18):
+2. **Recrie a chave a partir do gerenciador de senhas:**
+   `notepad D:\restauracao-teste\chave.txt`, cole as 3 linhas, salve e
+   feche. Limpe a área de transferência (Win+V → *Limpar tudo*). Confira que
+   é a chave certa — a saída tem que ser igual à `BACKUP_AGE_RECIPIENT` do
+   GitHub:
+   ```powershell
+   age-keygen -y D:\restauracao-teste\chave.txt
+   ```
+3. No **Git Bash** (o PowerShell 5.1 corrompe dados binários no `|`), crie
+   um banco vazio e restaure. Use um PostgreSQL atualizado: o `psql` precisa
+   ser 17.6+ ou 16.10+ pra entender o arquivo gerado pelo `pg_dump` 18. A
+   senha vai por `read -s` porque o `psql` do Windows não consegue pedi-la
+   dentro do Git Bash:
    ```bash
+   cd /d/restauracao-teste
+   set -o pipefail
+   read -rsp "Senha do postgres LOCAL: " PGPASSWORD && export PGPASSWORD && echo
    createdb -U postgres restauracao_teste
-   psql -U postgres -d restauracao_teste -f backup.sql
+   age -d -i chave.txt casa-espirita-*.sql.gz.age | gzip -d | psql -U postgres -d restauracao_teste -v ON_ERROR_STOP=1 --single-transaction -q -o /dev/null
+   echo "codigo de saida: $?"
    ```
-4. Confira: `psql -U postgres -d restauracao_teste -c "select count(*) from pessoa"`
-   deve bater com o sistema. CPF, observações e anexos continuam cifrados no
-   banco restaurado: pra ler pelo sistema, rode a API apontando pra ele com
-   as **mesmas** `CHAVES_CRIPTOGRAFIA` e `CHAVE_HMAC` da produção.
-5. Apague tudo depois: `dropdb -U postgres restauracao_teste` e o
-   `backup.sql` (ele está aberto, sem criptografia).
+   Tem que dar `0`. O `pipefail` faz um erro do `age` (chave errada) ou do
+   `gzip` aparecer aqui; com `--single-transaction`, um erro não deixa nada
+   restaurado pela metade. Se der erro, a linha `CONTEXT:` pode trazer dados
+   de uma pessoa: não cole em lugar nenhum.
+4. Confira. `alembic_version` tem que ser a última migration da `main`
+   (`alembic heads`), e as contagens têm que bater com o sistema:
+   ```bash
+   psql -U postgres -d restauracao_teste -c "select version_num from alembic_version"
+   psql -U postgres -d restauracao_teste -c "
+   select table_name as tabela,
+          (xpath('/row/n/text()', query_to_xml(format('select count(*) as n from public.%I', table_name), false, true, '')))[1]::text::int as linhas
+   from information_schema.tables
+   where table_schema = 'public' and table_type = 'BASE TABLE'
+   order by 1"
+   ```
+   CPF, observações e anexos continuam cifrados no banco restaurado: pra ler
+   pelo sistema, rode a API apontando pra ele com as **mesmas**
+   `CHAVES_CRIPTOGRAFIA` e `CHAVE_HMAC` da produção.
+5. Apague tudo (o `rm` do Git Bash não passa pela Lixeira, e leva a chave
+   junto):
+   ```bash
+   dropdb -U postgres restauracao_teste
+   unset PGPASSWORD
+   cd /d && rm -rf /d/restauracao-teste
+   ```
 
 ## Voltar a produção a partir de um backup
 
@@ -114,7 +152,8 @@ de produção.
 3. **Proibido copiar `usuario`, `sessao_usuario` e `audit_log`.** As duas
    primeiras trariam de volta acessos já revogados, e a auditoria não pode
    ser reescrita.
-4. Apague o banco à parte e os arquivos `.csv`/`backup.sql` (estão abertos).
+4. Apague o banco à parte, a pasta temporária com a chave e os `.csv`
+   (estão abertos).
 
 ### 2. Banco inteiro (perda total ou corrupção)
 
@@ -130,10 +169,15 @@ Anote o horário de cada passo (vai pro registro do incidente).
      restaure o *branch* para o ponto no tempo. O Neon guarda o estado de
      antes da restauração num *branch* à parte (confira em *Branches*):
      esse é o **banco antigo** do passo 4.
-   - **B. Artefato do GitHub**: decifre como no roteiro de teste (passos 1
-     e 2) e restaure num banco **novo** do Neon:
-     `psql "<url do banco novo>" -f backup.sql`. Se o banco que se perdeu
-     ainda abrir, ele é o **banco antigo** do passo 4.
+   - **B. Artefato do GitHub**: prepare o arquivo e a chave como no roteiro
+     de teste (passos 1 e 2) e, no Git Bash, restaure direto num banco
+     **novo** do Neon:
+     ```bash
+     set -o pipefail
+     age -d -i chave.txt casa-espirita-*.sql.gz.age | gzip -d | psql "<url do banco novo>" -v ON_ERROR_STOP=1 --single-transaction -q -o /dev/null
+     ```
+     Se o banco que se perdeu ainda abrir, ele é o **banco antigo** do
+     passo 4.
    - Se o app usa o usuário restrito `app_casa`, refaça os `GRANT` de
      [SEGURANCA.md](SEGURANCA.md) ("Usuário do banco com permissão mínima")
      no banco restaurado: o backup não leva permissões.
@@ -171,8 +215,8 @@ Anote o horário de cada passo (vai pro registro do incidente).
 9. **Dados que se perderam**: refaça as anonimizações feitas depois do
    backup ([LGPD.md](LGPD.md)) e, pela auditoria do banco antigo, o que mais
    precisar.
-10. **Não apague o banco antigo** até fechar o incidente (é prova). Apague o
-    `backup.sql` (está aberto).
+10. **Não apague o banco antigo** até fechar o incidente (é prova). Apague a
+    pasta temporária com a chave.
 
 `SESSOES_VALIDAS_DESDE` pode ficar no Render depois disso: data passada não
 atrapalha ninguém que entrou depois dela.

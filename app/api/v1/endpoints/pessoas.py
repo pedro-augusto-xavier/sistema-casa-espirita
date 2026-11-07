@@ -6,6 +6,8 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 
 from app.api.deps import SessaoDB, UsuarioAtual, exigir_admin
 from app.core.auditoria import registrar
+from app.core.ratelimit import buscas_cpf_sem_acerto, chave_usuario
+from app.core.validators import cpf_valido, so_digitos
 from app.crud import pessoa as crud
 from app.crud import tratamento as crud_tratamento
 from app.models.enums import AcaoAuditoria, Papel
@@ -26,6 +28,7 @@ router = APIRouter(prefix="/pessoas", tags=["pessoas"])
 @router.get("", response_model=Page[PessoaListItem], summary="Listar pessoas")
 def listar_pessoas(
     db: SessaoDB,
+    usuario: UsuarioAtual,
     q: Annotated[
         str | None, Query(description="Busca por nome, telefone ou CPF")
     ] = None,
@@ -34,6 +37,18 @@ def listar_pessoas(
     page: Annotated[int, Query(ge=1)] = 1,
     size: Annotated[int, Query(ge=1, le=100)] = 20,
 ):
+    # Buscar pelo CPF completo confirma o CPF da ficha achada: conta como ver
+    # o CPF (auditoria) e o palpite errado gasta tentativa -- senão a busca
+    # vira um jeito de reconstruir o CPF a partir da máscara sem deixar rastro.
+    # Só gasta tentativa o que passa no dígito verificador: telefone de 11
+    # números não pode travar a recepção.
+    digitos = so_digitos(q or "")
+    busca_cpf = len(digitos) == 11
+    gasta_tentativa = busca_cpf and cpf_valido(digitos)
+    limite = chave_usuario(usuario.id)
+    if gasta_tentativa:
+        buscas_cpf_sem_acerto.exigir_liberado(limite)
+
     pessoas, total = crud.listar(
         db,
         q=q,
@@ -42,6 +57,24 @@ def listar_pessoas(
         page=page,
         size=size,
     )
+
+    if busca_cpf:
+        achado = crud.achado_pelo_cpf(
+            db, digitos, papel=papel, apenas_ativos=not incluir_inativos
+        )
+        if achado is not None:
+            # CPF com DV errado também é auditado: o cadastro aceita esses
+            registrar(
+                db,
+                usuario=usuario,
+                acao=AcaoAuditoria.visualizar,
+                entidade="pessoa",
+                entidade_id=achado,
+                dados={"campo": "cpf", "motivo": "busca"},
+            )
+        elif gasta_tentativa:
+            buscas_cpf_sem_acerto.registrar_falha(limite)
+
     return Page.create(
         items=[PessoaListItem.model_validate(p) for p in pessoas],
         total=total,

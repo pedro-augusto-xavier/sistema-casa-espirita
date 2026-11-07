@@ -83,6 +83,14 @@ class LimiteDeFalhas:
 falhas_por_ip = LimiteDeFalhas(limite=10, janela_segundos=5 * 60)
 falhas_por_conta = LimiteDeFalhas(limite=5, janela_segundos=5 * 60)
 
+# Busca por CPF completo (GET /pessoas?q=) que não acha ninguém: 10 por hora
+# por usuário. A ficha mostra 6 dos 11 dígitos e os 2 verificadores saem
+# dos 9 primeiros, então sobram só 1.000 palpites -- sem limite, a busca
+# viraria um jeito de descobrir o CPF inteiro sem passar pela auditoria.
+# Instância própria: errar CPF não pode travar a troca de senha (que usa
+# falhas_por_conta com a mesma chave_usuario).
+buscas_cpf_sem_acerto = LimiteDeFalhas(limite=10, janela_segundos=60 * 60)
+
 
 def chave_conta(nome: str) -> str:
     return "conta:" + " ".join(nome.split()).lower()
@@ -100,3 +108,4 @@ def zerar_limites() -> None:
     """Usado pelos testes (o TestClient usa sempre o mesmo IP)."""
     falhas_por_ip.zerar()
     falhas_por_conta.zerar()
+    buscas_cpf_sem_acerto.zerar()

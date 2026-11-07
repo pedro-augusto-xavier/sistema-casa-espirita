@@ -52,19 +52,11 @@ def get_by_cpf(db: Session, cpf: str) -> Pessoa | None:
     return db.scalar(select(Pessoa).where(Pessoa.cpf_hash == hash_cpf))
 
 
-def listar(
-    db: Session,
-    *,
-    q: str | None = None,
-    papel: Papel | None = None,
-    apenas_ativos: bool = True,
-    page: int = 1,
-    size: int = 20,
-) -> tuple[list[Pessoa], int]:
-    stmt = select(Pessoa).options(selectinload(Pessoa.papeis))
+def _filtros(q: str | None, papel: Papel | None, apenas_ativos: bool) -> list:
+    filtros = []
 
     if apenas_ativos:
-        stmt = stmt.where(Pessoa.ativo.is_(True))
+        filtros.append(Pessoa.ativo.is_(True))
 
     if q:
         termo = f"%{q.strip()}%"
@@ -76,10 +68,28 @@ def listar(
         if len(digitos) == 11:
             # CPF cifrado: só dá pra achar pelo CPF completo (via HMAC)
             condicoes.append(Pessoa.cpf_hash == hmac_busca(digitos))
-        stmt = stmt.where(or_(*condicoes))
+        filtros.append(or_(*condicoes))
 
     if papel is not None:
-        stmt = stmt.where(Pessoa.papeis.any(PessoaPapel.papel == papel))
+        filtros.append(Pessoa.papeis.any(PessoaPapel.papel == papel))
+
+    return filtros
+
+
+def listar(
+    db: Session,
+    *,
+    q: str | None = None,
+    papel: Papel | None = None,
+    apenas_ativos: bool = True,
+    page: int = 1,
+    size: int = 20,
+) -> tuple[list[Pessoa], int]:
+    stmt = (
+        select(Pessoa)
+        .options(selectinload(Pessoa.papeis))
+        .where(*_filtros(q, papel, apenas_ativos))
+    )
 
     total = db.scalar(select(func.count()).select_from(stmt.subquery())) or 0
 
@@ -90,6 +100,19 @@ def listar(
     )
     pessoas = list(db.scalars(stmt).all())
     return pessoas, total
+
+
+def achado_pelo_cpf(
+    db: Session, digitos: str, *, papel: Papel | None, apenas_ativos: bool
+) -> int | None:
+    """Id da ficha que `listar(q=digitos, ...)` traz por bater o CPF (HMAC),
+    com os mesmos filtros -- olha o resultado todo, não só a página, porque
+    o total já entrega o acerto."""
+    stmt = select(Pessoa.id).where(
+        *_filtros(digitos, papel, apenas_ativos),
+        Pessoa.cpf_hash == hmac_busca(digitos),
+    )
+    return db.scalar(stmt)
 
 
 def _aplica_papeis(pessoa: Pessoa, papeis: list[Papel]) -> None:

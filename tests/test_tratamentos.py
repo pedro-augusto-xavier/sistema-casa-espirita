@@ -98,7 +98,11 @@ def test_reativar_assistido_concluido(client: TestClient):
     url = f"/api/v1/tratamentos/{caso['id']}/assistidos/{caso['assistidos'][0]['id']}"
     client.patch(
         url,
-        json={"status": "concluido", "situacao_final": "liberado", "data_conclusao": "2026-11-09"},
+        json={
+            "status": "concluido",
+            "situacao_final": "liberado",
+            "data_conclusao": "2026-11-09",
+        },
     )
 
     r = client.patch(

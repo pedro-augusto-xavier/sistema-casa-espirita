@@ -19,6 +19,21 @@ export function dataParaIso(dataDigitada) {
   return `${d.slice(4, 8)}-${d.slice(2, 4)}-${d.slice(0, 2)}`
 }
 
+/** Hoje em yyyy-mm-dd no fuso de quem usa (toISOString() daria o dia do UTC: depois das 21h, amanhã). */
+export function hojeIso() {
+  const d = new Date()
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+
+/** 'futuro', 'antiga' (mais de um ano atrás) ou null — pra pegar data digitada errado. */
+export function dataEstranha(iso) {
+  const hoje = hojeIso()
+  if (iso > hoje) return 'futuro'
+  const [ano, resto] = [hoje.slice(0, 4), hoje.slice(4)]
+  if (iso < `${ano - 1}${resto}`) return 'antiga'
+  return null
+}
+
 export function isoParaData(iso) {
   if (!iso) return null
   const [ano, mes, dia] = iso.split('-')

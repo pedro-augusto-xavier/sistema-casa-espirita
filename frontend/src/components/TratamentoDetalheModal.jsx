@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { api } from '../api/client'
 import { useAuth } from '../auth/AuthContext'
-import { ROTULO_VINCULO, isoParaData } from '../utils/formatadores'
+import { ROTULO_VINCULO, hojeIso, isoParaData } from '../utils/formatadores'
 import { Modal } from './Modal'
 import { Avatar, Botao, Carregando, MensagemErro, Pill, Rotulo } from './ui'
 
@@ -47,7 +47,26 @@ export function TratamentoDetalheModal({ tratamentoId, onFechar }) {
       await api.patch(`/tratamentos/${tratamentoId}/assistidos/${assistidoId}`, {
         status: 'concluido',
         situacao_final: situacao || null,
-        data_conclusao: new Date().toISOString().slice(0, 10),
+        data_conclusao: hojeIso(),
+      })
+      carregar()
+    } catch (e) {
+      setErro(e.message)
+    }
+  }
+
+  async function reativarAssistido(a) {
+    if (
+      !confirm(
+        `Reativar ${a.pessoa.nome_completo}? A data e a situação final da conclusão serão apagadas.`,
+      )
+    )
+      return
+    try {
+      await api.patch(`/tratamentos/${tratamentoId}/assistidos/${a.id}`, {
+        status: 'ativo',
+        situacao_final: null,
+        data_conclusao: null,
       })
       carregar()
     } catch (e) {
@@ -127,29 +146,54 @@ export function TratamentoDetalheModal({ tratamentoId, onFechar }) {
               <p className="text-xs text-stone-400">por quem pediu</p>
               <ul className="mt-1 flex flex-col gap-1">
                 {dados.assistidos.map((a) => (
-                  <li key={a.id} className="flex items-center gap-2">
-                    <Avatar nome={a.pessoa.nome_completo} className="h-6 w-6 text-[9px]" />
-                    <span
-                      className={`min-w-0 flex-1 truncate ${
-                        a.status !== 'ativo' ? 'text-stone-400 line-through' : 'text-stone-800'
-                      }`}
-                    >
-                      {a.pessoa.nome_completo}
-                    </span>
-                    {a.vinculo_com_responsavel && a.pessoa.id !== dados.solicitante?.id && (
-                      <Pill tom="cinza" className="shrink-0 text-[10px]">
-                        {ROTULO_VINCULO[a.vinculo_com_responsavel]}
-                      </Pill>
-                    )}
-                    {a.status === 'ativo' && podeEditar && (
-                      <button
-                        type="button"
-                        onClick={() => concluirAssistido(a.id)}
-                        className="text-xs text-stone-400 hover:text-emerald-800 hover:underline"
-                      >
-                        concluir
-                      </button>
-                    )}
+                  <li key={a.id} className="flex items-start gap-2">
+                    <Avatar
+                      nome={a.pessoa.nome_completo}
+                      className={`h-6 w-6 shrink-0 text-[9px] ${a.status !== 'ativo' ? 'grayscale' : ''}`}
+                    />
+                    <div className="min-w-0 flex-1">
+                      <div className="flex min-h-6 items-center gap-2">
+                        <span
+                          className={`min-w-0 flex-1 truncate ${
+                            a.status !== 'ativo' ? 'text-stone-500' : 'text-stone-800'
+                          }`}
+                        >
+                          {a.pessoa.nome_completo}
+                        </span>
+                        {a.status !== 'ativo' && (
+                          <Pill tom="cinza" className="shrink-0 text-[10px]">
+                            concluído
+                            {a.data_conclusao && ` ${isoParaData(a.data_conclusao)}`}
+                          </Pill>
+                        )}
+                        {a.vinculo_com_responsavel && a.pessoa.id !== dados.solicitante?.id && (
+                          <Pill tom="cinza" className="shrink-0 text-[10px]">
+                            {ROTULO_VINCULO[a.vinculo_com_responsavel]}
+                          </Pill>
+                        )}
+                        {a.status === 'ativo' && podeEditar && (
+                          <button
+                            type="button"
+                            onClick={() => concluirAssistido(a.id)}
+                            className="text-xs text-stone-400 hover:text-emerald-800 hover:underline"
+                          >
+                            concluir
+                          </button>
+                        )}
+                        {a.status === 'concluido' && podeEditar && (
+                          <button
+                            type="button"
+                            onClick={() => reativarAssistido(a)}
+                            className="text-xs text-stone-400 hover:text-emerald-800 hover:underline"
+                          >
+                            reativar
+                          </button>
+                        )}
+                      </div>
+                      {a.status !== 'ativo' && a.situacao_final && (
+                        <p className="text-xs text-stone-500">{a.situacao_final}</p>
+                      )}
+                    </div>
                   </li>
                 ))}
               </ul>

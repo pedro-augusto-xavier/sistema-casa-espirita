@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { api } from '../api/client'
+import { hojeIso } from '../utils/formatadores'
 
 const ROTULO_TIPO = {
   trabalho: 'Trabalho',
@@ -22,7 +23,7 @@ export function ResumoDoDia() {
   const [resumo, setResumo] = useState(null)
 
   useEffect(() => {
-    const hoje = new Date().toISOString().slice(0, 10)
+    const hoje = hojeIso()
     const agora = new Date().toISOString()
 
     Promise.all([

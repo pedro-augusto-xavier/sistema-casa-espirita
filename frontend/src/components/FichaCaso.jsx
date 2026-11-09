@@ -2,13 +2,21 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { api } from '../api/client'
 import { useAuth } from '../auth/AuthContext'
-import { OPCOES_VINCULO, ROTULO_VINCULO, isoParaData } from '../utils/formatadores'
+import {
+  OPCOES_VINCULO,
+  ROTULO_VINCULO,
+  dataEstranha,
+  dataParaIso,
+  hojeIso,
+  isoParaData,
+  mascaraData,
+} from '../utils/formatadores'
 import { SeletorPessoa } from './SeletorPessoa'
 import { Avatar, Botao, MensagemErro, Pill, Rotulo } from './ui'
 
 /**
  * A pasta de Desobsessão do papel, em cartão. A capa: Responsável (quem
- * vem à casa) e Assistidos (por quem ela pediu — riscados quando concluem).
+ * vem à casa) e Assistidos (por quem ela pediu — com etiqueta "concluído" quando concluem).
  * Dentro: nº de vezes, início, observação, situação final e o diário por
  * data, com a anotação nova direto ali.
  */
@@ -37,6 +45,8 @@ export function FichaCaso({ caso, pessoaId, aoMudar, aoAbrir }) {
   const [enviando, setEnviando] = useState(false)
   const [erro, setErro] = useState('')
   const [adicionando, setAdicionando] = useState(false)
+  // data de início sendo corrigida (dd/mm/aaaa) ou null fora da edição
+  const [inicio, setInicio] = useState(null)
   const { usuario } = useAuth()
 
   const concluido = caso.status === 'concluido'
@@ -78,7 +88,34 @@ export function FichaCaso({ caso, pessoaId, aoMudar, aoAbrir }) {
       api.patch(`/tratamentos/${caso.id}/assistidos/${a.id}`, {
         status: 'concluido',
         situacao_final: situacao || null,
-        data_conclusao: new Date().toISOString().slice(0, 10),
+        data_conclusao: hojeIso(),
+      }),
+    )
+  }
+
+  function salvarInicio(evento) {
+    evento.preventDefault()
+    const iso = dataParaIso(inicio)
+    if (!iso) return setErro('Data inválida — use o formato dd/mm/aaaa.')
+    if (dataEstranha(iso) === 'futuro') return setErro('O início não pode ser no futuro.')
+    chamar(async () => {
+      await api.patch(`/tratamentos/${caso.id}`, { data_inicio: iso })
+      setInicio(null)
+    })
+  }
+
+  function reativarAssistido(a) {
+    if (
+      !confirm(
+        `Reativar ${a.pessoa.nome_completo}? A data e a situação final da conclusão serão apagadas.`,
+      )
+    )
+      return
+    chamar(() =>
+      api.patch(`/tratamentos/${caso.id}/assistidos/${a.id}`, {
+        status: 'ativo',
+        situacao_final: null,
+        data_conclusao: null,
       }),
     )
   }
@@ -147,56 +184,68 @@ export function FichaCaso({ caso, pessoaId, aoMudar, aoAbrir }) {
               {caso.assistidos.map((a) => {
                 const ativo = a.status === 'ativo'
                 return (
-                  <li key={a.id} className="flex items-center gap-2">
+                  <li key={a.id} className="flex items-start gap-2">
                     <Avatar
                       nome={a.pessoa.nome_completo}
-                      className={`h-7 w-7 text-[10px] ${ativo ? '' : 'grayscale'}`}
+                      className={`h-7 w-7 shrink-0 text-[10px] ${ativo ? '' : 'grayscale'}`}
                     />
-                    <span
-                      className={`min-w-0 flex-1 truncate text-sm ${
-                        ativo ? '' : 'line-through decoration-stone-400'
-                      }`}
-                      title={a.situacao_final || undefined}
-                    >
-                      <NomePessoa
-                        pessoa={a.pessoa}
-                        estaFicha={a.pessoa.id === pessoaId}
-                        className={ativo ? '' : 'text-stone-400'}
-                      />
-                    </span>
-                    {a.pessoa.id !== caso.solicitante?.id &&
-                      (ativo && podeEditar ? (
-                        <select
-                          value={a.vinculo_com_responsavel || ''}
-                          onChange={(e) => definirVinculo(a.id, e.target.value)}
-                          className="shrink-0 rounded-full border-0 bg-stone-100 py-0.5 pr-5 pl-1.5 text-[10px] text-stone-600 outline-none focus:ring-1 focus:ring-emerald-600/40"
+                    <div className="min-w-0 flex-1">
+                      <div className="flex min-h-7 items-center gap-2">
+                        <span
+                          className={`min-w-0 flex-1 truncate text-sm ${ativo ? '' : 'opacity-60'}`}
                         >
-                          <option value="">qual a relação?</option>
-                          {OPCOES_VINCULO.map(([valor, rotulo]) => (
-                            <option key={valor} value={valor}>
-                              {rotulo}
-                            </option>
+                          <NomePessoa pessoa={a.pessoa} estaFicha={a.pessoa.id === pessoaId} />
+                        </span>
+                        {a.pessoa.id !== caso.solicitante?.id &&
+                          (ativo && podeEditar ? (
+                            <select
+                              value={a.vinculo_com_responsavel || ''}
+                              onChange={(e) => definirVinculo(a.id, e.target.value)}
+                              className="shrink-0 rounded-full border-0 bg-stone-100 py-0.5 pr-5 pl-1.5 text-[10px] text-stone-600 outline-none focus:ring-1 focus:ring-emerald-600/40"
+                            >
+                              <option value="">qual a relação?</option>
+                              {OPCOES_VINCULO.map(([valor, rotulo]) => (
+                                <option key={valor} value={valor}>
+                                  {rotulo}
+                                </option>
+                              ))}
+                            </select>
+                          ) : (
+                            a.vinculo_com_responsavel && (
+                              <Pill tom="cinza" className="shrink-0 text-[10px]">
+                                {ROTULO_VINCULO[a.vinculo_com_responsavel]}
+                              </Pill>
+                            )
                           ))}
-                        </select>
-                      ) : (
-                        a.vinculo_com_responsavel && (
+                        {!ativo && (
                           <Pill tom="cinza" className="shrink-0 text-[10px]">
-                            {ROTULO_VINCULO[a.vinculo_com_responsavel]}
+                            concluído
+                            {a.data_conclusao && ` ${isoParaData(a.data_conclusao)}`}
                           </Pill>
-                        )
-                      ))}
-                    {!ativo && a.data_conclusao && (
-                      <span className="text-[10px] text-stone-400">{isoParaData(a.data_conclusao)}</span>
-                    )}
-                    {ativo && podeEditar && (
-                      <button
-                        type="button"
-                        onClick={() => concluirAssistido(a)}
-                        className="text-xs text-stone-400 hover:text-emerald-800 hover:underline"
-                      >
-                        concluir
-                      </button>
-                    )}
+                        )}
+                        {ativo && podeEditar && (
+                          <button
+                            type="button"
+                            onClick={() => concluirAssistido(a)}
+                            className="text-xs text-stone-400 hover:text-emerald-800 hover:underline"
+                          >
+                            concluir
+                          </button>
+                        )}
+                        {a.status === 'concluido' && podeEditar && (
+                          <button
+                            type="button"
+                            onClick={() => reativarAssistido(a)}
+                            className="text-xs text-stone-400 hover:text-emerald-800 hover:underline"
+                          >
+                            reativar
+                          </button>
+                        )}
+                      </div>
+                      {!ativo && a.situacao_final && (
+                        <p className="text-xs text-stone-500">{a.situacao_final}</p>
+                      )}
+                    </div>
                   </li>
                 )
               })}
@@ -227,7 +276,44 @@ export function FichaCaso({ caso, pessoaId, aoMudar, aoAbrir }) {
         <dl className="mt-5 grid grid-cols-2 gap-x-6 gap-y-4 border-t border-dashed border-stone-200 pt-4 sm:grid-cols-3">
           <div>
             <Rotulo>Início</Rotulo>
-            <dd className="mt-0.5 text-sm text-stone-800">{isoParaData(caso.data_inicio)}</dd>
+            {inicio !== null ? (
+              <dd className="mt-0.5">
+                <form onSubmit={salvarInicio} className="flex items-center gap-2">
+                  <input
+                    autoFocus
+                    inputMode="numeric"
+                    placeholder="dd/mm/aaaa"
+                    maxLength={10}
+                    value={inicio}
+                    onChange={(e) => setInicio(mascaraData(e.target.value))}
+                    className="w-28 rounded-md border border-stone-300 px-2 py-0.5 text-sm outline-none focus:ring-1 focus:ring-emerald-600/40"
+                  />
+                  <button type="submit" className="text-xs text-emerald-800 hover:underline">
+                    salvar
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setInicio(null)}
+                    className="text-xs text-stone-400 hover:underline"
+                  >
+                    cancelar
+                  </button>
+                </form>
+              </dd>
+            ) : (
+              <dd className="mt-0.5 flex items-baseline gap-2 text-sm text-stone-800">
+                {isoParaData(caso.data_inicio)}
+                {podeEditar && (
+                  <button
+                    type="button"
+                    onClick={() => setInicio(isoParaData(caso.data_inicio))}
+                    className="text-xs text-stone-400 hover:text-emerald-800 hover:underline"
+                  >
+                    corrigir
+                  </button>
+                )}
+              </dd>
+            )}
           </div>
           <div className="col-span-2 sm:col-span-2">
             <Rotulo>Nº de vezes</Rotulo>

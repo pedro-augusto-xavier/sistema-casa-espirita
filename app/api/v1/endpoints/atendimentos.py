@@ -129,7 +129,7 @@ def editar_atendimento(
     barrar_operador_em_ficha_anonimizada(
         usuario, crud.ligado_a_anonimizada(db, atendimento)
     )
-    atendimento = crud.atualizar(db, atendimento, dados)
+    atendimento, casos_movidos = crud.atualizar(db, atendimento, dados)
     registrar(
         db,
         usuario=usuario,
@@ -139,6 +139,15 @@ def editar_atendimento(
         # só os nomes dos campos: a observação é sensível e fica cifrada
         dados=campos_alterados(dados.model_dump(exclude_unset=True)),
     )
+    # corrigir a data do atendimento que abriu o caso move o início do caso
+    for caso_id in casos_movidos:
+        _registrar_caso(
+            db,
+            usuario,
+            AcaoAuditoria.atualizar,
+            caso_id,
+            {"campos": ["data_inicio"], "atendimento_id": atendimento.id},
+        )
     return AtendimentoOut.model_validate(atendimento)
 
 

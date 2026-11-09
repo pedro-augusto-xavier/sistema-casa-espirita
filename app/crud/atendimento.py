@@ -231,9 +231,33 @@ def criar(
     return get(db, atendimento.id), casos  # type: ignore[return-value]
 
 
+def _acompanha_inicio_dos_casos(
+    db: Session, atendimento: Atendimento, data_antiga: date
+) -> list[int]:
+    """Corrigir a data do atendimento que abriu um caso corrige o início do
+    caso junto: o caso nasce com a data dele (_abre_fichas_de_acompanhamento)
+    e o nº de vezes só conta atendimentos a partir do início -- sem isso, o
+    atendimento que abriu o caso podia ficar antes dele e deixar de contar.
+    Devolve os ids dos casos mexidos, pra rota registrar na auditoria."""
+    tipos = [t.tipo_tratamento_id for t in atendimento.tratamentos]
+    if not tipos:
+        return []
+    casos = db.scalars(
+        select(Tratamento).where(
+            Tratamento.solicitante_id == atendimento.pessoa_id,
+            Tratamento.tipo_tratamento_id.in_(tipos),
+            Tratamento.data_inicio == data_antiga,
+        )
+    ).all()
+    for caso in casos:
+        caso.data_inicio = atendimento.data
+    return [caso.id for caso in casos]
+
+
 def atualizar(
     db: Session, atendimento: Atendimento, dados: AtendimentoUpdate
-) -> Atendimento:
+) -> tuple[Atendimento, list[int]]:
+    data_antiga = atendimento.data
     mudancas = dados.model_dump(exclude_unset=True, exclude={"tratamentos"})
 
     for campo in ("atendido_por_id", "solicitante_id"):
@@ -248,8 +272,12 @@ def atualizar(
     if dados.tratamentos is not None:
         atendimento.tratamentos = _monta_tratamentos(db, dados.tratamentos)
 
+    casos_movidos: list[int] = []
+    if atendimento.data != data_antiga:
+        casos_movidos = _acompanha_inicio_dos_casos(db, atendimento, data_antiga)
+
     db.commit()
-    return get(db, atendimento.id)  # type: ignore[return-value]
+    return get(db, atendimento.id), casos_movidos  # type: ignore[return-value]
 
 
 def remover(db: Session, atendimento: Atendimento) -> list[tuple[int, int]]:

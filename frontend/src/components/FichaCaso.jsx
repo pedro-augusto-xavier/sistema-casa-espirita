@@ -40,6 +40,76 @@ function NomePessoa({ pessoa, estaFicha, className = '' }) {
   )
 }
 
+/** Linha embaixo do nome de quem concluiu: data, situação final e o "reativar". */
+export function StatusConcluido({ assistido, aoReativar }) {
+  return (
+    <div className="text-xs">
+      <p className="flex flex-wrap items-center gap-x-1.5">
+        <span className="inline-flex items-center gap-1 font-medium text-emerald-700">
+          <IconeCheck className="h-3 w-3" />
+          concluído{assistido.data_conclusao && ` em ${isoParaData(assistido.data_conclusao)}`}
+        </span>
+        {aoReativar && (
+          <>
+            <span className="text-stone-300">·</span>
+            <button
+              type="button"
+              onClick={aoReativar}
+              className="text-stone-400 underline decoration-stone-300 underline-offset-2 transition hover:text-emerald-800 hover:decoration-emerald-600"
+            >
+              reativar
+            </button>
+          </>
+        )}
+      </p>
+      {assistido.situacao_final && (
+        <p className="mt-0.5 text-stone-500">{assistido.situacao_final}</p>
+      )}
+    </div>
+  )
+}
+
+function Icone({ className, children }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+      className={className}
+    >
+      {children}
+    </svg>
+  )
+}
+
+function IconeCheck({ className }) {
+  return (
+    <Icone className={className}>
+      <path d="M20 6 9 17l-5-5" />
+    </Icone>
+  )
+}
+
+function IconeX({ className }) {
+  return (
+    <Icone className={className}>
+      <path d="M18 6 6 18M6 6l12 12" />
+    </Icone>
+  )
+}
+
+function IconeLapis({ className }) {
+  return (
+    <Icone className={className}>
+      <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" />
+    </Icone>
+  )
+}
+
 export function FichaCaso({ caso, pessoaId, aoMudar, aoAbrir }) {
   const [nota, setNota] = useState('')
   const [enviando, setEnviando] = useState(false)
@@ -217,12 +287,6 @@ export function FichaCaso({ caso, pessoaId, aoMudar, aoAbrir }) {
                               </Pill>
                             )
                           ))}
-                        {!ativo && (
-                          <Pill tom="cinza" className="shrink-0 text-[10px]">
-                            concluído
-                            {a.data_conclusao && ` ${isoParaData(a.data_conclusao)}`}
-                          </Pill>
-                        )}
                         {ativo && podeEditar && (
                           <button
                             type="button"
@@ -232,18 +296,12 @@ export function FichaCaso({ caso, pessoaId, aoMudar, aoAbrir }) {
                             concluir
                           </button>
                         )}
-                        {a.status === 'concluido' && podeEditar && (
-                          <button
-                            type="button"
-                            onClick={() => reativarAssistido(a)}
-                            className="text-xs text-stone-400 hover:text-emerald-800 hover:underline"
-                          >
-                            reativar
-                          </button>
-                        )}
                       </div>
-                      {!ativo && a.situacao_final && (
-                        <p className="text-xs text-stone-500">{a.situacao_final}</p>
+                      {!ativo && (
+                        <StatusConcluido
+                          assistido={a}
+                          aoReativar={podeEditar ? () => reativarAssistido(a) : null}
+                        />
                       )}
                     </div>
                   </li>
@@ -278,7 +336,7 @@ export function FichaCaso({ caso, pessoaId, aoMudar, aoAbrir }) {
             <Rotulo>Início</Rotulo>
             {inicio !== null ? (
               <dd className="mt-0.5">
-                <form onSubmit={salvarInicio} className="flex items-center gap-2">
+                <form onSubmit={salvarInicio} className="flex items-center gap-0.5">
                   <input
                     autoFocus
                     inputMode="numeric"
@@ -286,30 +344,41 @@ export function FichaCaso({ caso, pessoaId, aoMudar, aoAbrir }) {
                     maxLength={10}
                     value={inicio}
                     onChange={(e) => setInicio(mascaraData(e.target.value))}
-                    className="w-28 rounded-md border border-stone-300 px-2 py-0.5 text-sm outline-none focus:ring-1 focus:ring-emerald-600/40"
+                    onKeyDown={(e) => e.key === 'Escape' && setInicio(null)}
+                    aria-label="Data de início"
+                    className="w-26 rounded-md border border-emerald-600/40 bg-white px-1.5 py-0.5 text-sm text-stone-800 ring-2 ring-emerald-600/10 outline-none"
                   />
-                  <button type="submit" className="text-xs text-emerald-800 hover:underline">
-                    salvar
+                  <button
+                    type="submit"
+                    title="Salvar"
+                    aria-label="Salvar data de início"
+                    className="rounded-md p-1 text-emerald-700 transition hover:bg-emerald-50"
+                  >
+                    <IconeCheck className="h-4 w-4" />
                   </button>
                   <button
                     type="button"
                     onClick={() => setInicio(null)}
-                    className="text-xs text-stone-400 hover:underline"
+                    title="Cancelar"
+                    aria-label="Cancelar"
+                    className="rounded-md p-1 text-stone-400 transition hover:bg-stone-100 hover:text-stone-600"
                   >
-                    cancelar
+                    <IconeX className="h-4 w-4" />
                   </button>
                 </form>
               </dd>
             ) : (
-              <dd className="mt-0.5 flex items-baseline gap-2 text-sm text-stone-800">
+              <dd className="group mt-0.5 flex items-center gap-1 text-sm text-stone-800">
                 {isoParaData(caso.data_inicio)}
                 {podeEditar && (
                   <button
                     type="button"
                     onClick={() => setInicio(isoParaData(caso.data_inicio))}
-                    className="text-xs text-stone-400 hover:text-emerald-800 hover:underline"
+                    title="Alterar data de início"
+                    aria-label="Alterar data de início"
+                    className="rounded-md p-1 text-stone-300 transition group-hover:text-stone-500 hover:bg-stone-100 hover:text-emerald-800"
                   >
-                    corrigir
+                    <IconeLapis className="h-3.5 w-3.5" />
                   </button>
                 )}
               </dd>

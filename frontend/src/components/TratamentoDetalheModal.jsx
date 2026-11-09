@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { api } from '../api/client'
 import { useAuth } from '../auth/AuthContext'
 import { ROTULO_VINCULO, hojeIso, isoParaData } from '../utils/formatadores'
+import { StatusConcluido } from './FichaCaso'
 import { Modal } from './Modal'
 import { Avatar, Botao, Carregando, MensagemErro, Pill, Rotulo } from './ui'
 
@@ -160,12 +161,6 @@ export function TratamentoDetalheModal({ tratamentoId, onFechar }) {
                         >
                           {a.pessoa.nome_completo}
                         </span>
-                        {a.status !== 'ativo' && (
-                          <Pill tom="cinza" className="shrink-0 text-[10px]">
-                            concluído
-                            {a.data_conclusao && ` ${isoParaData(a.data_conclusao)}`}
-                          </Pill>
-                        )}
                         {a.vinculo_com_responsavel && a.pessoa.id !== dados.solicitante?.id && (
                           <Pill tom="cinza" className="shrink-0 text-[10px]">
                             {ROTULO_VINCULO[a.vinculo_com_responsavel]}
@@ -180,18 +175,12 @@ export function TratamentoDetalheModal({ tratamentoId, onFechar }) {
                             concluir
                           </button>
                         )}
-                        {a.status === 'concluido' && podeEditar && (
-                          <button
-                            type="button"
-                            onClick={() => reativarAssistido(a)}
-                            className="text-xs text-stone-400 hover:text-emerald-800 hover:underline"
-                          >
-                            reativar
-                          </button>
-                        )}
                       </div>
-                      {a.status !== 'ativo' && a.situacao_final && (
-                        <p className="text-xs text-stone-500">{a.situacao_final}</p>
+                      {a.status !== 'ativo' && (
+                        <StatusConcluido
+                          assistido={a}
+                          aoReativar={podeEditar ? () => reativarAssistido(a) : null}
+                        />
                       )}
                     </div>
                   </li>

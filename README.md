@@ -4,11 +4,11 @@ Sistema interno para cadastro de pessoas, atendimentos e tratamentos de uma casa
 espírita. Substitui as fichas de papel por um histórico digital, pesquisável e
 com controle de acesso.
 
-> Projeto de estudo / portfólio. Todos os dados do repositório são fictícios.
+> Em produção: o sistema é usado no dia a dia de uma casa espírita. Todos os dados do repositório são fictícios.
 
 ## Status
 
-Em desenvolvimento.
+Em produção, em uso no dia a dia da casa.
 
 - [x] Esqueleto da API + conexão com o banco
 - [x] Modelo de dados (17 tabelas) + migrations

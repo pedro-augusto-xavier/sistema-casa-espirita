@@ -45,7 +45,7 @@ logging.getLogger("uvicorn.access").addFilter(_SemQueryStringNoLog())
 app = FastAPI(
     title="Sistema Casa Espírita",
     description="Cadastro de pessoas, atendimentos e tratamentos.",
-    version="0.2.0",
+    version="1.0.0",
     docs_url="/docs" if settings.is_dev else None,
     redoc_url="/redoc" if settings.is_dev else None,
     openapi_url="/openapi.json" if settings.is_dev else None,

@@ -6,6 +6,9 @@ com controle de acesso.
 
 > Em produção: o sistema é usado no dia a dia de uma casa espírita. Todos os dados do repositório são fictícios.
 
+Para quem usa: [manual do voluntário](docs/MANUAL.md). O que mudou em cada
+versão: [CHANGELOG.md](CHANGELOG.md).
+
 ## Status
 
 Em produção, em uso no dia a dia da casa.

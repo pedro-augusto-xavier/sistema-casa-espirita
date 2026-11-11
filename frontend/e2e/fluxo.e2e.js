@@ -11,7 +11,7 @@ test('entrar, cadastrar ficha e registrar atendimento', async ({ page }) => {
   await page.getByLabel('Senha').fill(process.env.E2E_SENHA)
   await page.getByRole('button', { name: 'Entrar' }).click()
 
-  await page.getByRole('link', { name: '+ Nova pessoa' }).click()
+  await page.getByRole('link', { name: '+ Nova pessoa' }).first().click()
   await page.getByLabel('Nome completo').fill(nome)
   await page.getByLabel('Data de nascimento').fill('01/01/1980')
   await page.getByLabel('Sexo').selectOption('feminino')

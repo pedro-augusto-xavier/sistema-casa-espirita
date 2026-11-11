@@ -105,6 +105,73 @@ jobs:
       - name: Build
         run: npm run build
 
+  # Ponta a ponta: API + front de verdade num navegador, contra um banco
+  # descartável. Pega o que os testes de cada lado sozinhos não pegam.
+  e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: casa_espirita
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      DATABASE_URL: postgresql+psycopg://postgres:postgres@localhost:5432/casa_espirita
+      SECRET_KEY: ci-secret-sem-valor-real-mas-com-32-chars-ou-mais
+      CHAVES_CRIPTOGRAFIA: "1:Y2ktY2hhdmUtZGUtdGVzdGUtc2VtLXZhbG9yLXJlYWw="
+      CHAVE_HMAC: Y2ktaG1hYy1kZS10ZXN0ZS1zZW0tdmFsb3ItcmVhbC0x
+      APP_ENV: ci
+      E2E_SENHA: senha-do-e2e-so-no-banco-descartavel
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Instalar dependências
+        run: |
+          pip install -r requirements.txt
+          npm ci --prefix frontend
+          npx --prefix frontend playwright install --with-deps chromium
+
+      - name: Banco (migrations, seed, usuário de teste)
+        run: |
+          alembic upgrade head
+          python -m scripts.seed
+          python -m tests.e2e_preparar
+
+      - name: Teste de ponta a ponta (Playwright)
+        working-directory: frontend
+        run: npx playwright test
+
+      - name: Rastro da falha
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-trace
+          path: frontend/test-results
+          retention-days: 7
+
   # Produção: migrations + seed com a URL do dono do banco e, depois, o
   # deploy da API no Render pelo deploy hook (auto-deploy desligado lá).
   # A URL do dono só existe aqui, no Environment "producao" (aprovação
@@ -113,7 +180,7 @@ jobs:
   # variáveis; os segredos vão por `env:` de cada passo, nunca no script.
   deploy:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    needs: [testes, frontend]
+    needs: [testes, frontend, e2e]
     runs-on: ubuntu-latest
     environment: producao
     concurrency:

@@ -616,6 +616,16 @@ def test_settings_de_producao_validas_passam():
     assert s.APP_ENV == "production"
 
 
+def test_settings_sem_app_env_nao_sobe(monkeypatch):
+    """Sem APP_ENV a API não pode subir em modo dev por padrão (achado #3):
+    as travas de produção cairiam todas em silêncio."""
+    from app.core.config import Settings
+
+    monkeypatch.delenv("APP_ENV", raising=False)
+    with pytest.raises(ValidationError, match="APP_ENV"):
+        Settings(_env_file=None, DATABASE_URL="postgresql+psycopg://u:p@localhost/db")
+
+
 def test_settings_recusa_chave_padrao_fora_do_dev():
     with pytest.raises(ValidationError, match="SECRET_KEY"):
         _settings_prod(SECRET_KEY="dev-inseguro-troque-no-.env")

@@ -29,6 +29,8 @@ dia da casa.
 - Erro inesperado numa tela mostra aviso com "Recarregar" em vez de página
   em branco.
 - Manual do voluntário ([docs/MANUAL.md](docs/MANUAL.md)).
+- Banco de dados mudou de São Paulo para Oregon, a mesma região da API:
+  cada consulta deixa de cruzar o continente (entrar levava ~4 s).
 
 ### Segurança
 

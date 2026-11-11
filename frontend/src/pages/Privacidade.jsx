@@ -66,8 +66,9 @@ export function Privacidade() {
           <Secao titulo="Onde os dados ficam">
             Em serviços de computação em nuvem contratados para manter o sistema no ar: Neon (banco
             de dados), Render (servidor), Vercel (site) e GitHub (cópias de segurança, criptografadas).
-            Esses serviços podem guardar os dados fora do Brasil, seguindo as regras de proteção
-            deles. Eles não usam os seus dados para outros fins.
+            Os dados ficam guardados nos Estados Unidos, seguindo as regras de proteção desses
+            serviços (transferência internacional, art. 33 da LGPD). Eles não usam os seus dados
+            para outros fins.
           </Secao>
 
           <Secao titulo="Como protegemos">

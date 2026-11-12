@@ -1,6 +1,6 @@
 [project]
 name = "sistema-casa-espirita"
-version = "0.1.0"
+version = "1.0.0"
 description = "Sistema interno de cadastro para casa espírita"
 requires-python = ">=3.12"
 license = { text = "MIT" }

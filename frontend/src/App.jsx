@@ -1,6 +1,7 @@
 import { BrowserRouter, Route, Routes } from 'react-router-dom'
 import { AuthProvider } from './auth/AuthContext'
 import { RotaProtegida } from './auth/RotaProtegida'
+import { ErroInesperado } from './components/ErroInesperado'
 import { Agenda } from './pages/Agenda'
 import { Auditoria } from './pages/Auditoria'
 import { EditarPessoa } from './pages/EditarPessoa'
@@ -14,72 +15,74 @@ import { Usuarios } from './pages/Usuarios'
 
 function App() {
   return (
-    <BrowserRouter>
-      <AuthProvider>
-        <Routes>
-          <Route path="/login" element={<Login />} />
-          {/* pública: qualquer pessoa atendida pode ler */}
-          <Route path="/privacidade" element={<Privacidade />} />
-          <Route
-            path="/"
-            element={
-              <RotaProtegida>
-                <Pessoas />
-              </RotaProtegida>
-            }
-          />
-          <Route
-            path="/pessoas/nova"
-            element={
-              <RotaProtegida>
-                <NovaPessoa />
-              </RotaProtegida>
-            }
-          />
-          <Route
-            path="/pessoas/:id"
-            element={
-              <RotaProtegida>
-                <FichaPessoa />
-              </RotaProtegida>
-            }
-          />
-          <Route
-            path="/pessoas/:id/editar"
-            element={
-              <RotaProtegida>
-                <EditarPessoa />
-              </RotaProtegida>
-            }
-          />
-          <Route
-            path="/agenda"
-            element={
-              <RotaProtegida>
-                <Agenda />
-              </RotaProtegida>
-            }
-          />
-          <Route
-            path="/usuarios"
-            element={
-              <RotaProtegida somenteAdmin>
-                <Usuarios />
-              </RotaProtegida>
-            }
-          />
-          <Route
-            path="/auditoria"
-            element={
-              <RotaProtegida somenteAdmin>
-                <Auditoria />
-              </RotaProtegida>
-            }
-          />
-          <Route path="*" element={<NaoEncontrado />} />
-        </Routes>
-      </AuthProvider>
-    </BrowserRouter>
+    <ErroInesperado>
+      <BrowserRouter>
+        <AuthProvider>
+          <Routes>
+            <Route path="/login" element={<Login />} />
+            {/* pública: qualquer pessoa atendida pode ler */}
+            <Route path="/privacidade" element={<Privacidade />} />
+            <Route
+              path="/"
+              element={
+                <RotaProtegida>
+                  <Pessoas />
+                </RotaProtegida>
+              }
+            />
+            <Route
+              path="/pessoas/nova"
+              element={
+                <RotaProtegida>
+                  <NovaPessoa />
+                </RotaProtegida>
+              }
+            />
+            <Route
+              path="/pessoas/:id"
+              element={
+                <RotaProtegida>
+                  <FichaPessoa />
+                </RotaProtegida>
+              }
+            />
+            <Route
+              path="/pessoas/:id/editar"
+              element={
+                <RotaProtegida>
+                  <EditarPessoa />
+                </RotaProtegida>
+              }
+            />
+            <Route
+              path="/agenda"
+              element={
+                <RotaProtegida>
+                  <Agenda />
+                </RotaProtegida>
+              }
+            />
+            <Route
+              path="/usuarios"
+              element={
+                <RotaProtegida somenteAdmin>
+                  <Usuarios />
+                </RotaProtegida>
+              }
+            />
+            <Route
+              path="/auditoria"
+              element={
+                <RotaProtegida somenteAdmin>
+                  <Auditoria />
+                </RotaProtegida>
+              }
+            />
+            <Route path="*" element={<NaoEncontrado />} />
+          </Routes>
+        </AuthProvider>
+      </BrowserRouter>
+    </ErroInesperado>
   )
 }
 

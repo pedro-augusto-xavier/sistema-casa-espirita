@@ -1,6 +1,8 @@
-import { describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import {
+  dataEstranha,
   dataParaIso,
+  hojeIso,
   isoParaData,
   mascaraCpf,
   mascaraData,
@@ -145,5 +147,26 @@ describe('mascaraTelefone', () => {
   it('formata progressivamente enquanto a pessoa digita', () => {
     expect(mascaraTelefone('21')).toBe('21')
     expect(mascaraTelefone('219')).toBe('(21) 9')
+  })
+})
+
+describe('hojeIso e dataEstranha', () => {
+  beforeEach(() => {
+    vi.useFakeTimers()
+    // 22h do dia 9 no relógio local: em UTC já seria dia 10 no Brasil
+    vi.setSystemTime(new Date(2026, 10, 9, 22, 30))
+  })
+  afterEach(() => vi.useRealTimers())
+
+  it('usa o dia local, não o do UTC', () => {
+    expect(hojeIso()).toBe('2026-11-09')
+  })
+
+  it('marca futuro, antiga ou nada', () => {
+    expect(dataEstranha('2026-11-10')).toBe('futuro')
+    expect(dataEstranha('2026-11-09')).toBe(null)
+    expect(dataEstranha('2025-11-09')).toBe(null)
+    expect(dataEstranha('2025-11-08')).toBe('antiga')
+    expect(dataEstranha('2002-02-02')).toBe('antiga')
   })
 })

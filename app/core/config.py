@@ -58,8 +58,10 @@ class Settings(BaseSettings):
     #   "ninguem" -> opcional pra todos
     MFA_OBRIGATORIO: Literal["admin", "todos", "ninguem"] = "admin"
 
-    # App
-    APP_ENV: str = "dev"
+    # App. Obrigatório, sem padrão: se faltar no Render, a API não sobe --
+    # com padrão "dev", todas as travas de produção (chaves, /docs, HSTS,
+    # SQL no log) cairiam em silêncio (achado #3). Local: APP_ENV=dev no .env.
+    APP_ENV: str
 
     # Cabeçalho que traz o IP real de quem acessa, preenchido pelo proxy da
     # frente (no Render, a Cloudflare). Vazio = não tem proxy: vale o IP da

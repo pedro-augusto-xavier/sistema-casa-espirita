@@ -4,11 +4,14 @@ Sistema interno para cadastro de pessoas, atendimentos e tratamentos de uma casa
 espírita. Substitui as fichas de papel por um histórico digital, pesquisável e
 com controle de acesso.
 
-> Projeto de estudo / portfólio. Todos os dados do repositório são fictícios.
+> Em produção: o sistema é usado no dia a dia de uma casa espírita. Todos os dados do repositório são fictícios.
+
+Para quem usa: [manual do voluntário](docs/MANUAL.md). O que mudou em cada
+versão: [CHANGELOG.md](CHANGELOG.md).
 
 ## Status
 
-Em desenvolvimento.
+Em produção, em uso no dia a dia da casa.
 
 - [x] Esqueleto da API + conexão com o banco
 - [x] Modelo de dados (17 tabelas) + migrations
@@ -31,7 +34,7 @@ Em desenvolvimento.
 | Banco de dados | PostgreSQL 17 |
 | ORM / Migrations | SQLAlchemy 2.0 + Alembic |
 | Validação | Pydantic v2 |
-| Testes | pytest + httpx |
+| Testes | pytest + httpx · Vitest · Playwright (ponta a ponta) |
 | Frontend | React + Vite + Tailwind CSS + React Router |
 
 ## Rodando localmente
@@ -114,6 +117,21 @@ pytest
 Os testes rodam contra o banco do `.env`, cada um dentro de uma transação
 que é desfeita no final. O GitHub Actions roda lint + migrations + testes a
 cada push (veja `.github/workflows/ci.yml`).
+
+#### Ponta a ponta (Playwright)
+
+Sobe a API e o front e percorre, num navegador, o caminho de todo dia
+(entrar → nova ficha → registrar atendimento). Usa um banco **à parte**:
+
+```powershell
+# uma vez: crie o banco casa_espirita_e2e no Postgres e instale o navegador
+cd frontend; npx playwright install chromium; cd ..
+
+$env:DATABASE_URL = "postgresql+psycopg://postgres:SENHA@localhost:5432/casa_espirita_e2e"
+$env:E2E_SENHA = "qualquer-senha-local"
+alembic upgrade head; python -m scripts.seed; python -m tests.e2e_preparar
+cd frontend; npm run e2e
+```
 
 ## Estrutura
 

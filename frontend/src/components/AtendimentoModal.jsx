@@ -3,6 +3,7 @@ import { api } from '../api/client'
 import {
   GUIAS,
   OPCOES_VINCULO,
+  dataEstranha,
   dataParaIso,
   isoParaData,
   mascaraData,
@@ -103,6 +104,18 @@ export function AtendimentoModal({ pessoa, existente, onFechar, onSalvo }) {
       setErro('Data inválida — use o formato dd/mm/aaaa.')
       return
     }
+    const estranha = dataEstranha(dataIso)
+    if (estranha === 'futuro') {
+      setErro('A data do atendimento não pode ser no futuro.')
+      return
+    }
+    // editando um atendimento antigo sem mexer na data, não pergunta de novo
+    if (
+      estranha === 'antiga' &&
+      dataIso !== existente?.data &&
+      !confirm(`A data do atendimento é ${data}, mais de um ano atrás. Está certo?`)
+    )
+      return
 
     const corpo = {
       data: dataIso,

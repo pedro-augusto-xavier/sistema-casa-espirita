@@ -6,8 +6,10 @@ front no **Vercel**. Os três aceitam login com GitHub.
 ## 1. Banco de dados (Neon)
 
 1. Cria conta em **neon.tech** (botão "Continue with GitHub").
-2. **New Project** → nome `casa-espirita` → região mais perto do Brasil
-   (ex: `us-east-1`/aws) → Postgres 17.
+2. **New Project** → nome `casa-espirita` → **a mesma região do Render**
+   (Render em Oregon → `aws-us-west-2`) → Postgres 18. Banco e API longe um
+   do outro deixam tudo lento: cada consulta cruza o continente, e uma tela
+   faz várias (com o banco em São Paulo e a API em Oregon, entrar levava ~4 s).
 3. Na tela do projeto, copia a **Connection string** (algo como
    `postgresql://usuario:senha@ep-xxxx.aws.neon.tech/neondb?sslmode=require`).
    Guarda essa URL -- vai ser usada duas vezes (Render e no seu PC).

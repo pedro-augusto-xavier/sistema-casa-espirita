@@ -88,6 +88,33 @@ def test_concluir_um_assistido_por_vez(client: TestClient):
     assert assistidos[outro]["status"] == "ativo"
 
 
+def test_reativar_assistido_concluido(client: TestClient):
+    tipo = _tipo_caso(client)
+    p = _pessoa(client, "Reativado")
+    caso = client.post(
+        "/api/v1/tratamentos",
+        json={"tipo_tratamento_id": tipo, "assistidos": [{"pessoa_id": p}]},
+    ).json()
+    url = f"/api/v1/tratamentos/{caso['id']}/assistidos/{caso['assistidos'][0]['id']}"
+    client.patch(
+        url,
+        json={
+            "status": "concluido",
+            "situacao_final": "liberado",
+            "data_conclusao": "2026-11-09",
+        },
+    )
+
+    r = client.patch(
+        url, json={"status": "ativo", "situacao_final": None, "data_conclusao": None}
+    )
+    assert r.status_code == 200
+    a = r.json()["assistidos"][0]
+    assert a["status"] == "ativo"
+    assert a["situacao_final"] is None
+    assert a["data_conclusao"] is None
+
+
 def test_assistido_duplicado_da_422(client: TestClient):
     tipo = _tipo_caso(client)
     p = _pessoa(client, "Repetido")

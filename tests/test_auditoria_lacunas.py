@@ -200,3 +200,45 @@ def test_atendimento_que_abre_e_altera_caso_fica_na_auditoria_do_caso(
     # apagar o atendimento não apaga o rastro do caso
     assert client.delete(f"/api/v1/atendimentos/{at1}", headers=op).status_code == 204
     assert len(_auditoria(client, entidade="tratamento", entidade_id=t)) == 3
+
+
+def test_corrigir_data_do_atendimento_que_abriu_o_caso_move_o_inicio(
+    client: TestClient, entrar_como
+):
+    op = entrar_como("Op Data")
+    p = _pessoa(client, "Pessoa Data Errada")
+    desob = _id_tipo(client, "Desobsessão Presencial")
+    tratamentos = [{"tipo_tratamento_id": desob, "sessoes_previstas": 7}]
+    r = client.post(
+        "/api/v1/atendimentos",
+        json={"pessoa_id": p, "data": "2002-02-02", "tratamentos": tratamentos},
+        headers=op,
+    )
+    assert r.status_code == 201, r.text
+    at = r.json()["id"]
+    [caso] = client.get("/api/v1/tratamentos", params={"pessoa_id": p}).json()["items"]
+    assert caso["data_inicio"] == "2002-02-02"
+
+    # a tela manda o atendimento inteiro de volta, com a data certa
+    r = client.patch(
+        f"/api/v1/atendimentos/{at}",
+        json={"data": "2026-11-02", "tratamentos": tratamentos},
+        headers=op,
+    )
+    assert r.status_code == 200, r.text
+
+    caso = client.get(f"/api/v1/tratamentos/{caso['id']}").json()
+    assert caso["data_inicio"] == "2026-11-02"
+    assert caso["sessoes_realizadas"] == 1
+    linhas = _auditoria(client, entidade="tratamento", entidade_id=caso["id"])
+    assert linhas[-1]["dados"] == {"campos": ["data_inicio"], "atendimento_id": at}
+    assert linhas[-1]["usuario_nome"] == "Op Data"
+
+    # mexer de novo em outra coisa, sem trocar a data, não move nada
+    r = client.patch(
+        f"/api/v1/atendimentos/{at}",
+        json={"data": "2026-11-02", "observacao": "x"},
+        headers=op,
+    )
+    assert r.status_code == 200, r.text
+    assert len(_auditoria(client, entidade="tratamento", entidade_id=caso["id"])) == 2

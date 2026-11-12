@@ -1,0 +1,26 @@
+name: Monitor
+
+# Confere a cada 10 min se a API (banco e chaves inclusos, via /health) e o
+# site estão no ar. Se falhar, o GitHub manda e-mail pra quem é dono do
+# repositório ("Run failed: Monitor"). De quebra, as batidas mantêm a API do
+# plano Free acordada (ela dorme depois de 15 min sem uso).
+# O cron do GitHub pode atrasar alguns minutos -- é aviso, não tempo real.
+
+on:
+  schedule:
+    - cron: "*/10 * * * *"
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  no-ar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: API (/health)
+        # o primeiro acesso depois de dormir leva ~45 s
+        run: curl -fsS --retry 2 --retry-all-errors -m 90 https://sistema-casa-espirita.onrender.com/health
+
+      - name: Site
+        run: curl -fsS -o /dev/null --retry 2 --retry-all-errors -m 30 https://sistema-casa-espirita.vercel.app

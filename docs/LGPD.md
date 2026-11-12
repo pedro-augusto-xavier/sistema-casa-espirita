@@ -134,14 +134,17 @@ indicar uma pessoa e publicar o contato dela na política de privacidade.
 
 | Serviço | Papel | Onde | Termos |
 |---|---|---|---|
-| Neon | banco de dados | **Brasil — São Paulo** (AWS sa-east-1), conferido no projeto | termos de proteção de dados (DPA) no site do Neon |
-| Render | servidor da API (os dados passam por ele a cada uso) | 👤 conferir a região em Settings no Render | DPA no site do Render |
+| Neon | banco de dados | **EUA — Oregon** (AWS us-west-2), conferido no projeto | termos de proteção de dados (DPA) no site do Neon |
+| Render | servidor da API (os dados passam por ele a cada uso) | **EUA — Oregon**, conferido em Settings | DPA no site do Render |
 | Vercel | site (só arquivos do site; os dados passam direto do navegador pra API) | global | DPA no site da Vercel |
 | GitHub | código e cópias de segurança criptografadas (a chave fica com a casa) | EUA | DPA no site do GitHub |
 
-O banco fica no Brasil. O servidor (Render), o site (Vercel) e as cópias de
-segurança (GitHub) podem ficar fora do Brasil (transferência internacional,
-art. 33). Esses provedores oferecem cláusulas contratuais de proteção de
+Os dados ficam nos EUA: o banco (Neon) e o servidor (Render) na mesma região
+(Oregon), o site (Vercel) e as cópias de segurança (GitHub) também fora do
+Brasil (transferência internacional, art. 33). Até 11/11/2026 o banco ficava
+em São Paulo; mudou para a região do servidor porque cada consulta cruzava o
+continente (entrar levava ~4 s). CPF, observações, diário e anexos seguem
+cifrados com chave que não fica no Neon. Esses provedores oferecem cláusulas contratuais de proteção de
 dados. 👤 Vale a revisão jurídica confirmar se isso basta pra casa.
 
 ## Quem tem acesso

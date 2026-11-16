@@ -1,5 +1,5 @@
 # --- API ---
-fastapi==0.162.0
+fastapi==0.162.7
 # fixado à parte: o fastapi aceita qualquer starlette >= 0.46, e as versões
 # antigas têm falhas conhecidas (pip-audit)
 starlette==1.10.0
@@ -8,11 +8,11 @@ uvicorn[standard]==0.54.0
 # --- Banco de dados ---
 sqlalchemy==2.1.8
 alembic==1.20.1
-psycopg[binary]==3.3.8
+psycopg[binary]==3.3.9
 
 # --- Configuração / validação ---
 pydantic==2.14.3
-pydantic-settings==2.16.2
+pydantic-settings==2.16.3
 email-validator==2.3.0
 
 # --- Segurança ---
